@@ -28,10 +28,12 @@ export const BERLIN_TILE_PRELOAD = {
 } as const;
 
 export const BERLIN_TILE_RUNTIME = {
+  ERROR_TARGET: 36,
   DOWNLOAD_JOBS: 8,
   PARSE_JOBS: 2,
   PROCESS_NODE_JOBS: 8,
   MAX_TILES_PROCESSED: 48,
+  LOAD_SIBLINGS: false,
 } as const;
 
 export const BERLIN_TILE_LOOK = {

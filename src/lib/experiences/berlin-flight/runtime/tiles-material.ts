@@ -1,10 +1,7 @@
 import * as THREE from "three";
 import { BERLIN_TILE_LOOK } from "../constants";
-import { createBerlinConePatternTexture } from "./cone-pattern-texture";
 
-type ShaderCompileParameters = Parameters<
-  THREE.Material["onBeforeCompile"]
->[0];
+type ShaderCompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
 
 type MaterialWithTextureMaps = THREE.Material & {
   alphaMap?: THREE.Texture | null;
@@ -21,16 +18,14 @@ type MaterialWithTextureMaps = THREE.Material & {
 };
 
 const shaderNeutralColor = new THREE.Color(BERLIN_TILE_LOOK.NEUTRAL_COLOR);
-const shaderDebugHitColor = new THREE.Color(0x00ff66);
-const shaderConePatternTexture = createBerlinConePatternTexture();
 const shaderNeutralLightDirection = new THREE.Vector3(
   BERLIN_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.x,
   BERLIN_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.y,
   BERLIN_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.z,
 ).normalize();
 const BERLIN_TILE_OPAQUE_OPACITY = 1;
-const BERLIN_CONE_PATTERN_WORLD_SCALE = 18;
-const BERLIN_CONE_PATTERN_BLEND = 0.72;
+// ponytail: temporary shader switch; restore to true to re-enable cone mask tile material effect.
+const BERLIN_TILE_MATERIAL_EFFECT_ENABLED = true;
 
 export function createBerlinTileMaterial(
   sourceMaterial: THREE.Material | THREE.Material[],
@@ -70,7 +65,9 @@ export function disposeMaterial(
   disposeSingleMaterial(material, disposedMaterials);
 }
 
-function cloneBerlinTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
+function cloneBerlinTileMaterial(
+  sourceMaterial: THREE.Material,
+): THREE.Material {
   const material = sourceMaterial.clone();
   const previousOnBeforeCompile = material.onBeforeCompile;
   const previousProgramCacheKey =
@@ -82,10 +79,12 @@ function cloneBerlinTileMaterial(sourceMaterial: THREE.Material): THREE.Material
   material.depthWrite = true;
   material.needsUpdate = true;
   if ("metalness" in material) {
-    (material as THREE.MeshStandardMaterial).metalness = BERLIN_TILE_LOOK.METALNESS;
+    (material as THREE.MeshStandardMaterial).metalness =
+      BERLIN_TILE_LOOK.METALNESS;
   }
   if ("roughness" in material) {
-    (material as THREE.MeshStandardMaterial).roughness = BERLIN_TILE_LOOK.ROUGHNESS;
+    (material as THREE.MeshStandardMaterial).roughness =
+      BERLIN_TILE_LOOK.ROUGHNESS;
   }
   if ("opacity" in material) {
     material.opacity = BERLIN_TILE_OPAQUE_OPACITY;
@@ -93,19 +92,16 @@ function cloneBerlinTileMaterial(sourceMaterial: THREE.Material): THREE.Material
   if ("transparent" in material) {
     material.transparent = false;
   }
+  if (!BERLIN_TILE_MATERIAL_EFFECT_ENABLED) {
+    return material;
+  }
 
   material.onBeforeCompile = (shader: ShaderCompileParameters, renderer) => {
     previousOnBeforeCompile(shader, renderer);
     shader.uniforms.uBerlinNeutralColor = { value: shaderNeutralColor };
-    shader.uniforms.uBerlinDebugHitColor = { value: shaderDebugHitColor };
-    shader.uniforms.uBerlinConePattern = { value: shaderConePatternTexture };
-    shader.uniforms.uBerlinConePatternScale = {
-      value: BERLIN_CONE_PATTERN_WORLD_SCALE,
+    shader.uniforms.uBerlinOutsideOpacity = {
+      value: BERLIN_TILE_OPAQUE_OPACITY,
     };
-    shader.uniforms.uBerlinConePatternBlend = {
-      value: BERLIN_CONE_PATTERN_BLEND,
-    };
-    shader.uniforms.uBerlinOutsideOpacity = { value: BERLIN_TILE_OPAQUE_OPACITY };
     shader.uniforms.uBerlinNeutralLightDirection = {
       value: shaderNeutralLightDirection,
     };
@@ -132,7 +128,7 @@ function cloneBerlinTileMaterial(sourceMaterial: THREE.Material): THREE.Material
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        "#include <common>\nuniform vec3 uBerlinNeutralColor;\nuniform vec3 uBerlinDebugHitColor;\nuniform sampler2D uBerlinConePattern;\nuniform float uBerlinConePatternScale;\nuniform float uBerlinConePatternBlend;\nuniform float uBerlinOutsideOpacity;\nuniform vec3 uBerlinNeutralLightDirection;\nuniform float uBerlinNeutralShadeAmbient;\nuniform float uBerlinNeutralShadeHemisphere;\nuniform float uBerlinNeutralShadeDirectional;\nvarying float vBerlinConeMask;\nvarying vec3 vBerlinWorldPosition;",
+        "#include <common>\nuniform vec3 uBerlinNeutralColor;\nuniform float uBerlinOutsideOpacity;\nuniform vec3 uBerlinNeutralLightDirection;\nuniform float uBerlinNeutralShadeAmbient;\nuniform float uBerlinNeutralShadeHemisphere;\nuniform float uBerlinNeutralShadeDirectional;\nvarying float vBerlinConeMask;\nvarying vec3 vBerlinWorldPosition;",
       )
       .replace(
         "#include <normal_fragment_begin>",
@@ -140,11 +136,11 @@ function cloneBerlinTileMaterial(sourceMaterial: THREE.Material): THREE.Material
       )
       .replace(
         "#include <map_fragment>",
-        "float berlinConeMask = clamp(vBerlinConeMask, 0.0, 1.0);\nvec3 berlinFlatColor = uBerlinNeutralColor;\nvec3 berlinWorldNormal = normalize(cross(dFdx(vBerlinWorldPosition), dFdy(vBerlinWorldPosition)));\nfloat berlinDirectional = max(dot(berlinWorldNormal, normalize(uBerlinNeutralLightDirection)), 0.0);\nfloat berlinHemisphere = berlinWorldNormal.y * 0.5 + 0.5;\nfloat berlinShade = clamp(\n  uBerlinNeutralShadeAmbient +\n    berlinHemisphere * uBerlinNeutralShadeHemisphere +\n    berlinDirectional * uBerlinNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 berlinShadedFlatColor = berlinFlatColor * berlinShade;\nvec3 berlinDebugHitColor = uBerlinDebugHitColor * max(berlinShade, 0.85);\nvec2 berlinPatternUv = vBerlinWorldPosition.xz / uBerlinConePatternScale;\nfloat berlinPatternSample = texture2D(uBerlinConePattern, berlinPatternUv).r;\nvec3 berlinPatternColor = mix(berlinDebugHitColor * 0.55, vec3(1.0), berlinPatternSample);\n#include <map_fragment>\nvec3 berlinInsideColor = mix(diffuseColor.rgb, berlinPatternColor, uBerlinConePatternBlend);\ndiffuseColor.rgb = mix(berlinShadedFlatColor, berlinInsideColor, berlinConeMask);\ndiffuseColor.a = mix(uBerlinOutsideOpacity, 1.0, berlinConeMask);",
+        "float berlinConeMask = clamp(vBerlinConeMask, 0.0, 1.0);\nvec3 berlinFlatColor = uBerlinNeutralColor;\nvec3 berlinWorldNormal = normalize(cross(dFdx(vBerlinWorldPosition), dFdy(vBerlinWorldPosition)));\nfloat berlinDirectional = max(dot(berlinWorldNormal, normalize(uBerlinNeutralLightDirection)), 0.0);\nfloat berlinHemisphere = berlinWorldNormal.y * 0.5 + 0.5;\nfloat berlinShade = clamp(\n  uBerlinNeutralShadeAmbient +\n    berlinHemisphere * uBerlinNeutralShadeHemisphere +\n    berlinDirectional * uBerlinNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 berlinShadedFlatColor = berlinFlatColor * berlinShade;\n#include <map_fragment>\ndiffuseColor.rgb = mix(berlinShadedFlatColor, diffuseColor.rgb, berlinConeMask);\ndiffuseColor.a = mix(uBerlinOutsideOpacity, 1.0, berlinConeMask);",
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:berlin-cone-mask-v5`;
+    `${previousProgramCacheKey?.() ?? material.type}:berlin-cone-mask-v6`;
 
   return material;
 }

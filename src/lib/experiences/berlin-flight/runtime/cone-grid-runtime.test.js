@@ -114,6 +114,42 @@ test("BerlinConeGridRuntime applies the latest queued observer position after a 
   runtime.dispose();
 });
 
+test("BerlinConeGridRuntime skips same-chunk updates after chunks are loaded", async () => {
+  let loadChunkCalls = 0;
+  const runtime = new BerlinConeGridRuntime({
+    async loadManifest() {
+      return {
+        version: 1,
+        origin: { x: 0, z: 0 },
+        chunkSizeMeters: 1920,
+        bounds: {
+          minChunkX: 0,
+          maxChunkX: 0,
+          minChunkZ: 0,
+          maxChunkZ: 0,
+        },
+        chunkCount: 1,
+      };
+    },
+    async loadChunk(chunkKey) {
+      loadChunkCalls += 1;
+      return {
+        key: chunkKey,
+        cones: [],
+      };
+    },
+  });
+
+  runtime.update(new THREE.Vector3(0, 0, 0));
+  await waitFor(() => runtime.getActiveConeChunks().length, 1);
+  runtime.update(new THREE.Vector3(10, 0, 10));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  expect(loadChunkCalls).toBe(1);
+
+  runtime.dispose();
+});
+
 async function waitFor(read, expectedValue) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if (read() === expectedValue) {

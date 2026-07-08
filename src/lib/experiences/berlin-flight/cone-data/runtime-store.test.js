@@ -72,7 +72,8 @@ test("BerlinConeChunkRuntimeStore loads nearby chunks and exposes active cones",
   await store.update(new THREE.Vector3(0, 0, 0));
 
   expect(store.getActiveConeChunks().length).toBeGreaterThan(0);
-  expect(store.getActiveCones().length).toBeGreaterThan(0);
+  expect(store.getActiveCones()).toHaveLength(1);
+  expect(store.getActiveCones()[0].placementPointId).toBe("0:0:0");
   expect(store.getSnapshotVersion()).toBe(1);
 });
 

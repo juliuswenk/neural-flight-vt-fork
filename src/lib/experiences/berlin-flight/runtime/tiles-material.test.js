@@ -1,18 +1,16 @@
 // @ts-nocheck
 import { expect, test } from "bun:test";
-import * as THREE from "three";
-import { createBerlinConePatternTexture } from "./cone-pattern-texture";
+import { readFileSync } from "node:fs";
 
-test("createBerlinConePatternTexture builds a repeatable runtime texture", () => {
-  const texture = createBerlinConePatternTexture();
+test("tile material keeps cone hits on the source image texture", () => {
+  const source = readFileSync(
+    "src/lib/experiences/berlin-flight/runtime/tiles-material.ts",
+    "utf8",
+  );
 
-  expect(texture).toBeInstanceOf(THREE.DataTexture);
-  expect(texture.image.width).toBe(8);
-  expect(texture.image.height).toBe(8);
-  expect(texture.wrapS).toBe(THREE.RepeatWrapping);
-  expect(texture.wrapT).toBe(THREE.RepeatWrapping);
-  expect(texture.generateMipmaps).toBe(true);
-  expect(texture.image.data[0]).not.toBe(texture.image.data[8]);
-
-  texture.dispose();
+  expect(source).not.toContain("uBerlinConePattern");
+  expect(source).not.toContain("berlinPattern");
+  expect(source).toContain(
+    "diffuseColor.rgb = mix(berlinShadedFlatColor, diffuseColor.rgb, berlinConeMask);",
+  );
 });

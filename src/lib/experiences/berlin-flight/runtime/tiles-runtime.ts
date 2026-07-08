@@ -124,7 +124,8 @@ export class TilesRuntimeAdapter {
       };
     }
 
-    renderer.errorTarget = 20;
+    renderer.errorTarget = BERLIN_TILE_RUNTIME.ERROR_TARGET;
+    renderer.loadSiblings = BERLIN_TILE_RUNTIME.LOAD_SIBLINGS;
     renderer.downloadQueue.maxJobs = BERLIN_TILE_RUNTIME.DOWNLOAD_JOBS;
     renderer.parseQueue.maxJobs = BERLIN_TILE_RUNTIME.PARSE_JOBS;
     renderer.processNodeQueue.maxJobs = BERLIN_TILE_RUNTIME.PROCESS_NODE_JOBS;

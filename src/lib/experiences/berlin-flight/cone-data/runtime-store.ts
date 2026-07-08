@@ -4,6 +4,7 @@ import { buildConeSnapshotState } from "../runtime/cone-grid-snapshots";
 import { BERLIN_CONE_GRID } from "../runtime/cone-grid-config";
 import {
   collectConeChunkKeys,
+  getConeGridCoordinate,
   getConeChunkCoordinate,
   parseConeChunkKey,
 } from "../runtime/cone-grid-coordinates";
@@ -68,7 +69,7 @@ export class BerlinConeChunkRuntimeStore {
 
       await this.loadMissingChunks(inBoundsChunkKeys);
       this.unloadFarChunks(center);
-      this.refreshActiveState(inBoundsChunkKeys);
+      this.refreshActiveState(inBoundsChunkKeys, playerPosition);
       this.lastError = null;
       this.clearDiagnosticError();
       this.refreshDiagnostics(inBoundsChunkKeys);
@@ -171,10 +172,26 @@ export class BerlinConeChunkRuntimeStore {
     }
   }
 
-  private refreshActiveState(desiredChunkKeys: readonly string[]): void {
+  private refreshActiveState(
+    desiredChunkKeys: readonly string[],
+    playerPosition: THREE.Vector3,
+  ): void {
+    const center = getConeGridCoordinate(playerPosition);
     const nextChunks = desiredChunkKeys
       .map((chunkKey) => this.loadedChunks.get(chunkKey))
-      .filter((chunk): chunk is BerlinConeChunkSnapshot => chunk !== undefined);
+      .filter((chunk): chunk is BerlinConeChunkSnapshot => chunk !== undefined)
+      .map((chunk) => ({
+        key: chunk.key,
+        cones: chunk.cones.filter((cone) => {
+          const coordinate = getConeGridCoordinate(cone.tip);
+          return (
+            Math.abs(coordinate.x - center.x) <=
+              BERLIN_CONE_GRID.VISIBLE_RADIUS_TILES &&
+            Math.abs(coordinate.z - center.z) <=
+              BERLIN_CONE_GRID.VISIBLE_RADIUS_TILES
+          );
+        }),
+      }));
     const nextState = buildConeSnapshotState(nextChunks);
     const nextSignature = createSnapshotSignature(nextState.chunkSnapshots);
     const previousSignature = createSnapshotSignature(this.activeChunkSnapshots);
@@ -241,7 +258,11 @@ export class BerlinConeChunkRuntimeStore {
 function createSnapshotSignature(
   chunks: readonly BerlinConeChunkSnapshot[],
 ): string {
-  return chunks.map((chunk) => `${chunk.key}:${chunk.cones.length}`).join("|");
+  return chunks
+    .map((chunk) =>
+      `${chunk.key}:${chunk.cones.map((cone) => cone.coneIndex).join(",")}`,
+    )
+    .join("|");
 }
 
 function toError(error: unknown): Error {

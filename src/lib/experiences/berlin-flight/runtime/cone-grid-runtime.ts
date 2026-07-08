@@ -10,6 +10,10 @@ import {
 } from "../cone-data/runtime-store";
 import type { BerlinConeDatasetAssetLoader } from "../cone-data/asset-loader";
 import { BERLIN_CONE_GRID } from "./cone-grid-config";
+import {
+  getConeChunkCoordinate,
+  getConeChunkKey,
+} from "./cone-grid-coordinates";
 import { buildConeSnapshotState } from "./cone-grid-snapshots";
 
 const localDownAxis = new THREE.Vector3(0, -1, 0);
@@ -17,6 +21,8 @@ const scratchCenter = new THREE.Vector3();
 const scratchScale = new THREE.Vector3();
 const scratchQuaternion = new THREE.Quaternion();
 const instanceDummy = new THREE.Object3D();
+// ponytail: temporary draw/debug switch; restore to true to render visible cones and cone debug markers.
+const BERLIN_CONE_RENDERING_ENABLED = true;
 
 export interface BerlinConeRuntimeDebugStats {
   activeChunkCount: number;
@@ -43,6 +49,9 @@ export class BerlinConeGridRuntime {
   private loading = false;
   private loadError: Error | null = null;
   private hasQueuedObserverPosition = false;
+  private lastRequestedChunkKey: string | null = null;
+  private loadingChunkKey: string | null = null;
+  private queuedChunkKey: string | null = null;
 
   constructor(assetLoader?: BerlinConeDatasetAssetLoader) {
     this.root.name = "BerlinConeGridRoot";
@@ -62,9 +71,9 @@ export class BerlinConeGridRuntime {
   }
 
   public setDebugEnabled(enabled: boolean): void {
-    this.root.visible = enabled;
+    this.root.visible = enabled && BERLIN_CONE_RENDERING_ENABLED;
 
-    if (!enabled) {
+    if (!enabled || !BERLIN_CONE_RENDERING_ENABLED) {
       this.debugMarkers?.dispose();
       this.debugMarkers = null;
       return;
@@ -81,13 +90,37 @@ export class BerlinConeGridRuntime {
   public update(observerPosition: THREE.Vector3): void {
     if (this.disposed) return;
 
+    const observerChunkKey = getConeChunkKey(
+      getConeChunkCoordinate(observerPosition),
+    );
+    if (
+      !this.loading &&
+      this.loadError === null &&
+      observerChunkKey === this.lastRequestedChunkKey &&
+      this.isLoadedAroundCurrentChunk()
+    ) {
+      return;
+    }
+
     if (this.loading) {
+      if (observerChunkKey === this.loadingChunkKey) {
+        this.hasQueuedObserverPosition = false;
+        this.queuedChunkKey = null;
+        return;
+      }
+
+      if (observerChunkKey === this.queuedChunkKey) {
+        return;
+      }
+
       this.queuedObserverPosition.copy(observerPosition);
+      this.queuedChunkKey = observerChunkKey;
       this.hasQueuedObserverPosition = true;
       return;
     }
 
     this.loading = true;
+    this.loadingChunkKey = observerChunkKey;
     const requestedPosition = observerPosition.clone();
     void this.chunkStore
       .update(requestedPosition)
@@ -113,11 +146,14 @@ export class BerlinConeGridRuntime {
       })
       .finally(() => {
         this.loading = false;
+        this.lastRequestedChunkKey = this.loadingChunkKey;
+        this.loadingChunkKey = null;
         if (this.disposed || !this.hasQueuedObserverPosition) {
           return;
         }
 
         this.hasQueuedObserverPosition = false;
+        this.queuedChunkKey = null;
         this.update(this.queuedObserverPosition);
       });
   }
@@ -172,7 +208,9 @@ export class BerlinConeGridRuntime {
       return;
     }
 
-    const nextState = buildConeSnapshotState(this.chunkStore.getActiveConeChunks());
+    const nextState = buildConeSnapshotState(
+      this.chunkStore.getActiveConeChunks(),
+    );
     this.activeConeChunksSnapshot = nextState.chunkSnapshots;
     this.activeConeVolumes = nextState.coneVolumes
       .slice()
@@ -180,6 +218,15 @@ export class BerlinConeGridRuntime {
     this.rebuildMesh();
     this.debugMarkers?.update(this.activeConeVolumes);
     this.snapshotVersion = this.chunkStore.getSnapshotVersion();
+  }
+
+  private isLoadedAroundCurrentChunk(): boolean {
+    const diagnostics = this.chunkStore.getDiagnostics();
+    return (
+      diagnostics.manifestLoaded &&
+      diagnostics.errorCode === null &&
+      diagnostics.loadedDesiredChunkCount >= diagnostics.inBoundsChunkCount
+    );
   }
 
   private rebuildMesh(): void {
@@ -215,10 +262,7 @@ export class BerlinConeGridRuntime {
   }
 }
 
-function buildConeMatrix(
-  cone: BerlinConeVolume,
-  target: THREE.Object3D,
-): void {
+function buildConeMatrix(cone: BerlinConeVolume, target: THREE.Object3D): void {
   scratchCenter
     .copy(cone.tip)
     .addScaledVector(cone.axisDirection, cone.height * 0.5);

@@ -45,9 +45,16 @@ function writeConeMask(mesh: TrackedTileMesh): void {
   const maskValues = coneMaskAttribute.array;
   if (!(maskValues instanceof Float32Array)) return;
 
+  let changed = false;
   for (let vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex += 1) {
-    maskValues[vertexIndex] = mesh.vertexMask[vertexIndex];
+    const nextValue = mesh.vertexMask[vertexIndex];
+    if (maskValues[vertexIndex] === nextValue) continue;
+
+    maskValues[vertexIndex] = nextValue;
+    changed = true;
   }
 
-  coneMaskAttribute.needsUpdate = true;
+  if (changed) {
+    coneMaskAttribute.needsUpdate = true;
+  }
 }
