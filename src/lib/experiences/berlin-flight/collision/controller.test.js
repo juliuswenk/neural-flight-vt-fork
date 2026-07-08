@@ -46,6 +46,31 @@ function createCone() {
   };
 }
 
+test("BerlinCollisionController ignores cone version changes with the same active chunks", () => {
+  const controller = new BerlinCollisionController();
+  const trackedMesh = createTrackedMesh();
+  const cones = [createCone()];
+
+  controller.update(cones, 1, [trackedMesh], 1);
+
+  expect(Array.from(trackedMesh.vertexMask)).toContain(1);
+
+  controller.update(
+    [
+      {
+        ...createCone(),
+        tip: new THREE.Vector3(1000, 10, 0),
+        baseCenter: new THREE.Vector3(1000, -10, 0),
+      },
+    ],
+    2,
+    [trackedMesh],
+    1,
+  );
+
+  expect(Array.from(trackedMesh.vertexMask)).toContain(1);
+});
+
 test("BerlinCollisionController invalidates tracked meshes when cone stream changes", () => {
   const controller = new BerlinCollisionController();
   const trackedMesh = createTrackedMesh();
