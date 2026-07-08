@@ -4,6 +4,7 @@ import {
   disposeClonedMaterial,
   disposeMaterial,
 } from "../runtime/tiles-material";
+import { shouldTrackMeshForConeMask } from "./mesh-filter";
 import type { BerlinTileMesh, TrackedTileMesh } from "./tile-mesh-types";
 import { preprocessTrackedMesh } from "./mesh-preprocess";
 import { initializeConeMaskAttributeForMesh } from "./vertex-color-writer";
@@ -88,13 +89,18 @@ function createTrackedMesh(
   const collisionMaterial = createBerlinTileMaterial(mesh.material);
   const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial);
 
-  if (trackedMesh) {
-    initializeConeMaskAttributeForMesh(trackedMesh);
-    trackedMesh.sourceUrl = sourceUrl;
-    trackedMesh.mesh.material = collisionMaterial;
-    return trackedMesh;
+  if (!trackedMesh) {
+    disposeClonedMaterial(collisionMaterial);
+    return null;
   }
 
-  disposeClonedMaterial(collisionMaterial);
-  return null;
+  if (!shouldTrackMeshForConeMask(trackedMesh)) {
+    disposeClonedMaterial(collisionMaterial);
+    return null;
+  }
+
+  initializeConeMaskAttributeForMesh(trackedMesh);
+  trackedMesh.sourceUrl = sourceUrl;
+  trackedMesh.mesh.material = collisionMaterial;
+  return trackedMesh;
 }
