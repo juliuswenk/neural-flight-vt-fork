@@ -71,8 +71,12 @@
 
         scene = new THREE.Scene();
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        const experienceId = getActiveExperienceId();
 
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer = new THREE.WebGLRenderer({
+            canvas,
+            antialias: experienceId !== "berlin-flight",
+        });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
@@ -83,8 +87,6 @@
         document.body.appendChild(vrButton);
 
         // Load whichever experience is selected (persisted in localStorage)
-        const experienceId = getActiveExperienceId();
-
         loadExperience(experienceId, {
             scene,
             camera: dummyCamera,

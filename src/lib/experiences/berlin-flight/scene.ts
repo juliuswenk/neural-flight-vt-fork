@@ -3,7 +3,11 @@ import { Scheduler } from "3d-tiles-renderer";
 import type { SetupContext, TickContext } from "../types";
 import type { BerlinState } from "./types";
 import { setBerlinDebugEnabled } from "./debug/controller";
-import { BERLIN_DEBUG_OVERLAY_DEFAULT } from "./debug/config";
+import {
+  BERLIN_DEBUG_FPS_COUNTER_DEFAULT,
+  BERLIN_DEBUG_OVERLAY_DEFAULT,
+} from "./debug/config";
+import { createBerlinFpsCounter } from "./debug/fps-counter";
 import {
   BERLIN_ALTITUDE_SPEED,
   BERLIN_FLIGHT_BASE_SPEED,
@@ -11,6 +15,7 @@ import {
   BERLIN_TILE_PRELOAD,
   BERLIN_TILE_SELECTION_FOV,
 } from "./constants";
+import { BERLIN_PLACEMENT } from "./placement/config";
 import { disposeObjectTree } from "./runtime/cleanup";
 import { BerlinConeGridRuntime } from "./runtime/cone-grid-runtime";
 import { BerlinCollisionController } from "./collision/controller";
@@ -26,6 +31,8 @@ const scratchPosition = new THREE.Vector3();
 const scratchQuaternion = new THREE.Quaternion();
 const scratchScale = new THREE.Vector3();
 const scratchForward = new THREE.Vector3();
+// ponytail: temporary perf/debug switch; restore to true to re-enable scene-tick collisions.
+const BERLIN_COLLISION_TICK_ENABLED = true;
 
 function createBerlinFillLights(): {
   directional: THREE.DirectionalLight;
@@ -105,6 +112,9 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     isLoading: true,
     debugEnabled: false,
     debugOverlay: null,
+    fpsCounter: BERLIN_DEBUG_FPS_COUNTER_DEFAULT
+      ? createBerlinFpsCounter()
+      : null,
     isDisposed: false,
     abortController: new AbortController(),
   };
@@ -131,6 +141,9 @@ export function tick(state: BerlinState, ctx: TickContext) {
   );
   s.player.setXRPresenting(s.renderer.xr.isPresenting);
   s.player.tick(ctx.delta);
+  if (s.debugEnabled && !s.renderer.xr.isPresenting) {
+    applyBerlinDebugCamera(s);
+  }
   s.player.rig.updateMatrixWorld(true);
   s.coneRuntime.update(s.player.rig.position);
 
@@ -144,19 +157,22 @@ export function tick(state: BerlinState, ctx: TickContext) {
     // ponytail: preload camera stays disabled until tile budgets are retuned for it;
     // it competes with the visible camera for refinement work.
     s.tilesRuntime.update([s.tileSelectionCamera], s.renderer);
-    const trackedTileMeshes = s.tilesRuntime.getTrackedTileMeshes();
-    const trackedTileMeshVersion = s.tilesRuntime.getTrackedTileMeshVersion();
-    s.collisionController.update(
-      s.coneRuntime.getActiveCones(),
-      s.coneRuntime.getSnapshotVersion(),
-      trackedTileMeshes,
-      trackedTileMeshVersion,
-    );
+    if (BERLIN_COLLISION_TICK_ENABLED) {
+      const trackedTileMeshes = s.tilesRuntime.getTrackedTileMeshes();
+      const trackedTileMeshVersion = s.tilesRuntime.getTrackedTileMeshVersion();
+      s.collisionController.update(
+        s.coneRuntime.getActiveCones(),
+        s.coneRuntime.getSnapshotVersion(),
+        trackedTileMeshes,
+        trackedTileMeshVersion,
+      );
+    }
   }
 
   if (s.debugEnabled) {
     s.debugOverlay?.update(s, ctx.elapsed);
   }
+  s.fpsCounter?.update(ctx.delta);
 
   return { state: s };
 }
@@ -257,6 +273,13 @@ function getTileSelectionViewCamera(state: BerlinState): THREE.Camera {
   return state.renderer.xr.getCamera();
 }
 
+function applyBerlinDebugCamera(state: BerlinState): void {
+  state.player.rig.position.y = BERLIN_PLACEMENT.DEBUG_CAMERA_HEIGHT;
+  state.player.cameraMount.rotation.set(-Math.PI * 0.5, 0, 0, "YXZ");
+  state.camera.rotation.set(0, 0, 0);
+  state.camera.updateMatrixWorld(true);
+}
+
 /**
  * Cleans up resources
  */
@@ -271,6 +294,8 @@ export function dispose(state: BerlinState, _scene: THREE.Scene): void {
 
   s.debugOverlay?.dispose();
   s.debugOverlay = null;
+  s.fpsCounter?.dispose();
+  s.fpsCounter = null;
 
   s.tilesRuntime?.dispose();
   s.tilesRuntime = null;

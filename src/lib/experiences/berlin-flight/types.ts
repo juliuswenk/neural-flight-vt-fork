@@ -1,5 +1,6 @@
 import type { FlightPlayer } from "$lib/three/player";
 import type { ExperienceState } from "../types";
+import type { BerlinFpsCounter } from "./debug/fps-counter";
 import type { BerlinDebugOverlay } from "./debug/overlay";
 import type { BerlinCollisionController } from "./collision/controller";
 import type { BerlinConeGridRuntime } from "./runtime/cone-grid-runtime";
@@ -43,6 +44,8 @@ export interface BerlinState extends ExperienceState {
   debugEnabled: boolean;
   /** Optional debug overlay owned by this experience */
   debugOverlay: BerlinDebugOverlay | null;
+  /** Optional browser-window FPS counter owned by this experience */
+  fpsCounter: BerlinFpsCounter | null;
   /** Whether the experience has started disposal */
   isDisposed: boolean;
   /** Cancels async tile setup when disposing mid-load */

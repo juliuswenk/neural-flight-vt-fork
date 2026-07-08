@@ -47,9 +47,7 @@ That is a separate responsibility. Keeping it Berlin-local as an integration lay
 - [placement/types.ts](/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/types.ts)
   - already defines accepted point records
 - [runtime/cone-grid-runtime.ts](/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-runtime.ts)
-  - currently owns fixed grid cone creation and instanced rendering
-- [runtime/cone-grid-chunk.ts](/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-chunk.ts)
-  - currently builds vertical cones from fixed `x/z` spacing
+  - currently streams precomputed cone chunks and owns instanced rendering
 - [collision/types.ts](/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/types.ts)
   - currently models cones as vertical cylinders/cones
 - [collision/vertex-cone-test.ts](/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/vertex-cone-test.ts)
@@ -80,7 +78,6 @@ Targeted edits only:
 
 - `placement/types.ts`
 - `runtime/cone-grid-runtime.ts`
-- `runtime/cone-grid-chunk.ts` or a replacement runtime file if the grid path is retired
 - `collision/types.ts`
 - `collision/cone-query.ts`
 - `collision/vertex-cone-test.ts`
