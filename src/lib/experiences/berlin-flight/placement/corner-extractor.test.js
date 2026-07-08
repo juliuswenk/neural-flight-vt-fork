@@ -35,3 +35,35 @@ test("extractBerlinRoofCornerCandidates keeps highest roof corners and dedupes r
   expect(candidates.map((candidate) => candidate.cornerIndex)).toEqual([1, 4, 2, 3]);
   expect(candidates.every((candidate) => candidate.elevation === 15)).toBe(true);
 });
+
+test("extractBerlinRoofCornerCandidates splits large tile meshes into roof cells", () => {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      [
+        0, 20, 0, 4, 20, 0, 0, 20, 4, 4, 20, 4,
+        96, 10, 0, 100, 10, 0, 96, 10, 4, 100, 10, 4,
+      ],
+      3,
+    ),
+  );
+
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+  mesh.updateMatrixWorld(true);
+
+  const candidates = extractBerlinRoofCornerCandidates({
+    buildingId: "tile-a",
+    sourceKey: "tile-a:mesh-0",
+    mesh,
+    geometry,
+    metadata: {
+      osmId: null,
+      featureId: null,
+      sourceLayer: null,
+    },
+  });
+
+  expect(new Set(candidates.map((candidate) => candidate.buildingId)).size).toBe(2);
+  expect(candidates.some((candidate) => candidate.elevation === 10)).toBe(true);
+});

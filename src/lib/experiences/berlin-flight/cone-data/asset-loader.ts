@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { BERLIN_CONE_PLACEMENT } from "../cone-placement/config";
 import type { BerlinConeChunkSnapshot, BerlinConeVolume } from "../collision/types";
 import type { BerlinConeChunkKey } from "../runtime/cone-grid-coordinates";
 import type {
@@ -168,11 +169,16 @@ export function createBerlinConeChunkSnapshot(
       chunk.positions[positionOffset + 1],
       chunk.positions[positionOffset + 2],
     );
-    const axisDirection = new THREE.Vector3(
+    const storedAxisDirection = new THREE.Vector3(
       chunk.positions[positionOffset + 3],
       chunk.positions[positionOffset + 4],
       chunk.positions[positionOffset + 5],
     );
+    const axisDirection = normalizeConeAxisTilt(storedAxisDirection);
+    if (!axisDirection) {
+      continue;
+    }
+
     const radius = chunk.scalars[scalarOffset];
     const height = chunk.scalars[scalarOffset + 1];
 
@@ -193,6 +199,46 @@ export function createBerlinConeChunkSnapshot(
     key: chunk.chunkKey,
     cones,
   };
+}
+
+function normalizeConeAxisTilt(
+  axisDirection: THREE.Vector3,
+): THREE.Vector3 | null {
+  const length = axisDirection.length();
+  if (!Number.isFinite(length) || length === 0) {
+    return null;
+  }
+
+  const normalizedAxis = axisDirection.clone().divideScalar(length);
+  if (normalizedAxis.y >= 0) {
+    return null;
+  }
+
+  const minTiltRadians = THREE.MathUtils.degToRad(
+    BERLIN_CONE_PLACEMENT.MIN_TILT_DEGREES,
+  );
+  const tiltRadians = Math.acos(
+    THREE.MathUtils.clamp(-normalizedAxis.y, -1, 1),
+  );
+
+  if (tiltRadians >= minTiltRadians) {
+    return normalizedAxis;
+  }
+
+  const horizontalDirection = new THREE.Vector3(
+    normalizedAxis.x,
+    0,
+    normalizedAxis.z,
+  );
+  if (horizontalDirection.lengthSq() === 0) {
+    horizontalDirection.set(1, 0, 0);
+  } else {
+    horizontalDirection.normalize();
+  }
+
+  return new THREE.Vector3(0, -Math.cos(minTiltRadians), 0)
+    .addScaledVector(horizontalDirection, Math.sin(minTiltRadians))
+    .normalize();
 }
 
 function getFiniteNumber(value: unknown, label: string): number {

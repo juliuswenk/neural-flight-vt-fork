@@ -201,11 +201,16 @@ function getRepresentativePosition(
 }
 
 export function getAllowedCandidateCount(density: number): number {
-  if (density < 0.5) {
-    return 1;
+  const clampedDensity = THREE.MathUtils.clamp(density, 0, 1);
+  if (clampedDensity < 0.34) {
+    return 0;
   }
 
-  return BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING;
+  if (clampedDensity < 0.67) {
+    return Math.min(1, BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING);
+  }
+
+  return Math.min(2, BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING);
 }
 
 function createShadowOriginPointId(

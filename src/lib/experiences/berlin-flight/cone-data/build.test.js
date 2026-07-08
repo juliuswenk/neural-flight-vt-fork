@@ -5,6 +5,7 @@ import {
   createBerlinConeChunkSnapshot,
   parseBerlinConeChunkData,
 } from "./asset-loader";
+import { BERLIN_CONE_PLACEMENT } from "../cone-placement/config";
 import {
   buildBerlinConeDataset,
   createTrackedMeshFromOfflineGeometry,
@@ -115,9 +116,36 @@ test("buildBerlinConeDataset chunk data round-trips through the runtime loader",
     firstChunk.positions[1],
     firstChunk.positions[2],
   ]);
-  expect(snapshot.cones[0].axisDirection.toArray()).toEqual([
-    firstChunk.positions[3],
-    firstChunk.positions[4],
-    firstChunk.positions[5],
-  ]);
+  expect(snapshot.cones[0].axisDirection.x).toBeCloseTo(firstChunk.positions[3], 6);
+  expect(snapshot.cones[0].axisDirection.y).toBeCloseTo(firstChunk.positions[4], 6);
+  expect(snapshot.cones[0].axisDirection.z).toBeCloseTo(firstChunk.positions[5], 6);
+});
+
+test("createBerlinConeChunkSnapshot clamps shallow cone tilt without dropping heading", () => {
+  const shallowTiltRadians = THREE.MathUtils.degToRad(20);
+  const snapshot = createBerlinConeChunkSnapshot({
+    chunkKey: "0:0",
+    chunkWorldMinX: 0,
+    chunkWorldMinZ: 0,
+    chunkSizeMeters: 1920,
+    positions: Float32Array.from([
+      0,
+      10,
+      0,
+      Math.sin(shallowTiltRadians),
+      -Math.cos(shallowTiltRadians),
+      0,
+    ]),
+    scalars: Float32Array.from([48, 180]),
+    coneIndex: Int32Array.from([0]),
+  });
+
+  expect(snapshot.cones).toHaveLength(1);
+  expect(snapshot.cones[0].axisDirection.x).toBeGreaterThan(0);
+  expect(snapshot.cones[0].axisDirection.z).toBeCloseTo(0, 6);
+  expect(
+    THREE.MathUtils.radToDeg(
+      snapshot.cones[0].axisDirection.angleTo(new THREE.Vector3(0, -1, 0)),
+    ),
+  ).toBeCloseTo(BERLIN_CONE_PLACEMENT.MIN_TILT_DEGREES, 6);
 });
