@@ -130,6 +130,8 @@ export class TilesRuntimeAdapter {
     renderer.parseQueue.maxJobs = BERLIN_TILE_RUNTIME.PARSE_JOBS;
     renderer.processNodeQueue.maxJobs = BERLIN_TILE_RUNTIME.PROCESS_NODE_JOBS;
     renderer.maxTilesProcessed = BERLIN_TILE_RUNTIME.MAX_TILES_PROCESSED;
+    renderer.lruCache.minBytesSize = BERLIN_TILE_RUNTIME.CACHE_MIN_BYTES;
+    renderer.lruCache.maxBytesSize = BERLIN_TILE_RUNTIME.CACHE_MAX_BYTES;
     renderer.addEventListener("load-model", this.handleLoadModel);
     renderer.addEventListener("dispose-model", this.handleDisposeModel);
   }

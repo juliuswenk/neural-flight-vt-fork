@@ -155,9 +155,10 @@ export function tick(state: BerlinState, ctx: TickContext) {
     Scheduler.setXRSession(xrSession as XRSession);
 
     syncTileSelectionCameras(s);
-    // ponytail: preload camera stays disabled until tile budgets are retuned for it;
-    // it competes with the visible camera for refinement work.
-    s.tilesRuntime.update([s.tileSelectionCamera], s.renderer);
+    s.tilesRuntime.update(
+      [s.tileSelectionCamera, s.tilePreloadCamera],
+      s.renderer,
+    );
     if (BERLIN_COLLISION_TICK_ENABLED) {
       const trackedTileMeshes = s.tilesRuntime.getTrackedTileMeshes();
       const trackedTileMeshVersion = s.tilesRuntime.getTrackedTileMeshVersion();
