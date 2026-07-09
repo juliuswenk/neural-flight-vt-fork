@@ -3,6 +3,9 @@ import type { ExperienceState } from "../types";
 import type { BerlinFpsCounter } from "./debug/fps-counter";
 import type { BerlinDebugOverlay } from "./debug/overlay";
 import type { BerlinCollisionController } from "./collision/controller";
+import type { BerlinOnboardingAudio } from "./onboarding/audio";
+import type { BerlinOnboardingController } from "./onboarding/controller";
+import type { BerlinOnboardingOverlay } from "./onboarding/overlay";
 import type { BerlinConeGridRuntime } from "./runtime/cone-grid-runtime";
 import type { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import type * as THREE from "three";
@@ -36,6 +39,12 @@ export interface BerlinState extends ExperienceState {
   tilePreloadCamera: THREE.PerspectiveCamera;
   /** The flight player controller */
   player: FlightPlayer;
+  /** Tracks the Berlin AR onboarding timeline */
+  onboarding: BerlinOnboardingController;
+  /** Head-locked AR onboarding visuals */
+  onboardingOverlay: BerlinOnboardingOverlay;
+  /** Berlin-local onboarding/full audio mix state */
+  onboardingAudio: BerlinOnboardingAudio;
   /** Target flight speed */
   targetSpeed: number;
   /** Whether tiles are currently loading */

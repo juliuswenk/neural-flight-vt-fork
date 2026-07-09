@@ -25,6 +25,9 @@ import {
   isBerlinTilesSourceConfigured,
   resolveBerlinTilesSource,
 } from "./runtime/tiles-source";
+import { createBerlinOnboardingAudio } from "./onboarding/audio";
+import { createBerlinOnboardingController } from "./onboarding/controller";
+import { createBerlinOnboardingOverlay } from "./onboarding/overlay";
 import { FlightPlayer } from "$lib/three/player";
 import { CAMERA } from "$lib/config/flight";
 
@@ -109,6 +112,9 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     tileSelectionCamera,
     tilePreloadCamera,
     player,
+    onboarding: createBerlinOnboardingController(),
+    onboardingOverlay: createBerlinOnboardingOverlay(player.camera),
+    onboardingAudio: createBerlinOnboardingAudio(),
     targetSpeed: BERLIN_FLIGHT_BASE_SPEED,
     isLoading: true,
     debugEnabled: false,
@@ -136,12 +142,17 @@ export function tick(state: BerlinState, ctx: TickContext) {
     return { state: s };
   }
 
+  s.onboarding.update(ctx.delta);
+  s.onboardingOverlay.update(s.onboarding.progress);
+  s.onboardingAudio.update(s.onboarding.progress);
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
     s.player.rig.position.y,
   );
   s.player.setXRPresenting(s.renderer.xr.isPresenting);
-  s.player.tick(ctx.delta);
+  if (s.onboarding.isComplete) {
+    s.player.tick(ctx.delta);
+  }
   if (s.debugEnabled && !s.renderer.xr.isPresenting) {
     applyBerlinDebugCamera(s);
   }
@@ -298,6 +309,8 @@ export function dispose(state: BerlinState, _scene: THREE.Scene): void {
   s.debugOverlay = null;
   s.fpsCounter?.dispose();
   s.fpsCounter = null;
+  s.onboardingOverlay.dispose();
+  s.onboardingAudio.dispose();
 
   s.tilesRuntime?.dispose();
   s.tilesRuntime = null;

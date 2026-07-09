@@ -7,6 +7,7 @@
     import { Trophy } from "lucide-svelte";
     import { onDestroy, onMount } from "svelte";
     import * as THREE from "three";
+    import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
     import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
     import type { ActiveExperience } from "$lib/experiences/loader";
     import {
@@ -28,10 +29,15 @@
     let canvas: HTMLCanvasElement;
     let renderer: THREE.WebGLRenderer;
     let scene: THREE.Scene;
-    let vrButton: HTMLElement;
+    const BERLIN_FLIGHT_ID = "berlin-flight";
+    const BERLIN_AR_UNSUPPORTED_MESSAGE =
+        "Berlin Flight requires browser AR passthrough support on this device and cannot start here.";
+
+    let xrButton: HTMLElement | null = null;
     let score = $state(0);
     let experienceName = $state("ICAROS VR");
     let hasOutputs = $state(false);
+    let blockingError = $state<string | null>(null);
     let lastProcessedTimestamp = 0;
     const hostOrigin = PUBLIC_ICAROS_HOST_ORIGIN.trim();
     const useIcarosHost = hostOrigin !== "";
@@ -55,6 +61,8 @@
     let unsubscribeHostOrientation: (() => void) | null = null;
 
     onMount(() => {
+        let mounted = true;
+
         if (hostControl !== null) {
             unsubscribeHostOrientation = hostControl.onOrientation(
                 (orientation) => {
@@ -72,19 +80,27 @@
         scene = new THREE.Scene();
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const experienceId = getActiveExperienceId();
+        const isBerlinFlight = experienceId === BERLIN_FLIGHT_ID;
 
         renderer = new THREE.WebGLRenderer({
             canvas,
-            antialias: experienceId !== "berlin-flight",
+            antialias: !isBerlinFlight,
+            alpha: isBerlinFlight,
         });
+        if (isBerlinFlight) {
+            renderer.setClearColor(0x000000, 0);
+        }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.xr.enabled = true;
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        vrButton = VRButton.createButton(renderer);
-        document.body.appendChild(vrButton);
+        void createXrEntryButton(experienceId).then((button) => {
+            if (!mounted || button === null) return;
+            xrButton = button;
+            document.body.appendChild(button);
+        });
 
         // Load whichever experience is selected (persisted in localStorage)
         loadExperience(experienceId, {
@@ -93,6 +109,9 @@
             renderer,
         }).then((exp: ActiveExperience) => {
             renderer.shadowMap.enabled = exp.manifest.id !== "berlin-flight";
+            if (isBerlinFlight) {
+                scene.background = null;
+            }
             experienceName = exp.manifest.name;
             hasOutputs = (exp.manifest.outputs?.length ?? 0) > 0;
             const renderCamera = exp.state.camera as THREE.PerspectiveCamera;
@@ -181,15 +200,39 @@
         });
 
         return () => {
+            mounted = false;
             removeResizeListener?.();
         };
     });
+
+    async function createXrEntryButton(
+        experienceId: string,
+    ): Promise<HTMLElement | null> {
+        if (experienceId !== BERLIN_FLIGHT_ID) {
+            return VRButton.createButton(renderer);
+        }
+
+        const supportsImmersiveAr =
+            navigator.xr !== undefined &&
+            navigator.xr.isSessionSupported !== undefined
+                ? await navigator.xr
+                      .isSessionSupported("immersive-ar")
+                      .catch(() => false)
+                : false;
+
+        if (!supportsImmersiveAr) {
+            blockingError = BERLIN_AR_UNSUPPORTED_MESSAGE;
+            return null;
+        }
+
+        return ARButton.createButton(renderer);
+    }
 
     onDestroy(() => {
         renderer?.setAnimationLoop(null);
         if (scene) unloadExperience(scene);
         renderer?.dispose();
-        vrButton?.remove();
+        xrButton?.remove();
         unsubscribeHostOrientation?.();
         hostControl?.disconnect();
         hostRuntime?.disconnect();
@@ -202,6 +245,12 @@
 </svelte:head>
 
 <canvas bind:this={canvas} class="vr-canvas"></canvas>
+
+{#if blockingError !== null}
+    <div class="blocking-error" role="alert">
+        {blockingError}
+    </div>
+{/if}
 
 {#if hasOutputs}
     <div class="score-overlay">

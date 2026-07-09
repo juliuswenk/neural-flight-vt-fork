@@ -1325,6 +1325,21 @@ input[type="color"] {
 	font-family: monospace;
 }
 
+.blocking-error {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	max-width: min(32rem, calc(100vw - 2rem));
+	transform: translate(-50%, -50%);
+	background: rgba(0, 0, 0, 0.82);
+	color: #fff;
+	padding: 1rem 1.25rem;
+	border: 1px solid rgba(255, 255, 255, 0.22);
+	border-radius: 0.5rem;
+	z-index: 20;
+	text-align: center;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    13b. CONTROLLER PAGES (Gyro, Controller)
    ═══════════════════════════════════════════════════════════════════════════ */
