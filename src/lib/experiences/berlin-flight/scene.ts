@@ -37,6 +37,7 @@ const scratchForward = new THREE.Vector3();
 // ponytail: temporary perf/debug switch; restore to true to re-enable scene-tick collisions.
 const BERLIN_COLLISION_TICK_ENABLED = true;
 const BERLIN_AR_CLEAR_COLOR = 0x79b8d9;
+const BERLIN_SKYBOX_COLOR = 0x87ceeb;
 const BERLIN_SHUTDOWN_FOG_NEAR = 0.05;
 const BERLIN_SHUTDOWN_FOG_FAR = 2;
 
@@ -119,6 +120,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     onboarding: createBerlinOnboardingController(player.camera),
     onboardingAudio: createBerlinOnboardingAudio(),
     worldVisualsVisible: true,
+    skyboxVisible: true,
     targetSpeed: BERLIN_FLIGHT_BASE_SPEED,
     isLoading: true,
     debugEnabled: false,
@@ -132,6 +134,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
 
   setBerlinDebugEnabled(state, BERLIN_DEBUG_OVERLAY_DEFAULT);
   setBerlinWorldVisualsVisible(state, false);
+  setBerlinSkyboxVisible(state, false);
   void loadTilesWhenConfigured(state);
 
   return state;
@@ -156,6 +159,7 @@ export function tick(state: BerlinState, ctx: TickContext) {
     isXrPresenting ? s.onboarding.progress : 0,
   );
   setBerlinWorldVisualsVisible(s, !isXrPresenting || s.onboarding.isComplete);
+  setBerlinSkyboxVisible(s, !isXrPresenting || s.onboarding.isComplete);
   updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
   s.player.baseSpeed = getAltitudeScaledSpeed(
@@ -322,6 +326,15 @@ function setBerlinWorldVisualsVisible(
       object.visible = visible;
     }
   });
+}
+
+function setBerlinSkyboxVisible(state: BerlinState, visible: boolean): void {
+  if (state.skyboxVisible === visible) return;
+
+  state.skyboxVisible = visible;
+  state.scene.background = visible
+    ? new THREE.Color(BERLIN_SKYBOX_COLOR)
+    : null;
 }
 
 function updateBerlinShutdownFog(state: BerlinState): void {

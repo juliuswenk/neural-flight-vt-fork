@@ -52,6 +52,8 @@ export interface BerlinState extends ExperienceState {
   onboardingAudio: BerlinOnboardingAudio;
   /** Whether Berlin-owned virtual visuals are currently visible */
   worldVisualsVisible: boolean;
+  /** Whether Berlin owns an opaque blue background instead of AR passthrough */
+  skyboxVisible: boolean;
   /** Target flight speed */
   targetSpeed: number;
   /** Whether tiles are currently loading */
