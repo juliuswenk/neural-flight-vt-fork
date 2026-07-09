@@ -13,7 +13,8 @@ export const BERLIN_TILES_URL = PUBLIC_BERLIN_TILES_URL;
 
 export const BERLIN_FLIGHT_BASE_SPEED = 20;
 export const BERLIN_PLAYER_SPAWN_POSITION = { x: 0, y: 100, z: 0 } as const;
-export const BERLIN_TILE_SELECTION_FOV = 110;
+export const BERLIN_CAMERA_FAR = 1800;
+export const BERLIN_TILE_SELECTION_FOV = 75;
 
 export const BERLIN_ALTITUDE_SPEED = {
   MIN_ALTITUDE: 35,
@@ -23,16 +24,16 @@ export const BERLIN_ALTITUDE_SPEED = {
 } as const;
 
 export const BERLIN_TILE_PRELOAD = {
-  FOV: 130,
-  AHEAD_DISTANCE: 420,
+  FOV: 82,
+  AHEAD_DISTANCE: 120,
 } as const;
 
 export const BERLIN_TILE_RUNTIME = {
-  ERROR_TARGET: 36,
+  ERROR_TARGET: 72,
   DOWNLOAD_JOBS: 8,
   PARSE_JOBS: 2,
   PROCESS_NODE_JOBS: 8,
-  MAX_TILES_PROCESSED: 48,
+  MAX_TILES_PROCESSED: 24,
   LOAD_SIBLINGS: false,
 } as const;
 

@@ -10,6 +10,7 @@ import {
 import { createBerlinFpsCounter } from "./debug/fps-counter";
 import {
   BERLIN_ALTITUDE_SPEED,
+  BERLIN_CAMERA_FAR,
   BERLIN_FLIGHT_BASE_SPEED,
   BERLIN_PLAYER_SPAWN_POSITION,
   BERLIN_TILE_PRELOAD,
@@ -62,7 +63,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
     near: CAMERA.NEAR,
-    far: 10000, // Increased for city scale
+    far: BERLIN_CAMERA_FAR,
     spawnPosition: BERLIN_PLAYER_SPAWN_POSITION,
     baseSpeed: BERLIN_FLIGHT_BASE_SPEED,
     terrainSlowdown: 1.0, // No terrain slowdown for tiles yet

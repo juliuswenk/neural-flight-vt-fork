@@ -7,7 +7,7 @@ import type {
   TickContext,
 } from "../types";
 import type * as THREE from "three";
-import { BERLIN_FLIGHT_BASE_SPEED } from "./constants";
+import { BERLIN_CAMERA_FAR, BERLIN_FLIGHT_BASE_SPEED } from "./constants";
 import { BERLIN_DEBUG_OVERLAY_DEFAULT } from "./debug/config";
 import { updatePlayer } from "./player";
 import { dispose, setup, tick } from "./scene";
@@ -50,11 +50,11 @@ export const manifest: ExperienceManifest = {
   parameters,
   interfaces: { orientation: true, speed: true },
 
-  camera: { fov: 75, near: 0.1, far: 10000 },
+  camera: { fov: 75, near: 0.1, far: BERLIN_CAMERA_FAR },
   scene: {
     background: "#87ceeb", // Sky blue
-    fogNear: 100,
-    fogFar: 5000,
+    fogNear: 450,
+    fogFar: 1450,
     fogColor: "#87ceeb",
     ambientIntensity: 0.5,
     sunIntensity: 1.0,
