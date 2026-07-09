@@ -5,7 +5,6 @@ import type { BerlinDebugOverlay } from "./debug/overlay";
 import type { BerlinCollisionController } from "./collision/controller";
 import type { BerlinOnboardingAudio } from "./onboarding/audio";
 import type { BerlinOnboardingController } from "./onboarding/controller";
-import type { BerlinOnboardingOverlay } from "./onboarding/overlay";
 import type { BerlinConeGridRuntime } from "./runtime/cone-grid-runtime";
 import type { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import type * as THREE from "three";
@@ -16,6 +15,14 @@ import type * as THREE from "three";
 export interface BerlinState extends ExperienceState {
   /** Root containing all Berlin-owned scene objects */
   sceneRoot: THREE.Group;
+  /** The shared Three.js scene, used for Berlin-owned fog transitions */
+  scene: THREE.Scene;
+  /** Berlin's normal fog after temporary transitions finish */
+  baseFog: {
+    color: THREE.Color;
+    near: number;
+    far: number;
+  } | null;
   /** Berlin-only fill lights to improve neutral tile readability */
   fillLights: {
     hemisphere: THREE.HemisphereLight;
@@ -41,10 +48,10 @@ export interface BerlinState extends ExperienceState {
   player: FlightPlayer;
   /** Tracks the Berlin AR onboarding timeline */
   onboarding: BerlinOnboardingController;
-  /** Head-locked AR onboarding visuals */
-  onboardingOverlay: BerlinOnboardingOverlay;
   /** Berlin-local onboarding/full audio mix state */
   onboardingAudio: BerlinOnboardingAudio;
+  /** Whether Berlin-owned virtual visuals are currently visible */
+  worldVisualsVisible: boolean;
   /** Target flight speed */
   targetSpeed: number;
   /** Whether tiles are currently loading */

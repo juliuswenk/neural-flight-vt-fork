@@ -6,7 +6,7 @@ export const SONAR = {
   textureHeight: 800, // Canvas height in pixels
 
   // ── Sprite (world-space size and distance from camera) ──────────
-  spriteScale: 1.5, // Uniform sprite scale in world units
+  spriteScale: 1.125, // Uniform sprite scale in world units
   distance: 1.8, // Z-offset from camera (world units)
 
   // ── Outer Circle ────────────────────────────────────────────────

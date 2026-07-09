@@ -2,7 +2,7 @@
   import { onDestroy, onMount } from "svelte";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { SonarOverlay, SONAR } from "$lib/experiences/visio-technologica/lennard/scripts/sonar-overlay";
+  import { SonarOverlay, SONAR } from "$lib/experiences/berlin-flight/lennard/scripts/sonar-overlay";
 
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;

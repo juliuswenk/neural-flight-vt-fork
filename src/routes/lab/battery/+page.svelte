@@ -5,7 +5,7 @@
   import {
     BatteryOverlay,
     BATTERY,
-  } from "$lib/experiences/visio-technologica/lennard/scripts/battery-overlay";
+  } from "$lib/experiences/berlin-flight/lennard/scripts/battery-overlay";
 
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;

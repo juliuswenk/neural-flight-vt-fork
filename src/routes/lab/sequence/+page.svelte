@@ -5,8 +5,8 @@
   import {
     SequenceController,
     SEQ,
-  } from "$lib/experiences/visio-technologica/lennard/scripts/sequence-controller";
-  import { CYBER } from "$lib/experiences/visio-technologica/lennard/scripts/cyber-overlay";
+  } from "$lib/experiences/berlin-flight/lennard/scripts/sequence-controller";
+  import { CYBER } from "$lib/experiences/berlin-flight/lennard/scripts/cyber-overlay";
 
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;

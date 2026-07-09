@@ -1,57 +1,82 @@
-export const BERLIN_ONBOARDING_DURATION_MS = 4000;
+import type { PerspectiveCamera } from "three";
+import {
+  SEQ,
+  SequenceController,
+  type StageState,
+} from "../lennard/scripts/sequence-controller";
+
+const BERLIN_FULL_EXPERIENCE_STAGE_INDEX = 3;
+export const BERLIN_ONBOARDING_DURATION_MS =
+  SEQ.stages
+    .slice(0, BERLIN_FULL_EXPERIENCE_STAGE_INDEX)
+    .reduce((total, stage) => total + stage.durationSeconds, 0) * 1000;
 
 export interface BerlinOnboardingController {
   readonly durationMs: number;
   progress: number;
   isActive: boolean;
   isComplete: boolean;
+  shutdownProgress: number;
+  isShutdownEffectActive: boolean;
   update(deltaSeconds: number): void;
+  dispose(): void;
 }
 
-export function createBerlinOnboardingController(): BerlinOnboardingController {
-  let elapsedMs = 0;
+export function createBerlinOnboardingController(
+  camera: PerspectiveCamera,
+): BerlinOnboardingController {
+  let started = false;
+  const sequence = new SequenceController(camera, (event, stage) => {
+    if (event === "stageStart" && shouldStartFullExperience(stage)) {
+      controller.progress = 1;
+      controller.isActive = false;
+      controller.isComplete = true;
+    }
+    if (event === "stageStart" && shouldStartShutdownEffect(stage)) {
+      shutdownElapsedSeconds = 0;
+      shutdownDurationSeconds = stage.duration;
+      controller.shutdownProgress = 0;
+      controller.isShutdownEffectActive = true;
+    }
+  });
+  let shutdownElapsedSeconds = 0;
+  let shutdownDurationSeconds = 1;
 
-  return {
+  const controller: BerlinOnboardingController = {
     durationMs: BERLIN_ONBOARDING_DURATION_MS,
     progress: 0,
     isActive: true,
     isComplete: false,
+    shutdownProgress: 0,
+    isShutdownEffectActive: false,
     update(deltaSeconds: number): void {
-      elapsedMs = Math.min(
-        BERLIN_ONBOARDING_DURATION_MS,
-        elapsedMs + Math.max(0, deltaSeconds) * 1000,
-      );
-      this.progress = elapsedMs / BERLIN_ONBOARDING_DURATION_MS;
-      this.isComplete = this.progress >= 1;
-      this.isActive = !this.isComplete;
+      const safeDelta = Math.max(0, deltaSeconds);
+      if (!started) {
+        started = true;
+        sequence.start();
+      }
+      sequence.update(safeDelta);
+      if (this.isShutdownEffectActive) {
+        shutdownElapsedSeconds = Math.min(
+          shutdownDurationSeconds,
+          shutdownElapsedSeconds + safeDelta,
+        );
+        this.shutdownProgress = shutdownElapsedSeconds / shutdownDurationSeconds;
+        this.isShutdownEffectActive = this.shutdownProgress < 1;
+      }
+    },
+    dispose(): void {
+      sequence.stop();
     },
   };
+
+  return controller;
 }
 
-export function runBerlinOnboardingControllerSelfCheck(): void {
-  const controller = createBerlinOnboardingController();
-
-  assert(controller.durationMs === 4000);
-  assert(controller.progress === 0);
-  assert(controller.isActive);
-  assert(!controller.isComplete);
-
-  controller.update(2);
-  assert(controller.progress === 0.5);
-  assert(controller.isActive);
-  assert(!controller.isComplete);
-
-  controller.update(10);
-  assert(controller.progress === 1);
-  assert(!controller.isActive);
-  assert(controller.isComplete);
-
-  controller.update(-1);
-  assert(controller.progress === 1);
+function shouldStartFullExperience(stage: StageState): boolean {
+  return stage.index >= BERLIN_FULL_EXPERIENCE_STAGE_INDEX;
 }
 
-function assert(condition: boolean): void {
-  if (!condition) {
-    throw new Error("Berlin onboarding controller self-check failed");
-  }
+function shouldStartShutdownEffect(stage: StageState): boolean {
+  return stage.factory === "blink";
 }

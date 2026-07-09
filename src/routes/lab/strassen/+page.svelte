@@ -3,8 +3,8 @@
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
   import { VISIO_TECHNOLOGICA_TILE_METADATA } from "$lib/experiences/visio-technologica/tile-metadata";
-  import { buildRoadGraph, type TileInfo } from "$lib/experiences/visio-technologica/lennard/straßen/road-graph";
-  import { createCarFleet } from "$lib/experiences/visio-technologica/lennard/straßen/car-fleet";
+  import { buildRoadGraph, type TileInfo } from "$lib/experiences/berlin-flight/lennard/straßen/road-graph";
+  import { createCarFleet } from "$lib/experiences/berlin-flight/lennard/straßen/car-fleet";
 
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;

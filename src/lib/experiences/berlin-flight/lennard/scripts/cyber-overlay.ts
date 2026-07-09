@@ -22,8 +22,8 @@ export const CYBER = {
   gridRows: 4, // Number of rows
   gridColumns: 4, // Number of columns
   gridGapFraction: 0.1, // Gap between rectangles (fraction of smaller cell dimension)
-  gridCoverageWidth: 0.95, // Fraction of viewport width the grid fills (0–1)
-  gridCoverageHeight: 0.85, // Fraction of viewport height the grid fills (0–1)
+  gridCoverageWidth: 0.7125, // Fraction of viewport width the grid fills (0–1)
+  gridCoverageHeight: 0.6375, // Fraction of viewport height the grid fills (0–1)
   gridDistance: 1.8, // Distance from camera in world units (higher = smaller on screen)
 
   // ── Message & Languages ─────────────────────────────────────────
@@ -514,8 +514,8 @@ export function createOverlayGrid(
     rows: 2,
     columns: 4,
     gapWorld: 0.15,
-    scaleX: 0.55,
-    scaleY: 0.16,
+    scaleX: 0.4125,
+    scaleY: 0.12,
     distance: 1.8,
     ...config,
   };
@@ -540,8 +540,8 @@ export function applyGridLayout(
   rows: number,
   columns: number,
   gapWorld: number = 0.15,
-  scaleX: number = 0.55,
-  scaleY: number = 0.16,
+  scaleX: number = 0.4125,
+  scaleY: number = 0.12,
   distance: number = 1.8,
 ): void {
   const count = overlays.length;

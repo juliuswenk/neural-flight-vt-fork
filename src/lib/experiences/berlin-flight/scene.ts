@@ -27,7 +27,6 @@ import {
 } from "./runtime/tiles-source";
 import { createBerlinOnboardingAudio } from "./onboarding/audio";
 import { createBerlinOnboardingController } from "./onboarding/controller";
-import { createBerlinOnboardingOverlay } from "./onboarding/overlay";
 import { FlightPlayer } from "$lib/three/player";
 import { CAMERA } from "$lib/config/flight";
 
@@ -38,6 +37,8 @@ const scratchForward = new THREE.Vector3();
 // ponytail: temporary perf/debug switch; restore to true to re-enable scene-tick collisions.
 const BERLIN_COLLISION_TICK_ENABLED = true;
 const BERLIN_AR_CLEAR_COLOR = 0x79b8d9;
+const BERLIN_SHUTDOWN_FOG_NEAR = 0.05;
+const BERLIN_SHUTDOWN_FOG_FAR = 2;
 
 function createBerlinFillLights(): {
   directional: THREE.DirectionalLight;
@@ -103,6 +104,8 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   // Initial state
   const state: BerlinState = {
     sceneRoot,
+    scene: ctx.scene,
+    baseFog: getBerlinBaseFog(ctx.scene),
     fillLights,
     tilesRuntime: null,
     tilesGroup,
@@ -113,9 +116,9 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     tileSelectionCamera,
     tilePreloadCamera,
     player,
-    onboarding: createBerlinOnboardingController(),
-    onboardingOverlay: createBerlinOnboardingOverlay(player.camera),
+    onboarding: createBerlinOnboardingController(player.camera),
     onboardingAudio: createBerlinOnboardingAudio(),
+    worldVisualsVisible: true,
     targetSpeed: BERLIN_FLIGHT_BASE_SPEED,
     isLoading: true,
     debugEnabled: false,
@@ -128,6 +131,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   };
 
   setBerlinDebugEnabled(state, BERLIN_DEBUG_OVERLAY_DEFAULT);
+  setBerlinWorldVisualsVisible(state, false);
   void loadTilesWhenConfigured(state);
 
   return state;
@@ -151,7 +155,8 @@ export function tick(state: BerlinState, ctx: TickContext) {
     BERLIN_AR_CLEAR_COLOR,
     isXrPresenting ? s.onboarding.progress : 0,
   );
-  s.onboardingOverlay.update(isXrPresenting ? s.onboarding.progress : 1);
+  setBerlinWorldVisualsVisible(s, !isXrPresenting || s.onboarding.isComplete);
+  updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
@@ -301,6 +306,70 @@ function applyBerlinDebugCamera(state: BerlinState): void {
   state.camera.updateMatrixWorld(true);
 }
 
+function setBerlinWorldVisualsVisible(
+  state: BerlinState,
+  visible: boolean,
+): void {
+  if (state.worldVisualsVisible === visible && visible) return;
+
+  state.worldVisualsVisible = visible;
+  state.sceneRoot.traverse((object) => {
+    if (
+      object instanceof THREE.Mesh ||
+      object instanceof THREE.Line ||
+      object instanceof THREE.Points
+    ) {
+      object.visible = visible;
+    }
+  });
+}
+
+function updateBerlinShutdownFog(state: BerlinState): void {
+  const baseFog = state.baseFog;
+  if (!baseFog) return;
+
+  const progress = state.onboarding.shutdownProgress;
+  const amount = state.onboarding.isShutdownEffectActive
+    ? Math.sin(progress * Math.PI)
+    : 0;
+
+  const fog = getOrCreateBerlinFog(state);
+  fog.near = THREE.MathUtils.lerp(
+    baseFog.near,
+    BERLIN_SHUTDOWN_FOG_NEAR,
+    amount,
+  );
+  fog.far = THREE.MathUtils.lerp(
+    baseFog.far,
+    BERLIN_SHUTDOWN_FOG_FAR,
+    amount,
+  );
+  fog.color.copy(baseFog.color);
+}
+
+function getBerlinBaseFog(scene: THREE.Scene): BerlinState["baseFog"] {
+  if (!(scene.fog instanceof THREE.Fog)) return null;
+
+  return {
+    color: scene.fog.color.clone(),
+    near: scene.fog.near,
+    far: scene.fog.far,
+  };
+}
+
+function getOrCreateBerlinFog(state: BerlinState): THREE.Fog {
+  if (state.scene.fog instanceof THREE.Fog) return state.scene.fog;
+
+  const baseFog = state.baseFog;
+  const fog = new THREE.Fog(
+    baseFog?.color ?? BERLIN_AR_CLEAR_COLOR,
+    baseFog?.near ?? BERLIN_SHUTDOWN_FOG_NEAR,
+    baseFog?.far ?? BERLIN_SHUTDOWN_FOG_FAR,
+  );
+  state.scene.fog = fog;
+  return fog;
+}
+
 /**
  * Cleans up resources
  */
@@ -317,7 +386,7 @@ export function dispose(state: BerlinState, _scene: THREE.Scene): void {
   s.debugOverlay = null;
   s.fpsCounter?.dispose();
   s.fpsCounter = null;
-  s.onboardingOverlay.dispose();
+  s.onboarding.dispose();
   s.onboardingAudio.dispose();
 
   s.tilesRuntime?.dispose();
