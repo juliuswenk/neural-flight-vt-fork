@@ -158,6 +158,14 @@ export class RadioStation {
     this.object3D.updateMatrixWorld(true);
   }
 
+  /** Update panner distance parameters live (after start()) */
+  setPannerParams(refDistance: number, maxDistance: number): void {
+    if (this.pannerNode) {
+      this.pannerNode.refDistance = refDistance;
+      this.pannerNode.maxDistance = maxDistance;
+    }
+  }
+
   /** Semi-transparent marker sphere so stations are visible in the world */
   private addDebugMarker(): void {
     const geo = new THREE.SphereGeometry(1.5, 8, 8);

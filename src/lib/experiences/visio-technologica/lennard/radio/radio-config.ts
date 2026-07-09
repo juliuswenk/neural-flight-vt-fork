@@ -39,9 +39,6 @@ export const RADIO_STATIONS: RadioStationDef[] = [
     volume: 0.4,
     refDistance: 15,
     maxDistance: 180,
-    coneInnerAngle: 120,
-    coneOuterAngle: 240,
-    coneOuterGain: 0.3,
   },
 ];
 
