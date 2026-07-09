@@ -44,6 +44,6 @@ export const RADIO_STATIONS: RadioStationDef[] = [
 
 export const RADIO = {
   VOLUME: 0.5,
-  ROLLOFF_FACTOR: 1.5,
-  DISTANCE_MODEL: "inverse" as const,
+  ROLLOFF_FACTOR: 1,
+  DISTANCE_MODEL: "linear" as const,
 } as const;
