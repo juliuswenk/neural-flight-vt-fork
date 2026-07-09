@@ -37,6 +37,7 @@ const scratchScale = new THREE.Vector3();
 const scratchForward = new THREE.Vector3();
 // ponytail: temporary perf/debug switch; restore to true to re-enable scene-tick collisions.
 const BERLIN_COLLISION_TICK_ENABLED = true;
+const BERLIN_AR_CLEAR_COLOR = 0x79b8d9;
 
 function createBerlinFillLights(): {
   directional: THREE.DirectionalLight;
@@ -142,14 +143,21 @@ export function tick(state: BerlinState, ctx: TickContext) {
     return { state: s };
   }
 
-  s.onboarding.update(ctx.delta);
-  s.onboardingOverlay.update(s.onboarding.progress);
+  const isXrPresenting = s.renderer.xr.isPresenting;
+  if (isXrPresenting) {
+    s.onboarding.update(ctx.delta);
+  }
+  s.renderer.setClearColor(
+    BERLIN_AR_CLEAR_COLOR,
+    isXrPresenting ? s.onboarding.progress : 0,
+  );
+  s.onboardingOverlay.update(isXrPresenting ? s.onboarding.progress : 1);
   s.onboardingAudio.update(s.onboarding.progress);
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
     s.player.rig.position.y,
   );
-  s.player.setXRPresenting(s.renderer.xr.isPresenting);
+  s.player.setXRPresenting(isXrPresenting);
   if (s.onboarding.isComplete) {
     s.player.tick(ctx.delta);
   }
