@@ -15,6 +15,7 @@ import {
   updateKeyboardCameraControls,
   type KeyboardCameraControls,
 } from "./keyboard-camera-controls";
+import { RadioManager } from "./lennard/radio/radio-manager";
 
 const DEFAULT_FLOOR_COLOR = "#7a7a7a";
 const DEFAULT_DRIFT_SPEED = 0;
@@ -74,6 +75,8 @@ interface WorldTileChunkRuntimeState {
 
 export interface VisioTechnologicaState extends ExperienceState {
   camera: THREE.PerspectiveCamera;
+  listener: THREE.AudioListener;
+  radioManager: RadioManager;
   sky: THREE.Mesh;
   floorColor: string;
   keyboardControls: KeyboardCameraControls;
@@ -152,6 +155,11 @@ export async function setup(
     tilePlacement.tileWorldStep,
   );
 
+  const listener = new THREE.AudioListener();
+  ctx.camera.add(listener);
+  const radioManager = new RadioManager(listener);
+  world.add(radioManager.group);
+
   const keyboardControls = createKeyboardCameraControls(ctx.camera);
   const debugOverlay = createWorldTileDebugOverlay(ctx.camera);
 
@@ -165,6 +173,8 @@ export async function setup(
 
   const state: VisioTechnologicaState = {
     camera: ctx.camera,
+    listener,
+    radioManager,
     sky,
     floorColor: DEFAULT_FLOOR_COLOR,
     keyboardControls,
@@ -226,6 +236,11 @@ export function tick(
     scheduleChunkStreaming(s);
   }
 
+  if (!s.radioManager.started && s.listener.context.state === "running") {
+    s.radioManager.start();
+  }
+  s.radioManager.tick(ctx.delta);
+
   return { state: s };
 }
 
@@ -236,6 +251,8 @@ export function dispose(state: ExperienceState, scene: THREE.Scene): void {
 
   disposeKeyboardCameraControls(s.keyboardControls);
   disposeWorldTileDebugOverlay(s);
+  s.radioManager.dispose();
+  s.camera.remove(s.listener);
   disposeWorld(s.world, scene);
 
   s.sky.geometry.dispose();
