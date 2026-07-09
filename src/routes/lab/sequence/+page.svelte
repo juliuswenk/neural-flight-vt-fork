@@ -7,6 +7,7 @@
     SEQ,
   } from "$lib/experiences/visio-technologica/lennard/scripts/sequence-controller";
   import { CYBER } from "$lib/experiences/visio-technologica/lennard/scripts/cyber-overlay";
+  import kloofendal from "$lib/experiences/visio-technologica/lennard/kloofendal_48d_partly_cloudy_puresky.jpg";
 
   let canvas: HTMLCanvasElement;
   let renderer: THREE.WebGLRenderer;
@@ -19,7 +20,9 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a14);
+    const bgTexture = new THREE.TextureLoader().load(kloofendal);
+    bgTexture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = bgTexture;
 
     const camera = new THREE.PerspectiveCamera(
       60,

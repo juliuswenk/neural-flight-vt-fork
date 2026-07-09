@@ -10,6 +10,10 @@ export interface RadioStationDef {
   coneInnerAngle?: number;
   coneOuterAngle?: number;
   coneOuterGain?: number;
+  /** If true, plays at constant volume everywhere — no spatial panner */
+  globalBackground?: boolean;
+  /** If true, uses AudioBufferSourceNode with seamless loop (only for local files) */
+  loop?: boolean;
 }
 
 /**
@@ -39,6 +43,28 @@ export const RADIO_STATIONS: RadioStationDef[] = [
     volume: 0.4,
     refDistance: 15,
     maxDistance: 180,
+  },
+  {
+    id: "bg city",
+    name: "Background City Traffic",
+    url: "/audio/city-traffic-noise.mp3",
+    position: { x: 0, y: 0, z: 0 },
+    volume: 0.15,
+    refDistance: 1,
+    maxDistance: 1000,
+    globalBackground: true,
+    loop: false,
+  },
+  {
+    id: "bg wind",
+    name: "Background Wind",
+    url: "/audio/strong-wind.mp3",
+    position: { x: 0, y: 0, z: 0 },
+    volume: 0.12,
+    refDistance: 1,
+    maxDistance: 1000,
+    globalBackground: true,
+    loop: true,
   },
 ];
 

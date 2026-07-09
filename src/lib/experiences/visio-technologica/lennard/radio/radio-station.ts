@@ -24,7 +24,8 @@ export class RadioStation {
   readonly streamUrl: string;
   readonly baseVolume: number;
   private audioElement: HTMLAudioElement | null = null;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private sourceNode:
+    MediaElementAudioSourceNode | AudioBufferSourceNode | null = null;
   private pannerNode: PannerNode | null = null;
   private gainNode: GainNode | null = null;
   private _playing = false;
@@ -36,7 +37,9 @@ export class RadioStation {
     this.def = def;
     this.id = def.id;
     this.name = def.name;
-    this.streamUrl = `${PROXY_BASE}?url=${encodeURIComponent(def.url)}`;
+    this.streamUrl = def.url.startsWith("/")
+      ? def.url
+      : `${PROXY_BASE}?url=${encodeURIComponent(def.url)}`;
     this.baseVolume = def.volume;
     this._volume = def.volume;
     this.audioContext = listener.context;
@@ -45,8 +48,10 @@ export class RadioStation {
     this.object3D.name = `radio-${def.id}`;
     this.object3D.position.set(def.position.x, def.position.y, def.position.z);
 
-    this.setupCustomUpdateMatrixWorld();
-    this.addDebugMarker();
+    if (!def.globalBackground) {
+      this.setupCustomUpdateMatrixWorld();
+      this.addDebugMarker();
+    }
   }
 
   get playing(): boolean {
@@ -68,8 +73,13 @@ export class RadioStation {
     if (this._playing) return;
 
     const proxiedUrl = this.streamUrl;
-
     const audioCtx = this.audioContext;
+
+    if (this.def.loop && this.def.globalBackground) {
+      // Seamless loop: fetch + decode + AudioBufferSourceNode
+      this.startLoopingBuffer(proxiedUrl, audioCtx);
+      return;
+    }
 
     const audioEl = new Audio();
     audioEl.crossOrigin = "anonymous";
@@ -82,25 +92,30 @@ export class RadioStation {
     const sourceNode = audioCtx.createMediaElementSource(audioEl);
     this.sourceNode = sourceNode;
 
-    const pannerNode = audioCtx.createPanner();
-    pannerNode.panningModel = "HRTF";
-    pannerNode.distanceModel = RADIO.DISTANCE_MODEL;
-    pannerNode.refDistance = this.def.refDistance;
-    pannerNode.maxDistance = this.def.maxDistance;
-    pannerNode.rolloffFactor = RADIO.ROLLOFF_FACTOR;
-    if (this.def.coneInnerAngle !== undefined) {
-      pannerNode.coneInnerAngle = this.def.coneInnerAngle;
-      pannerNode.coneOuterAngle = this.def.coneOuterAngle ?? 360;
-      pannerNode.coneOuterGain = this.def.coneOuterGain ?? 0;
-    }
-    this.pannerNode = pannerNode;
-
     const gainNode = audioCtx.createGain();
     gainNode.gain.setValueAtTime(this._volume, audioCtx.currentTime);
     this.gainNode = gainNode;
 
-    sourceNode.connect(pannerNode);
-    pannerNode.connect(gainNode);
+    if (this.def.globalBackground) {
+      // Global background — no panner, constant volume everywhere
+      sourceNode.connect(gainNode);
+    } else {
+      const pannerNode = audioCtx.createPanner();
+      pannerNode.panningModel = "HRTF";
+      pannerNode.distanceModel = RADIO.DISTANCE_MODEL;
+      pannerNode.refDistance = this.def.refDistance;
+      pannerNode.maxDistance = this.def.maxDistance;
+      pannerNode.rolloffFactor = RADIO.ROLLOFF_FACTOR;
+      if (this.def.coneInnerAngle !== undefined) {
+        pannerNode.coneInnerAngle = this.def.coneInnerAngle;
+        pannerNode.coneOuterAngle = this.def.coneOuterAngle ?? 360;
+        pannerNode.coneOuterGain = this.def.coneOuterGain ?? 0;
+      }
+      this.pannerNode = pannerNode;
+
+      sourceNode.connect(pannerNode);
+      pannerNode.connect(gainNode);
+    }
     gainNode.connect(audioCtx.destination);
 
     audioEl.play().catch((err: unknown) => {
@@ -117,6 +132,10 @@ export class RadioStation {
     this.sourceNode?.disconnect();
     this.pannerNode?.disconnect();
     this.gainNode?.disconnect();
+
+    if (this.sourceNode instanceof AudioBufferSourceNode) {
+      this.sourceNode.stop();
+    }
 
     this.audioElement?.pause();
     this.audioElement?.removeAttribute("src");
@@ -158,6 +177,37 @@ export class RadioStation {
     this.object3D.updateMatrixWorld(true);
   }
 
+  /**
+   * Fetch, decode, and play a local file as a looping AudioBufferSourceNode.
+   * This is gapless — no hard cut between repetitions.
+   */
+  private async startLoopingBuffer(
+    url: string,
+    audioCtx: AudioContext,
+  ): Promise<void> {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const sourceNode = audioCtx.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.loop = true;
+      this.sourceNode = sourceNode;
+
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(this._volume, audioCtx.currentTime);
+      this.gainNode = gainNode;
+
+      sourceNode.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      sourceNode.start();
+      this._playing = true;
+    } catch (err: unknown) {
+      console.warn(`[RadioStation:${this.id}] loop buffer failed:`, err);
+    }
+  }
   /** Update panner distance parameters live (after start()) */
   setPannerParams(refDistance: number, maxDistance: number): void {
     if (this.pannerNode) {
