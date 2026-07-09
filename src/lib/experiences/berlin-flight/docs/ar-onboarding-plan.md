@@ -365,6 +365,37 @@ Success check:
 
 - session exit/re-entry does not duplicate overlay or leak objects
 
+## Later Phase 8 — Host Rendering Feasibility Spike
+
+Keep the headset browser as the WebXR owner:
+
+- PICO Browser starts and owns the `immersive-ar` session
+- headset sends pose/input state to the host
+- host renders Berlin virtual frames
+- headset receives the host frame as a video/texture layer
+- headset still composites that layer over local passthrough
+
+Success check:
+
+- passthrough remains local and visible at onboarding start
+- streamed virtual layer can be faded from transparent to opaque
+- end-to-end latency is acceptable before replacing local Berlin rendering
+
+## Later Phase 9 — Streamed Visual Layer Integration
+
+Replace only the Berlin visual rendering source, not the onboarding model:
+
+- keep the same `0..1` onboarding progress
+- keep input lock/unlock on the headset
+- drive host-stream opacity/coverage from the existing progress value
+- fall back to blocking error if host stream is required but unavailable
+
+Success check:
+
+- AR onboarding still works as one `immersive-ar` session
+- by `p=1`, the streamed Berlin layer fully covers passthrough
+- non-Berlin local VR rendering remains unchanged
+
 ---
 
 ## Risks
@@ -385,6 +416,10 @@ If so, use one or two head-locked/fullscreen cover layers plus fog ramps first. 
 
 Keep audio handling local to Berlin rather than inventing a repo-wide audio abstraction.
 
+### 5. Host rendering cannot own browser passthrough
+
+Browser passthrough stays on the headset. A host-rendered version must stream only the virtual Berlin layer back to PICO Browser; it should not assume access to passthrough camera pixels or host-owned WebXR composition.
+
 ---
 
 ## Minimal Acceptance Criteria
@@ -398,6 +433,7 @@ Keep audio handling local to Berlin rather than inventing a repo-wide audio abst
 - audio transitions during the same 4-second window
 - Berlin visuals end in a fully covered virtual presentation
 - non-Berlin experiences remain unchanged
+- later host rendering keeps the headset browser as the `immersive-ar` session owner
 
 ---
 
