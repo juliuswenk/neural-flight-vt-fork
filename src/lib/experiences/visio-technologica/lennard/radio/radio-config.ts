@@ -23,18 +23,18 @@ export interface RadioStationDef {
  */
 export const RADIO_STATIONS: RadioStationDef[] = [
   {
-    id: "kexp",
-    name: "KEXP 90.3",
-    url: "https://kexp-mp3-128.streamguys1.com/kexp128.mp3",
+    id: "rbbfritz",
+    name: "rbb FRITZ",
+    url: "https://dispatcher.rndfnk.com/rbb/fritz/live/mp3/mid", //http://www.radioeins.de/livemp3_s
     position: { x: 0, y: 3, z: 0 },
     volume: 0.6,
     refDistance: 20,
     maxDistance: 200,
   },
   {
-    id: "nts",
-    name: "NTS Radio",
-    url: "https://stream-relay-geo.ntslive.net/stream",
+    id: "rbb888",
+    name: "rbb 88.8",
+    url: "https://dispatcher.rndfnk.com/rbb/rbb888/live/mp3/mid", //https://stream-relay-geo.ntslive.net/stream
     position: { x: 160, y: 3, z: 160 },
     volume: 0.4,
     refDistance: 15,
