@@ -70,7 +70,7 @@ export const SONAR = {
   fadeOutPeakTimeFrac: 0.45, // Fraction of duration at which peak is reached (0-1)
 };
 
-export interface InnerCircleDef {
+interface InnerCircleDef {
   radiusFraction: number;
   lineWidth: number;
   color: string;

@@ -91,7 +91,7 @@ export function createBerlinConeDatasetAssetLoader(): BerlinConeDatasetAssetLoad
   };
 }
 
-export function parseBerlinConeDatasetManifest(
+function parseBerlinConeDatasetManifest(
   value: unknown,
 ): BerlinConeDatasetManifest {
   if (!isRecord(value) || !isRecord(value.origin) || !isRecord(value.bounds)) {

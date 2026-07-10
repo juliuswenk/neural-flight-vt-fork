@@ -7,12 +7,6 @@ export interface BerlinHeatmapBounds {
   east: number;
 }
 
-export interface BerlinHeatmapAssetContract {
-  imageOrientation: BerlinHeatmapImageOrientation;
-  imageUrl: string;
-  bounds: BerlinHeatmapBounds;
-}
-
 export interface BerlinHeatmapRaster {
   imageOrientation: BerlinHeatmapImageOrientation;
   bounds: BerlinHeatmapBounds;

@@ -10,6 +10,7 @@ export interface HostControlOrientation {
 	type: "control.orientation";
 	pitch: number;
 	roll: number;
+	yaw?: number;
 	quality: number;
 	controllerType: "m5";
 	timestamp: number;
@@ -184,6 +185,7 @@ function readOrientationMessage(raw: string): HostControlOrientation | null {
 			type: "control.orientation",
 			pitch: payload.pitch,
 			roll: payload.roll,
+			...(payload.yaw !== undefined ? { yaw: payload.yaw } : {}),
 			quality: payload.quality,
 			controllerType: payload.controllerType,
 			timestamp: typeof parsed.timestamp === "number" ? parsed.timestamp : Date.now(),
@@ -202,6 +204,8 @@ function isControlOrientationPayload(
 		Number.isFinite(data.pitch) &&
 		typeof data.roll === "number" &&
 		Number.isFinite(data.roll) &&
+		(data.yaw === undefined ||
+			(typeof data.yaw === "number" && Number.isFinite(data.yaw))) &&
 		typeof data.quality === "number" &&
 		Number.isFinite(data.quality) &&
 		data.controllerType === "m5"

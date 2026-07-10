@@ -58,7 +58,7 @@ export function getECEFToLocalMatrix(origin: GeoPoint): THREE.Matrix4 {
 /**
  * Converts geographic coordinates (WGS84) to ECEF (Earth-Centered, Earth-Fixed).
  */
-export function geoToECEF(point: GeoPoint): WorldPoint {
+function geoToECEF(point: GeoPoint): WorldPoint {
   const latRad = (point.lat * Math.PI) / 180;
   const lonRad = (point.lon * Math.PI) / 180;
 
@@ -96,7 +96,7 @@ export function localToGeo(
   });
 }
 
-export function ecefToGeo(point: WorldPoint): GeoPoint {
+function ecefToGeo(point: WorldPoint): GeoPoint {
   const longitude = Math.atan2(point.y, point.x);
   const horizontalDistance = Math.sqrt(point.x * point.x + point.y * point.y);
   const theta = Math.atan2(

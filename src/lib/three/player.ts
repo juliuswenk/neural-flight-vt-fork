@@ -40,6 +40,7 @@ export class FlightPlayer {
 	private currentPitch = 0;
 	private currentRoll = 0;
 	private heading = 0;
+	private targetYaw: number | null = null;
 	private accelerating = false;
 	private braking = false;
 	private xrPresenting = false;
@@ -72,6 +73,7 @@ export class FlightPlayer {
 	updateOrientation(data: OrientationData): void {
 		this.targetPitch = data.pitch;
 		this.targetRoll = data.roll;
+		this.targetYaw = data.yaw ?? null;
 	}
 
 	updateSpeed(cmd: SpeedCommand): void {
@@ -93,8 +95,10 @@ export class FlightPlayer {
 		const pitchRad = this.currentPitch * DEG2RAD;
 		const rollRad = this.currentRoll * DEG2RAD;
 
-		// Heading accumulates from roll (banking turns the plane).
-		this.heading -= rollRad * this.rollYawMultiplier * delta;
+		this.heading =
+			this.targetYaw === null
+				? this.heading - rollRad * this.rollYawMultiplier * delta
+				: this.targetYaw * DEG2RAD;
 
 		// Forward vector from spherical coordinates (heading + pitch).
 		const forward = new THREE.Vector3(

@@ -17,6 +17,7 @@ export function updatePlayer(
     type: "orientation",
     pitch: orientation.pitch,
     roll: orientation.roll,
+    ...(orientation.yaw !== undefined ? { yaw: orientation.yaw } : {}),
     timestamp: 0,
   });
 

@@ -59,10 +59,6 @@ export function getConeChunkKey(
   return `${coordinate.x}:${coordinate.z}` as BerlinConeChunkKey;
 }
 
-export function getConeGridKey(coordinate: ConeGridCoordinate): string {
-  return `${coordinate.x}:${coordinate.z}`;
-}
-
 export function parseConeChunkKey(
   chunkKey: BerlinConeChunkKey | string,
 ): ConeChunkCoordinate {

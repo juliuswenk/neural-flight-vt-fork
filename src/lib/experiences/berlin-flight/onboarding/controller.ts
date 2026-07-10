@@ -6,7 +6,7 @@ import {
 } from "../lennard/scripts/sequence-controller";
 
 const BERLIN_FULL_EXPERIENCE_STAGE_INDEX = 3;
-export const BERLIN_ONBOARDING_DURATION_MS =
+const BERLIN_ONBOARDING_DURATION_MS =
   SEQ.stages
     .slice(0, BERLIN_FULL_EXPERIENCE_STAGE_INDEX)
     .reduce((total, stage) => total + stage.durationSeconds, 0) * 1000;

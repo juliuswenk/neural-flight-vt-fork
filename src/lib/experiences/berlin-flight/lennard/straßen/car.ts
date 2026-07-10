@@ -11,7 +11,7 @@ export interface Car {
   color: number;
 }
 
-export function createCarMesh(color: number = 0xff0000): THREE.Group {
+function createCarMesh(color: number = 0xff0000): THREE.Group {
   const group = new THREE.Group();
 
   const bodyGeo = new THREE.BoxGeometry(1.5, 0.6, 3);
@@ -91,7 +91,7 @@ export function spawnCar(graph: RoadGraph, startNodeId?: string): Car {
   return car;
 }
 
-export function updateCarPosition(car: Car, graph: RoadGraph): void {
+function updateCarPosition(car: Car, graph: RoadGraph): void {
   const fromNode = graph.nodes.get(car.currentNodeId);
   const toNode = graph.nodes.get(car.targetNodeId);
   if (!fromNode || !toNode) return;
@@ -132,7 +132,7 @@ export function updateCar(car: Car, graph: RoadGraph, delta: number): void {
   updateCarPosition(car, graph);
 }
 
-export function pickNextEdge(car: Car, graph: RoadGraph): void {
+function pickNextEdge(car: Car, graph: RoadGraph): void {
   car.progress = 0;
   const currentNode = graph.nodes.get(car.currentNodeId);
   if (!currentNode) return;

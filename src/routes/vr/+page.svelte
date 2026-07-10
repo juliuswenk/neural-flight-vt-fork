@@ -68,7 +68,13 @@
                 (orientation) => {
                     lastOrientation =
                         orientation.quality > 0
-                            ? { pitch: orientation.pitch, roll: orientation.roll }
+                            ? {
+                                  pitch: orientation.pitch,
+                                  roll: orientation.roll,
+                                  ...(orientation.yaw !== undefined
+                                      ? { yaw: orientation.yaw }
+                                      : {}),
+                              }
                             : { pitch: 0, roll: 0 };
                     lastOrientationReceivedAt = performance.now();
                 },

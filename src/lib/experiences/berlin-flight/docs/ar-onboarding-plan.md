@@ -448,3 +448,191 @@ Browser passthrough stays on the headset. A host-rendered version must stream on
 - settings plumbing for onboarding duration
 
 `4s` stays hardcoded first. Add configurability only when the timing stabilizes.
+
+
+Implementation prompts:
+
+**Prompt 1: Capability Gate**
+
+```text
+Implement Phase 0 from src/lib/experiences/berlin-flight/docs/ar-onboarding-plan.md.
+
+Goal: on /vr, when the active experience is berlin-flight, probe navigator.xr.isSessionSupported("immersive-ar") before showing an XR entry button.
+
+Constraints:
+- Berlin only.
+- Non-Berlin experiences must keep the existing VRButton path.
+- If immersive-ar is unsupported, show the blocking DOM message from the plan and do not create an XR button.
+- Do not implement overlay, input lock, audio, or host rendering yet.
+- Keep changes scoped mostly to src/routes/vr/+page.svelte.
+- No any types.
+
+Run:
+- bunx biome check --write .
+- bunx svelte-check --threshold warning
+
+Summarize changes and ask whether to commit.
+```
+
+**Prompt 2: Transparent AR Session**
+
+```text
+Implement Phase 1 from the AR onboarding plan.
+
+Goal: make berlin-flight enter an immersive-ar session from /vr using ARButton, with transparent renderer output so passthrough can be visible.
+
+Constraints:
+- Use ARButton only for berlin-flight.
+- Keep VRButton for all other experiences.
+- Renderer must be created with alpha: true for berlin-flight AR path.
+- Avoid opaque clear/background behavior during Berlin AR onboarding.
+- Keep one WebXR session. No VR handoff.
+- Do not add overlay, input lock, audio, or host rendering yet.
+
+Verify non-Berlin still creates VRButton. Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 3: Onboarding Controller**
+
+```text
+Implement Phase 2 from the AR onboarding plan.
+
+Goal: add one small Berlin-local onboarding controller that tracks:
+- duration 4000ms
+- progress 0..1
+- isActive
+- isComplete
+
+Constraints:
+- Prefer one file: src/lib/experiences/berlin-flight/onboarding/controller.ts.
+- Add the controller to BerlinState in types.ts and initialize it in scene.ts setup.
+- Advance it once per Berlin tick.
+- Do not change visuals, input, or audio behavior yet except exposing state.
+- No settings plumbing for duration.
+
+Add the smallest self-check or test if useful for controller math. Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 4: Head-Locked Overlay**
+
+```text
+Implement Phase 3 from the AR onboarding plan.
+
+Goal: add minimal head-locked onboarding visuals for berlin-flight.
+
+Constraints:
+- Add a small overlay helper under src/lib/experiences/berlin-flight/onboarding/.
+- Use a THREE.Group attached to the Berlin player camera or camera rig so it follows headset view.
+- Keep visuals cheap: simple planes/materials only.
+- Drive overlay opacity from the existing onboarding progress.
+- Dispose geometries/materials in Berlin dispose path.
+- No DOM overlay inside XR.
+- Do not implement visual cover ramp or audio yet.
+
+Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 5: Input Lock**
+
+```text
+Implement Phase 4 from the AR onboarding plan.
+
+Goal: suppress Berlin gameplay movement until onboarding completes.
+
+Constraints:
+- Berlin only.
+- During onboarding, ignore orientation-driven flight updates and speed/brake input.
+- Head tracking must still work naturally through XR.
+- Prefer the smallest root-cause change, likely in src/lib/experiences/berlin-flight/player.ts using state.onboarding.
+- Do not affect non-Berlin experiences.
+
+Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 6: Visual Cover Ramp**
+
+```text
+Implement Phase 5 from the AR onboarding plan.
+
+Goal: use onboarding progress to move from passthrough-first to virtual-first rendering.
+
+Constraints:
+- Use the existing single onboarding progress value.
+- Lazy first version: add one or two camera-facing/head-locked cover planes and/or fog/background ramp.
+- By progress 1, passthrough should be effectively hidden by virtual content.
+- Do not refactor every Berlin material unless absolutely necessary.
+- Dispose any new geometry/materials.
+- No plane detection, anchors, passthrough processing, or host rendering.
+
+Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 7: Audio Transition**
+
+```text
+Implement Phase 6 from the AR onboarding plan.
+
+Goal: tie Berlin audio transition to the same 4-second onboarding progress.
+
+Constraints:
+- First inspect whether Berlin already has audio. If not, add only a Berlin-local minimal hook or placeholder state needed for the transition.
+- Do not create a global audio framework.
+- Do not add a second timer.
+- Full audio state should be reached when onboarding progress is 1.
+- Dispose audio handles if any are created.
+
+Run biome and svelte-check. Summarize and ask whether to commit.
+```
+
+**Prompt 8: Cleanup Pass**
+
+```text
+Implement Phase 7 from the AR onboarding plan.
+
+Goal: audit and finish cleanup for all Berlin onboarding resources.
+
+Constraints:
+- Ensure session exit/re-entry does not duplicate overlay, materials, textures, audio handles, or timers.
+- Keep changes small and targeted.
+- Do not add new features.
+- Confirm non-Berlin experiences are unchanged.
+
+Run biome and svelte-check. Summarize and ask whether to commit.
+```
+---
+# Not done yet:
+
+**Prompt 9: Host Rendering Feasibility Spike**
+
+```text
+Implement Later Phase 8 as a feasibility spike only.
+
+Goal: prove the shape of host rendering without replacing local Berlin rendering.
+
+Constraints:
+- PICO Browser must still own the immersive-ar session.
+- Host must not receive passthrough pixels.
+- Send only headset pose/input state toward a host path if an existing host runtime channel already supports it.
+- Receive/render only a virtual layer if a simple existing mechanism is available.
+- If no existing host stream exists, stop at a documented code-level seam or TODO comment. Do not invent a streaming framework.
+- Local Berlin AR onboarding must remain the default.
+
+Run biome and svelte-check. Summarize what is real versus stubbed, then ask whether to commit.
+```
+
+**Prompt 10: Streamed Visual Layer Integration**
+
+```text
+Implement Later Phase 9 only after the feasibility spike is accepted.
+
+Goal: allow the Berlin virtual visual source to be a streamed host-rendered layer while preserving the same onboarding model.
+
+Constraints:
+- Keep headset browser as immersive-ar session owner.
+- Keep the existing onboarding progress 0..1.
+- Drive streamed layer opacity/coverage from that progress.
+- Keep input lock/unlock on the headset.
+- If host stream is required but unavailable, show a blocking error instead of silently falling back.
+- Non-Berlin local VR rendering must remain unchanged.
+
+Run biome and svelte-check. Summarize and ask whether to commit.

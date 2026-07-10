@@ -1,29 +1,16 @@
-import rawBounds from "./camera-density.berlin.json";
 import type {
   BerlinCameraDensitySample,
   BerlinCameraDensitySampler,
-  BerlinHeatmapAssetContract,
   BerlinHeatmapBounds,
   BerlinHeatmapImageOrientation,
   BerlinHeatmapRaster,
   BerlinHeatmapUv,
 } from "./types";
 
-export const BERLIN_CAMERA_DENSITY_IMAGE_PATH =
-  "src/lib/experiences/berlin-flight/heatmaps/camera-density.berlin.png";
 export const BERLIN_CAMERA_DENSITY_BOUNDS_PATH =
   "src/lib/experiences/berlin-flight/heatmaps/camera-density.berlin.json";
-export const BERLIN_CAMERA_DENSITY_IMAGE_ORIENTATION: BerlinHeatmapImageOrientation =
+const BERLIN_CAMERA_DENSITY_IMAGE_ORIENTATION: BerlinHeatmapImageOrientation =
   "north-up";
-
-export async function loadBerlinCameraDensityAssetContract(): Promise<BerlinHeatmapAssetContract> {
-  const imageUrl = await loadBerlinCameraDensityImageUrl();
-  return {
-    imageOrientation: BERLIN_CAMERA_DENSITY_IMAGE_ORIENTATION,
-    imageUrl,
-    bounds: parseBerlinHeatmapBounds(rawBounds),
-  };
-}
 
 export function createBerlinCameraDensitySampler(
   raster: BerlinHeatmapRaster,
@@ -160,21 +147,6 @@ function sampleBerlinCameraDensityRaster(
 function getDensityFromRgba(red: number, green: number, blue: number): number {
   const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
   return clamp01(1 - luminance);
-}
-
-async function loadBerlinCameraDensityImageUrl(): Promise<string> {
-  try {
-    const imageModule = await import("./camera-density.berlin.png?url");
-    if (typeof imageModule.default !== "string" || imageModule.default.length === 0) {
-      throw new Error("empty asset URL");
-    }
-
-    return imageModule.default;
-  } catch {
-    throw new Error(
-      `Missing Berlin camera density heatmap PNG at ${BERLIN_CAMERA_DENSITY_IMAGE_PATH}.`,
-    );
-  }
 }
 
 function getFiniteNumber(value: Record<string, unknown>, key: keyof BerlinHeatmapBounds): number {

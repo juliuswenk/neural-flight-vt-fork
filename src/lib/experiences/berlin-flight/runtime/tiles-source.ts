@@ -16,8 +16,6 @@ export interface BerlinRemoteTilesSource extends BerlinTilesSourceBase {
 
 export type BerlinTilesSource = BerlinRemoteTilesSource;
 
-export const BERLIN_OFFLINE_TILES_URL = "/tiles/berlin/tileset.json";
-
 type CesiumIonEndpointResponse = {
   accessToken?: unknown;
   options?: {
@@ -42,26 +40,6 @@ export async function resolveBerlinTilesSource(): Promise<BerlinTilesSource> {
   }
 
   return resolveCesiumIonTilesSource();
-}
-
-export async function resolveOfflineBerlinTilesSource(
-  fetchTileset: typeof fetch = fetch,
-): Promise<BerlinTilesSource> {
-  const response = await fetchTileset(BERLIN_OFFLINE_TILES_URL, {
-    method: "GET",
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `[BerlinFlight] Missing offline Berlin tileset at ${BERLIN_OFFLINE_TILES_URL}. Populate static/tiles/berlin/ first.`,
-    );
-  }
-
-  return {
-    kind: "remote-tileset",
-    url: BERLIN_OFFLINE_TILES_URL,
-    token: "",
-  };
 }
 
 async function resolveCesiumIonTilesSource(): Promise<BerlinTilesSource> {
