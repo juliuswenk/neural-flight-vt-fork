@@ -15,7 +15,7 @@ import {
   updateKeyboardCameraControls,
   type KeyboardCameraControls,
 } from "./keyboard-camera-controls";
-import { RadioManager } from "./lennard/radio/radio-manager";
+import { RadioManager } from "../berlin-flight/lennard/radio/radio-manager";
 
 const DEFAULT_FLOOR_COLOR = "#7a7a7a";
 const DEFAULT_DRIFT_SPEED = 0;
