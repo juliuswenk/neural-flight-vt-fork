@@ -28,6 +28,7 @@ import {
 import { createBerlinOnboardingAudio } from "./onboarding/audio";
 import { createBerlinOnboardingController } from "./onboarding/controller";
 import { FlightPlayer } from "$lib/three/player";
+import { createSky } from "$lib/three/sky";
 import { CAMERA } from "$lib/config/flight";
 
 const scratchPosition = new THREE.Vector3();
@@ -38,6 +39,7 @@ const scratchForward = new THREE.Vector3();
 const BERLIN_COLLISION_TICK_ENABLED = true;
 const BERLIN_AR_CLEAR_COLOR = 0x79b8d9;
 const BERLIN_SKYBOX_COLOR = 0x87ceeb;
+const BERLIN_SKYBOX_RADIUS = BERLIN_CAMERA_FAR * 0.85;
 const BERLIN_SHUTDOWN_FOG_NEAR = 0.05;
 const BERLIN_SHUTDOWN_FOG_FAR = 2;
 
@@ -80,6 +82,15 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   gridHelper.position.y = -1;
   sceneRoot.add(gridHelper);
 
+  const skybox = createSky({
+    radius: BERLIN_SKYBOX_RADIUS,
+    colorTop: 0x79b8d9,
+    colorHorizon: 0xd9f1ff,
+    colorBottom: BERLIN_SKYBOX_COLOR,
+  });
+  skybox.name = "BerlinSkybox";
+  sceneRoot.add(skybox);
+
   const fillLights = createBerlinFillLights();
   sceneRoot.add(fillLights.hemisphere);
   sceneRoot.add(fillLights.directional);
@@ -120,6 +131,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     onboarding: createBerlinOnboardingController(player.camera),
     onboardingAudio: createBerlinOnboardingAudio(),
     worldVisualsVisible: true,
+    skybox,
     skyboxVisible: true,
     targetSpeed: BERLIN_FLIGHT_BASE_SPEED,
     isLoading: true,
@@ -174,6 +186,7 @@ export function tick(state: BerlinState, ctx: TickContext) {
     applyBerlinDebugCamera(s);
   }
   s.player.rig.updateMatrixWorld(true);
+  s.camera.getWorldPosition(s.skybox.position);
   s.coneRuntime.update(s.player.rig.position);
 
   if (s.tilesRuntime) {
@@ -332,9 +345,8 @@ function setBerlinSkyboxVisible(state: BerlinState, visible: boolean): void {
   if (state.skyboxVisible === visible) return;
 
   state.skyboxVisible = visible;
-  state.scene.background = visible
-    ? new THREE.Color(BERLIN_SKYBOX_COLOR)
-    : null;
+  state.skybox.visible = visible;
+  state.scene.background = null;
 }
 
 function updateBerlinShutdownFog(state: BerlinState): void {

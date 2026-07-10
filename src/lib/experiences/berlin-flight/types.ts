@@ -52,6 +52,8 @@ export interface BerlinState extends ExperienceState {
   onboardingAudio: BerlinOnboardingAudio;
   /** Whether Berlin-owned virtual visuals are currently visible */
   worldVisualsVisible: boolean;
+  /** Camera-centered dome that covers AR passthrough after onboarding */
+  skybox: THREE.Mesh;
   /** Whether Berlin owns an opaque blue background instead of AR passthrough */
   skyboxVisible: boolean;
   /** Target flight speed */
