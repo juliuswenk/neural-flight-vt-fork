@@ -8,6 +8,7 @@ import {
   BERLIN_DEBUG_OVERLAY_DEFAULT,
 } from "./debug/config";
 import { createBerlinFpsCounter } from "./debug/fps-counter";
+import { BerlinRadioManager } from "./audio/radio-manager";
 import {
   BERLIN_ALTITUDE_SPEED,
   BERLIN_CAMERA_FAR,
@@ -77,6 +78,11 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     terrainSlowdown: 1.0, // No terrain slowdown for tiles yet
   });
   sceneRoot.add(player.rig);
+  const listener = new THREE.AudioListener();
+  player.camera.add(listener);
+  const radioManager = new BerlinRadioManager(listener);
+  radioManager.setMasterVolume(0);
+  sceneRoot.add(radioManager.group);
 
   const gridHelper = new THREE.GridHelper(2000, 100);
   gridHelper.position.y = -1;
@@ -125,6 +131,8 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     collisionController,
     renderer: ctx.renderer,
     camera: player.camera,
+    listener,
+    radioManager,
     tileSelectionCamera,
     tilePreloadCamera,
     player,
@@ -174,6 +182,10 @@ export function tick(state: BerlinState, ctx: TickContext) {
   setBerlinSkyboxVisible(s, !isXrPresenting || s.onboarding.isComplete);
   updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
+  s.radioManager.setMasterVolume(s.onboardingAudio.fullGain);
+  if (!s.radioManager.isStarted && s.listener.context.state === "running") {
+    s.radioManager.start();
+  }
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
     s.player.rig.position.y,
@@ -413,6 +425,8 @@ export function dispose(state: BerlinState, _scene: THREE.Scene): void {
   s.fpsCounter = null;
   s.onboarding.dispose();
   s.onboardingAudio.dispose();
+  s.radioManager.dispose();
+  s.camera.remove(s.listener);
 
   s.tilesRuntime?.dispose();
   s.tilesRuntime = null;

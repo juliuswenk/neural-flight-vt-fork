@@ -5,6 +5,7 @@ import type { BerlinDebugOverlay } from "./debug/overlay";
 import type { BerlinCollisionController } from "./collision/controller";
 import type { BerlinOnboardingAudio } from "./onboarding/audio";
 import type { BerlinOnboardingController } from "./onboarding/controller";
+import type { BerlinRadioManager } from "./audio/radio-manager";
 import type { BerlinConeGridRuntime } from "./runtime/cone-grid-runtime";
 import type { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import type * as THREE from "three";
@@ -40,6 +41,10 @@ export interface BerlinState extends ExperienceState {
   renderer: THREE.WebGLRenderer;
   /** The camera used for rendering */
   camera: THREE.PerspectiveCamera;
+  /** Camera-attached Web Audio listener for Berlin-local audio */
+  listener: THREE.AudioListener;
+  /** Berlin-local live radio streams */
+  radioManager: BerlinRadioManager;
   /** Loader camera centered on the player rig for tile selection */
   tileSelectionCamera: THREE.PerspectiveCamera;
   /** Hidden loader camera placed ahead of flight direction to preload upcoming tiles */
