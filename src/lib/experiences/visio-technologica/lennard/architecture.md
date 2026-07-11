@@ -122,6 +122,25 @@ RadioManager.dispose()               ← stops streams, disconnects nodes
 rendering, translation dictionary, responsive layout, and glow effects.
 Configured via the `CYBER` settings object.
 
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `color` | `"#ff44aa"` | Border lines and text colour |
+| `glowPercent` | `50` | Glow intensity 0–100 |
+| `fontSize` | `36` | Text size in canvas pixels |
+| `fontWeight` | `"bold"` | Text thickness |
+| `lineThickness` | `2.5` | Border line width (canvas px) |
+| `fontFamily` | `"monospace"` | Font family |
+| `opacity` | `1` | Global opacity 0–1 |
+| `textureWidth` | `640` | Canvas width in pixels |
+| `textureHeight` | `200` | Canvas height in pixels |
+| `gridRows` | `4` | Number of grid rows |
+| `gridColumns` | `4` | Number of grid columns |
+| `gridGapFraction` | `0.1` | Gap between rectangles (fraction of cell dimension) |
+| `gridCoverageWidth` | `0.6` | Fraction of viewport width the grid fills |
+| `gridCoverageHeight` | `0.6` | Fraction of viewport height the grid fills |
+| `gridDistance` | `1.8` | Distance from camera in world units |
+| `message` | `"HELLO"` | Word displayed in every rectangle (translated per language) |
+
 #### Sonar Overlay
 
 `sonar-overlay.ts` — A radar-sweep HUD rendered as a camera-aligned
@@ -193,13 +212,14 @@ staggered pop-in, text-switching, and blink effects. Orchestrates
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
+| `fadeOutSeconds` | 0.5 | Seconds to fade out overlays when the last stage ends (0 = instant) |
 | `staggerSeconds` | 0.3 | Delay between each overlay appearing |
 | `staggerFadeSeconds` | 0.3 | Fade-in duration per overlay |
 | `staggerFadeOutSeconds` | 0.2 | Fade-out old text before switching |
 | `staggerRandomOrder` | true | Randomize overlay reveal order |
 | `sonarFadeOutDelay` | 1.5 | Pause after sonar vanishes before next stage |
-| `blinkOnDuration` | 0.3 | How long blink overlays stay visible |
-| `blinkOffDuration` | 0.1 | How long blink overlays stay hidden |
+| `blinkOnDuration` | 1 | How long blink overlays stay visible |
+| `blinkOffDuration` | 0.5 | How long blink overlays stay hidden |
 
 **Stages (in order):**
 
@@ -207,7 +227,7 @@ staggered pop-in, text-switching, and blink effects. Orchestrates
 2. `cyber` — "HUMAN PERCEPTION DETECTED", 10 s
 3. `cyber` — "SWITCHING TO TECHNOLOGICAL PERCEPTION", 6 s
 4. `battery` — Countdown battery icon, 50 s
-5. `blink` — "TURNING OFF TECHNOLOGICAL PERCEPTION" blinking grid, 4 s
+5. `blink` — "TURNING OFF TECHNOLOGICAL PERCEPTION" blinking grid, 10 s
 
 **Transition rules:**
 - Same factory (cyber → cyber): overlays kept, text swapped with stagger.
@@ -235,10 +255,28 @@ SequenceController.update(delta)
 camera-aligned `THREE.Sprite`. Displays remaining time as 4 bars that
 deplete at 25% intervals, with a flicker effect on the last bar.
 
-**Behaviour:**
-- Bars (4→0) disappear at 25%, 50%, 75% of total time elapsed.
-- At 95% elapsed the remaining bar flickers (`flickerColor`).
-- `start()` begins the countdown; `update(now)` drives per-frame state.
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `totalTimeMs` | `50000` | Total countdown duration in ms |
+| `outlineColor` | `"#ff44aa"` | Battery outline stroke colour |
+| `barColor` | `"#00ffcc"` | Fill colour of each battery segment |
+| `flickerColor` | `"#ff44aa"` | Last-bar flicker colour at 95%+ |
+| `flickerSpeedMs` | `700` | Full on/off cycle duration in ms |
+| `textureWidth` | `120` | Canvas width in pixels |
+| `textureHeight` | `220` | Canvas height in pixels |
+| `spriteScaleX` | `0.3` | Sprite width in world units |
+| `spriteScaleY` | `0.15` | Sprite height in world units |
+| `distance` | `1.8` | Distance from camera in world units |
+| `posX` | `1` | Horizontal offset from camera centre (right = +) |
+| `posY` | `0.7` | Vertical offset from camera centre (up = +) |
+| `outlineWidth` | `3` | Stroke width of outline (canvas px) |
+| `glowPercent` | `50` | Glow intensity 0–100 |
+| `padding` | `8` | Padding between outline & bars (canvas px) |
+| `barGap` | `5` | Gap between bars (canvas px) |
+| `barCount` | `4` | Number of battery segments |
+| `tabW` | `35` | Terminal tab width (canvas px) |
+| `tabH` | `15` | Terminal tab height (canvas px) |
+| `tabMargin` | `4` | Margin below tab (canvas px) |
 
 #### Tooling
 
