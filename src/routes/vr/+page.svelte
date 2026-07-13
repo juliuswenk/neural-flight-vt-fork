@@ -94,8 +94,7 @@
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const experienceId = getActiveExperienceId();
         const isBerlinFlight = experienceId === BERLIN_FLIGHT_ID;
-        isDesktopPreview =
-            new URLSearchParams(window.location.search).get("preview") === "1";
+        isDesktopPreview = isPreviewEnabled(window.location.search);
         if (isDesktopPreview) {
             removePreviewKeyboardListeners = createPreviewKeyboardInput();
         }
@@ -312,6 +311,11 @@
             key === "arrowleft" ||
             key === "arrowright"
         );
+    }
+
+    function isPreviewEnabled(search: string): boolean {
+        const preview = new URLSearchParams(search).get("preview");
+        return preview !== null && preview !== "0";
     }
 
     onDestroy(() => {

@@ -47,10 +47,13 @@ export interface BerlinState extends ExperienceState {
   listener: THREE.AudioListener;
   /** Berlin-local live radio streams */
   radioManager: BerlinRadioManager;
-  /** Loader camera centered on the player rig for tile selection */
-  tileSelectionCamera: THREE.PerspectiveCamera;
-  /** Hidden loader camera placed ahead of flight direction to preload upcoming tiles */
-  tilePreloadCamera: THREE.PerspectiveCamera;
+  /** Loader cameras centered on the player rig for position-fixed tile selection */
+  tileSelectionCameras: readonly [
+    THREE.PerspectiveCamera,
+    THREE.PerspectiveCamera,
+    THREE.PerspectiveCamera,
+    THREE.PerspectiveCamera,
+  ];
   /** The flight player controller */
   player: FlightPlayer;
   /** Tracks the Berlin AR onboarding timeline */

@@ -138,6 +138,8 @@ class CanvasDebugOverlay implements BerlinDebugOverlay {
       `cone runtime active: ${this.coneRuntimeStats.activeCones}`,
       `tiles renderer: ${this.tilesStats.hasRenderer}`,
       `tiles visible: ${this.tilesStats.isVisible}`,
+      "tile selection: position-fixed",
+      `tile cameras: ${state.tileSelectionCameras.length}`,
       `load progress: ${this.tilesStats.loadProgress.toFixed(2)}`,
       `visible tiles: ${this.tilesStats.visibleTiles}`,
       `active tiles: ${this.tilesStats.activeTiles}`,
