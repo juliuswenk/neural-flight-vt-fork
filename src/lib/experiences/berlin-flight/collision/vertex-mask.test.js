@@ -46,3 +46,22 @@ test("updateVertexMask marks triangles whose center is inside a cone", () => {
 
   expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
 });
+
+test("updateVertexMask samples large triangle interiors beyond the center", () => {
+  const trackedMesh = createTrackedTriangleMesh();
+  const cone = {
+    tip: new THREE.Vector3(-4, 3, 0),
+    axisDirection: new THREE.Vector3(0, -1, 0),
+    radius: 0.4,
+    height: 2,
+    baseCenter: new THREE.Vector3(-4, 1, 0),
+    placementPointId: "point-a",
+    sourceBuildingId: "building-a",
+    chunkKey: "0:0",
+    coneIndex: 0,
+  };
+
+  updateVertexMask(trackedMesh, [cone]);
+
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
+});

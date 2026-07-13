@@ -92,7 +92,7 @@ test("BerlinConeChunkRuntimeStore drops far chunks from memory", async () => {
   const store = new BerlinConeChunkRuntimeStore(createLoader());
 
   await store.update(new THREE.Vector3(0, 0, 0));
-  await store.update(new THREE.Vector3(1920 * 4, 0, 0));
+  await store.update(new THREE.Vector3(1920 * 5, 0, 0));
 
   expect(store.getLoadedChunkCount()).toBe(0);
 });
@@ -154,6 +154,7 @@ test("BerlinConeChunkRuntimeStore respects the per-tick chunk load budget", asyn
 
   expect(loadCount).toBe(4);
   expect(store.getLoadedChunkCount()).toBe(4);
+  expect(store.getActiveConeChunks()).toHaveLength(0);
 });
 
 test("BerlinConeChunkRuntimeStore treats missing in-bounds chunk files as empty chunks", async () => {
@@ -203,6 +204,7 @@ test("BerlinConeChunkRuntimeStore treats missing in-bounds chunk files as empty 
     },
   });
 
+  await store.update(new THREE.Vector3(0, 0, 0));
   await store.update(new THREE.Vector3(0, 0, 0));
   await store.update(new THREE.Vector3(0, 0, 0));
 

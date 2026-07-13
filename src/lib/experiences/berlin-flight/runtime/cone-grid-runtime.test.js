@@ -102,12 +102,14 @@ test("BerlinConeGridRuntime applies the latest queued observer position after a 
   runtime.update(new THREE.Vector3(-1921, 0, 0));
   await waitFor(
     () => runtime.getActiveConeChunks().map((chunk) => chunk.key).join("|"),
-    "-1:-1|-1:0",
+    "-1:-1|0:-1|-1:0|0:0",
   );
 
   expect(runtime.getActiveConeChunks().map((chunk) => chunk.key)).toEqual([
     "-1:-1",
+    "0:-1",
     "-1:0",
+    "0:0",
   ]);
   expect(loadChunkCalls).toBeGreaterThan(0);
 

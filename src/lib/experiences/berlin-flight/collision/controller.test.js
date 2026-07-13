@@ -84,3 +84,16 @@ test("BerlinCollisionController invalidates tracked meshes when cone stream chan
 
   expect(Array.from(trackedMesh.vertexMask)).toEqual([0, 0, 0]);
 });
+
+test("BerlinCollisionController lets cones affect meshes across chunk keys", () => {
+  const controller = new BerlinCollisionController();
+  const trackedMesh = createTrackedMesh();
+  const cone = {
+    ...createCone(),
+    chunkKey: "neighbor:chunk",
+  };
+
+  controller.update([cone], 1, [trackedMesh], 1);
+
+  expect(Array.from(trackedMesh.vertexMask)).toContain(1);
+});

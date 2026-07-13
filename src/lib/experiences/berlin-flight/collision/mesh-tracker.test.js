@@ -44,7 +44,7 @@ test("filtered-out tile meshes are still swapped to Berlin material", async () =
   expect(berlinMaterialDisposed).toBe(true);
 });
 
-test("tracked tile meshes get cone material after first mask write", async () => {
+test("tracked tile meshes get cone material on first collision update", async () => {
   const { BerlinCollisionController } = await import("./controller");
   const { BerlinTileMeshRegistry } = await import("./mesh-tracker");
   const registry = new BerlinTileMeshRegistry();
@@ -78,11 +78,60 @@ test("tracked tile meshes get cone material after first mask write", async () =>
 
   expect(trackedMesh).toBeDefined();
   expect(mesh.material).toBe(trackedMesh.neutralMaterial);
-  expect(mesh.material).not.toBe(trackedMesh.collisionMaterial);
+  expect(trackedMesh.hasConeMaskMaterial).toBe(false);
+  expect(Array.from(trackedMesh.coneMaskAttribute.array)).toEqual(
+    Array(trackedMesh.vertexCount).fill(0),
+  );
 
   const controller = new BerlinCollisionController();
   controller.update([], 1, [trackedMesh], registry.getVersion());
 
   expect(mesh.material).toBe(trackedMesh.collisionMaterial);
   expect(trackedMesh.hasConeMaskMaterial).toBe(true);
+  expect(Array.from(trackedMesh.coneMaskAttribute.array)).toEqual(
+    Array(trackedMesh.vertexCount).fill(0),
+  );
+});
+
+test("new tracked tile meshes bypass the dirty queue budget", async () => {
+  const { BERLIN_COLLISION } = await import("./config");
+  const { BerlinCollisionController } = await import("./controller");
+  const { BerlinTileMeshRegistry } = await import("./mesh-tracker");
+  const registry = new BerlinTileMeshRegistry();
+  const root = new THREE.Group();
+
+  for (let meshIndex = 0; meshIndex < 3; meshIndex += 1) {
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(
+        new Float32Array([
+          -2, -2, 0,
+          2, -2, 0,
+          2, 2, 0,
+          -2, -2, 0,
+          2, 2, 0,
+          -2, 2, 0,
+          -2, -2, 2,
+          2, -2, 2,
+          2, 2, 2,
+          -2, -2, 2,
+          2, 2, 2,
+          -2, 2, 2,
+        ]),
+        3,
+      ),
+    );
+    root.add(new THREE.Mesh(geometry, new THREE.MeshStandardMaterial()));
+  }
+
+  registry.trackTileScene(root, "test-url");
+  const trackedMeshes = registry.getTrackedTileMeshes();
+  const controller = new BerlinCollisionController();
+
+  controller.update([], 1, trackedMeshes, registry.getVersion());
+
+  expect(trackedMeshes).toHaveLength(3);
+  expect(BERLIN_COLLISION.MAX_MESHES_PER_TICK).toBeGreaterThan(2);
+  expect(trackedMeshes.every((mesh) => mesh.hasConeMaskMaterial)).toBe(true);
 });

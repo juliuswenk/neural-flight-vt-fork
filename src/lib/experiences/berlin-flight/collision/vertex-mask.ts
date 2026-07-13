@@ -1,10 +1,15 @@
 import * as THREE from "three";
+import { BERLIN_COLLISION } from "./config";
 import type { BerlinConeVolume } from "./types";
 import type { TrackedTileMesh } from "./tile-mesh-types";
 import { isVertexInsideCone } from "./vertex-cone-test";
 
 const scratchPosition = new THREE.Vector3();
 const scratchTriangleCenter = new THREE.Vector3();
+const scratchTriangleSample = new THREE.Vector3();
+const scratchTriangleVertexA = new THREE.Vector3();
+const scratchTriangleVertexB = new THREE.Vector3();
+const scratchTriangleVertexC = new THREE.Vector3();
 
 export function updateVertexMask(
   mesh: TrackedTileMesh,
@@ -69,28 +74,85 @@ function updateTriangleMask(
       continue;
     }
 
-    setTriangleCenter(mesh, vertexA, vertexB, vertexC);
-
-    for (const cone of cones) {
-      if (!isVertexInsideCone(scratchTriangleCenter, cone)) continue;
-
+    if (isTriangleInsideAnyCone(mesh, vertexA, vertexB, vertexC, cones)) {
       mesh.vertexMask[vertexA] = 1;
       mesh.vertexMask[vertexB] = 1;
       mesh.vertexMask[vertexC] = 1;
-      break;
     }
   }
 }
 
-function setTriangleCenter(
+function isTriangleInsideAnyCone(
+  mesh: TrackedTileMesh,
+  vertexA: number,
+  vertexB: number,
+  vertexC: number,
+  cones: readonly BerlinConeVolume[],
+): boolean {
+  setTriangleVertices(mesh, vertexA, vertexB, vertexC);
+  setTriangleCenter();
+
+  for (const cone of cones) {
+    if (isVertexInsideCone(scratchTriangleCenter, cone)) return true;
+    if (isSampledTriangleInsideCone(cone)) return true;
+  }
+
+  return false;
+}
+
+function isSampledTriangleInsideCone(cone: BerlinConeVolume): boolean {
+  const steps = getTriangleSampleSubdivisions();
+  if (steps <= 1) return false;
+
+  for (let aStep = 0; aStep <= steps; aStep += 1) {
+    for (let bStep = 0; bStep <= steps - aStep; bStep += 1) {
+      const cStep = steps - aStep - bStep;
+      if (aStep === steps || bStep === steps || cStep === steps) continue;
+
+      const aWeight = aStep / steps;
+      const bWeight = bStep / steps;
+      const cWeight = cStep / steps;
+
+      scratchTriangleSample
+        .copy(scratchTriangleVertexA)
+        .multiplyScalar(aWeight)
+        .addScaledVector(scratchTriangleVertexB, bWeight)
+        .addScaledVector(scratchTriangleVertexC, cWeight);
+
+      if (isVertexInsideCone(scratchTriangleSample, cone)) return true;
+    }
+  }
+
+  return false;
+}
+
+function getTriangleSampleSubdivisions(): number {
+  const edgeAB = scratchTriangleVertexA.distanceTo(scratchTriangleVertexB);
+  const edgeBC = scratchTriangleVertexB.distanceTo(scratchTriangleVertexC);
+  const edgeCA = scratchTriangleVertexC.distanceTo(scratchTriangleVertexA);
+  const longestEdge = Math.max(edgeAB, edgeBC, edgeCA);
+
+  return Math.min(
+    BERLIN_COLLISION.MAX_TRIANGLE_MASK_SUBDIVISIONS,
+    Math.ceil(longestEdge / BERLIN_COLLISION.TRIANGLE_MASK_SAMPLE_SPACING_METERS),
+  );
+}
+
+function setTriangleVertices(
   mesh: TrackedTileMesh,
   vertexA: number,
   vertexB: number,
   vertexC: number,
 ): void {
+  scratchTriangleVertexA.fromArray(mesh.worldPositions, vertexA * 3);
+  scratchTriangleVertexB.fromArray(mesh.worldPositions, vertexB * 3);
+  scratchTriangleVertexC.fromArray(mesh.worldPositions, vertexC * 3);
+}
+
+function setTriangleCenter(): void {
   scratchTriangleCenter
-    .fromArray(mesh.worldPositions, vertexA * 3)
-    .add(scratchPosition.fromArray(mesh.worldPositions, vertexB * 3))
-    .add(scratchPosition.fromArray(mesh.worldPositions, vertexC * 3))
+    .copy(scratchTriangleVertexA)
+    .add(scratchTriangleVertexB)
+    .add(scratchTriangleVertexC)
     .multiplyScalar(1 / 3);
 }

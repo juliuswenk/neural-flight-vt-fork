@@ -68,7 +68,9 @@ export class BerlinConeChunkRuntimeStore {
 
       await this.loadMissingChunks(inBoundsChunkKeys);
       this.unloadFarChunks(center);
-      this.refreshActiveState(inBoundsChunkKeys);
+      if (this.areAllChunksLoaded(inBoundsChunkKeys)) {
+        this.refreshActiveState(inBoundsChunkKeys);
+      }
       this.lastError = null;
       this.clearDiagnosticError();
       this.refreshDiagnostics(inBoundsChunkKeys);
@@ -190,6 +192,10 @@ export class BerlinConeChunkRuntimeStore {
     this.activeChunkSnapshots = nextState.chunkSnapshots;
     this.activeCones = nextState.coneVolumes;
     this.snapshotVersion += 1;
+  }
+
+  private areAllChunksLoaded(chunkKeys: readonly string[]): boolean {
+    return chunkKeys.every((chunkKey) => this.loadedChunks.has(chunkKey));
   }
 
   private isChunkInBounds(

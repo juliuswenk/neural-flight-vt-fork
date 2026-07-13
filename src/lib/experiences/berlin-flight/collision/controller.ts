@@ -31,13 +31,12 @@ export class BerlinCollisionController {
     meshVersion: number,
   ): void {
     this.activeCones = cones.length;
-    this.syncTrackedMeshes(meshes, meshVersion);
-
     if (this.lastConeVersion !== coneVersion) {
       this.lastConeVersion = coneVersion;
-      this.markMeshesDirty(meshes);
+      this.markMeshesDirty(Array.from(this.trackedMeshes));
     }
 
+    this.syncTrackedMeshes(cones, meshes, meshVersion);
     this.processDirtyMeshes(cones);
   }
 
@@ -50,6 +49,7 @@ export class BerlinCollisionController {
   }
 
   private syncTrackedMeshes(
+    cones: readonly BerlinConeVolume[],
     meshes: readonly TrackedTileMesh[],
     meshVersion: number,
   ): void {
@@ -59,10 +59,14 @@ export class BerlinCollisionController {
     this.lastMeshVersion = meshVersion;
     const nextTrackedMeshes = new Set(meshes);
 
+    const previousTrackedMeshes = new Set(this.trackedMeshes);
     this.trackedMeshes.clear();
     for (const mesh of meshes) {
+      const isNewMesh = !previousTrackedMeshes.has(mesh);
       this.trackedMeshes.add(mesh);
-      this.enqueueDirtyMesh(mesh);
+      if (isNewMesh) {
+        this.processMesh(cones, mesh);
+      }
     }
 
     this.dirtyQueue = this.dirtyQueue.filter((mesh) => nextTrackedMeshes.has(mesh));
@@ -104,17 +108,24 @@ export class BerlinCollisionController {
         continue;
       }
 
-      const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
-      updateVertexMask(mesh, overlappingCones);
-      writeConeMaskAttributeForMesh(mesh);
-      if (!mesh.hasConeMaskMaterial) {
-        mesh.mesh.material = mesh.collisionMaterial;
-        mesh.hasConeMaskMaterial = true;
-      }
+      this.processMesh(cones, mesh);
 
       this.verticesTestedLastTick += mesh.vertexCount;
       this.processedMeshesLastTick += 1;
       this.dirtyMeshes.delete(mesh);
+    }
+  }
+
+  private processMesh(
+    cones: readonly BerlinConeVolume[],
+    mesh: TrackedTileMesh,
+  ): void {
+    const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
+    updateVertexMask(mesh, overlappingCones);
+    writeConeMaskAttributeForMesh(mesh);
+    if (!mesh.hasConeMaskMaterial) {
+      mesh.mesh.material = mesh.collisionMaterial;
+      mesh.hasConeMaskMaterial = true;
     }
   }
 }

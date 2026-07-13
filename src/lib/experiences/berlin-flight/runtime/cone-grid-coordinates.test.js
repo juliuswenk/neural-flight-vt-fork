@@ -2,6 +2,9 @@
 import { expect, test } from "bun:test";
 import * as THREE from "three";
 import {
+  BERLIN_CONE_GRID,
+} from "./cone-grid-config";
+import {
   BERLIN_CONE_CHUNK_SIZE_METERS,
   collectConeChunkKeys,
   getConeChunkCoordinate,
@@ -35,4 +38,10 @@ test("cone chunk collection returns stable x:z keys around a center chunk", () =
     "0:1",
     "1:1",
   ]);
+});
+
+test("loaded cone chunks cover the VR camera far plane", () => {
+  expect(
+    BERLIN_CONE_GRID.LOAD_RADIUS_CHUNKS * BERLIN_CONE_CHUNK_SIZE_METERS,
+  ).toBeGreaterThanOrEqual(3200);
 });
