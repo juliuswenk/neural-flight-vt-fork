@@ -283,15 +283,15 @@ No open product decisions right now. Add implementation questions here when migr
 
 ## First Migration Checklist
 
-- [ ] Copy minimal experience shell.
+- [x] Copy minimal experience shell.
 - [ ] Rename visible identifiers to Werkschau naming.
-- [ ] Keep browser-based preview mode working.
-- [ ] Wire Cesium tile source.
+- [x] Keep browser-based preview mode working.
+- [x] Wire Cesium tile source.
 - [ ] Keep nearby-only lazy tile streaming.
-- [ ] Use neutral tile material by default.
-- [ ] Add position-based tile selection.
+- [x] Use neutral tile material by default.
+- [x] Add position-based tile selection.
 - [x] Add full-Berlin clamp bounds.
-- [ ] Verify desktop preview.
+- [x] Verify desktop preview.
 - [ ] Verify Pico 4 WebXR.
 - [x] Add onboarding sequence and first-movement 3-minute flight timer.
 - [x] Add retained audio components.
@@ -300,4 +300,4 @@ No open product decisions right now. Add implementation questions here when migr
 - [x] Add precomputed cones.
 - [x] Cap visible cones to nearby cones.
 - [x] Add cone collision.
-- [ ] Add stable cone intersection texture reveal on high-detail nearby tiles.
+- [x] Add stable cone intersection texture reveal on high-detail nearby tiles.

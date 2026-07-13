@@ -1,5 +1,9 @@
 import { WERKSCHAU_COLLISION } from "./config";
 import { collectOverlappingConesForMesh } from "./cone-query";
+import {
+  setWerkschauTileMaterialFragmentCones,
+  syncWerkschauTileMaterialSourceMaps,
+} from "../runtime/tiles-material";
 import type { WerkschauConeVolume } from "./types";
 import type { TrackedTileMesh } from "./tile-mesh-types";
 import { writeConeMaskAttributeForMesh } from "./vertex-color-writer";
@@ -37,6 +41,7 @@ export class WerkschauCollisionController {
     }
 
     this.syncTrackedMeshes(cones, meshes, meshVersion);
+    this.syncSourceMaps(meshes);
     this.processDirtyMeshes(cones);
   }
 
@@ -90,6 +95,15 @@ export class WerkschauCollisionController {
     this.dirtyQueue.push(mesh);
   }
 
+  private syncSourceMaps(meshes: readonly TrackedTileMesh[]): void {
+    for (const mesh of meshes) {
+      syncWerkschauTileMaterialSourceMaps(
+        mesh.originalMaterial,
+        mesh.collisionMaterial,
+      );
+    }
+  }
+
   private processDirtyMeshes(cones: readonly WerkschauConeVolume[]): void {
     this.processedMeshesLastTick = 0;
     this.verticesTestedLastTick = 0;
@@ -121,11 +135,47 @@ export class WerkschauCollisionController {
     mesh: TrackedTileMesh,
   ): void {
     const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
+    if (overlappingCones.length === 0) {
+      updateVertexMask(mesh, overlappingCones);
+      writeConeMaskAttributeForMesh(mesh);
+      setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, []);
+      if (mesh.hasConeMaskMaterial) {
+        mesh.mesh.material = mesh.neutralMaterial;
+        mesh.hasConeMaskMaterial = false;
+      }
+      return;
+    }
+
+    const fragmentCones = getNearestFragmentCones(mesh, overlappingCones);
     updateVertexMask(mesh, overlappingCones);
     writeConeMaskAttributeForMesh(mesh);
+    setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, fragmentCones);
     if (!mesh.hasConeMaskMaterial) {
       mesh.mesh.material = mesh.collisionMaterial;
       mesh.hasConeMaskMaterial = true;
     }
   }
+}
+
+function getNearestFragmentCones(
+  mesh: TrackedTileMesh,
+  cones: readonly WerkschauConeVolume[],
+): readonly WerkschauConeVolume[] {
+  if (cones.length <= WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES) return cones;
+
+  return cones
+    .slice()
+    .sort(
+      (left, right) =>
+        getConeDistanceToMeshSphere(left, mesh) -
+        getConeDistanceToMeshSphere(right, mesh),
+    )
+    .slice(0, WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES);
+}
+
+function getConeDistanceToMeshSphere(
+  cone: WerkschauConeVolume,
+  mesh: TrackedTileMesh,
+): number {
+  return mesh.worldSphere.center.distanceToSquared(cone.tip);
 }
