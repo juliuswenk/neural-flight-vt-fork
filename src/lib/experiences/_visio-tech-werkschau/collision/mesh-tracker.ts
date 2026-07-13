@@ -106,7 +106,7 @@ function createRegisteredMesh(
   const originalMaterial = mesh.material;
   const werkschauMaterial = createWerkschauNeutralTileMaterial(originalMaterial);
   const collisionMaterial = createWerkschauTileMaterial(originalMaterial);
-  const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial);
+  const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial, sourceUrl);
 
   mesh.material = werkschauMaterial;
 
@@ -121,7 +121,6 @@ function createRegisteredMesh(
   }
 
   initializeConeMaskAttributeForMesh(trackedMesh);
-  trackedMesh.sourceUrl = sourceUrl;
   trackedMesh.neutralMaterial = werkschauMaterial;
   applyPrebakedConeIntersectionMaterial(trackedMesh);
   return { originalMaterial, werkschauMaterial, trackedMesh };

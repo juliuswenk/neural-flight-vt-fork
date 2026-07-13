@@ -119,6 +119,15 @@ Coding agent prompt:
 Add the smallest offline bake script for _visio-tech-werkschau that reads one local GLB/GLTF mesh and writes a copy with a Float32 coneMask attribute plus metadata. Reuse existing collision math/constants where possible. Do not build a full 3D Tiles pipeline yet. Use already installed packages only; inspect package.json before adding anything. Add a minimal npm/bun script only if needed. Include a short usage note in docs/collision-bake-integration-plan.md. Run the script on a small local model if available, then run biome and svelte-check.
 ```
 
+Usage:
+
+```bash
+bun run src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts input.glb output.glb [cone-data-dir] [runtime-source-url]
+```
+
+Optional third argument: cone data directory. Defaults to `static/experiences/_visio-tech-werkschau/cone-data/generated`.
+Optional fourth argument: the source URL the runtime will report for this baked mesh. Defaults to the output path.
+
 ## Step 4: Freeze The City Tile Source
 
 Intent: make the bake trustworthy.
@@ -175,6 +184,14 @@ Coding agent prompt:
 ```text
 Extend the single-file coneMask bake script into a directory batch bake for a frozen local tileset. Keep it boring: walk files, process supported mesh payloads, copy everything else, and emit a JSON report. Preserve source materials/textures. Do not optimize beyond what the profiler requires. Add docs for input/output paths. Run the batch on a small subset first and verify the app uses prebaked masks instead of runtime sampling.
 ```
+
+Usage:
+
+```bash
+bun run src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts frozen-tiles-in baked-tiles-out [cone-data-dir] [runtime-source-base]
+```
+
+Directory mode walks `frozen-tiles-in`, bakes `.glb` and `.gltf` files, copies all other files, and writes `baked-tiles-out/cone-mask-bake-report.json`. Use `runtime-source-base` so `werkschauBakeSource` matches the URLs the runtime reports for the baked tiles.
 
 ## Step 6: Profile Before Shader Simplification
 
@@ -234,4 +251,3 @@ Add an optional simple baked-mask material path for _visio-tech-werkschau. For m
 - Remote streamed tiles still work with the old live path.
 - The bake records its source, so stale geometry can be detected.
 - Full material baking remains unimplemented unless profiling proves it is needed.
-
