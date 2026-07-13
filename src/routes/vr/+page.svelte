@@ -14,6 +14,7 @@
     import {
         getActiveExperienceId,
         loadExperience,
+        setActiveExperienceId,
         unloadExperience,
     } from "$lib/experiences/loader";
     import type { PlayerOrientationInput } from "$lib/experiences/types";
@@ -95,7 +96,7 @@
 
         scene = new THREE.Scene();
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-        const experienceId = getActiveExperienceId();
+        const experienceId = getRequestedExperienceId(window.location.search);
         const isArExperience = AR_EXPERIENCE_IDS.has(experienceId);
         isDesktopPreview = isPreviewEnabled(window.location.search);
         if (isDesktopPreview) {
@@ -319,6 +320,15 @@
     function isPreviewEnabled(search: string): boolean {
         const preview = new URLSearchParams(search).get("preview");
         return preview !== null && preview !== "0";
+    }
+
+    function getRequestedExperienceId(search: string): string {
+        const params = new URLSearchParams(search);
+        const experienceId = params.get("experience")?.trim();
+        if (!experienceId) return getActiveExperienceId();
+
+        setActiveExperienceId(experienceId);
+        return experienceId;
     }
 
     onDestroy(() => {
