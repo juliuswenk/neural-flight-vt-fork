@@ -32,6 +32,7 @@ const WERKSCHAU_TILE_SELECTION_YAWS = [
   Math.PI,
   -Math.PI * 0.5,
 ] as const;
+const WERKSCHAU_TILE_SELECTION_DOWN_PITCH = -Math.PI * 0.5;
 
 export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const sceneRoot = new THREE.Group();
@@ -241,12 +242,14 @@ function createTileSelectionCameras(
     createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[1]),
     createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[2]),
     createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[3]),
+    createTileSelectionCamera(camera, 0, WERKSCHAU_TILE_SELECTION_DOWN_PITCH),
   ];
 }
 
 function createTileSelectionCamera(
   camera: THREE.PerspectiveCamera,
   yaw: number,
+  pitch = 0,
 ): THREE.PerspectiveCamera {
   const selectionCamera = new THREE.PerspectiveCamera(
     WERKSCHAU_TILE_SELECTION_FOV,
@@ -254,7 +257,7 @@ function createTileSelectionCamera(
     camera.near,
     camera.far,
   );
-  selectionCamera.rotation.set(0, yaw, 0);
+  selectionCamera.rotation.set(pitch, yaw, 0, "YXZ");
   selectionCamera.updateProjectionMatrix();
   selectionCamera.updateMatrixWorld(true);
   return selectionCamera;

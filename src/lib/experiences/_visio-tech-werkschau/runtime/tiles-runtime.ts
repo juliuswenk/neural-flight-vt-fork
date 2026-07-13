@@ -5,6 +5,11 @@ import type { Camera, Group, WebGLRenderer } from "three";
 import { WERKSCHAU_TILE_RUNTIME } from "../constants";
 import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
 import { getECEFToLocalMatrix } from "../geo/coordinates";
+import {
+  createWerkschauNeutralTileMaterial,
+  disposeClonedMaterial,
+  disposeMaterial,
+} from "./tiles-material";
 import type { WerkschauTilesSource } from "./tiles-source";
 
 export interface TilesRuntimeDebugStats {
@@ -15,6 +20,12 @@ export interface TilesRuntimeDebugStats {
   visibleTiles: number;
   activeTiles: number;
   trackedMeshes: number;
+}
+
+interface RegisteredTileMesh {
+  mesh: THREE.Mesh;
+  neutralMaterial: THREE.Material | THREE.Material[];
+  originalMaterial: THREE.Material | THREE.Material[];
 }
 
 type TileLoadEvent = {
@@ -33,7 +44,10 @@ type TileDisposeEvent = {
 export class TilesRuntimeAdapter {
   private renderer: TilesRenderer | null = null;
   private activeCameras: Camera[] = [];
-  private readonly trackedByScene = new Map<THREE.Object3D, Set<THREE.Mesh>>();
+  private readonly trackedByScene = new Map<
+    THREE.Object3D,
+    RegisteredTileMesh[]
+  >();
   private readonly trackedMeshes = new Set<THREE.Mesh>();
   private readonly resolution = new THREE.Vector2();
   private readonly url: string;
@@ -141,11 +155,15 @@ export class TilesRuntimeAdapter {
   private readonly handleLoadModel = (event: TileLoadEvent): void => {
     if (this.trackedByScene.has(event.scene)) return;
 
-    const meshes = new Set<THREE.Mesh>();
+    const meshes: RegisteredTileMesh[] = [];
     event.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        meshes.add(child);
         this.trackedMeshes.add(child);
+        const originalMaterial = child.material;
+        const neutralMaterial =
+          createWerkschauNeutralTileMaterial(originalMaterial);
+        child.material = neutralMaterial;
+        meshes.push({ mesh: child, neutralMaterial, originalMaterial });
       }
     });
     this.trackedByScene.set(event.scene, meshes);
@@ -155,8 +173,12 @@ export class TilesRuntimeAdapter {
     const meshes = this.trackedByScene.get(event.scene);
     if (!meshes) return;
 
-    for (const mesh of meshes) {
-      this.trackedMeshes.delete(mesh);
+    const disposedMaterials = new WeakSet<THREE.Material>();
+
+    for (const registeredMesh of meshes) {
+      this.trackedMeshes.delete(registeredMesh.mesh);
+      disposeClonedMaterial(registeredMesh.neutralMaterial, disposedMaterials);
+      disposeMaterial(registeredMesh.originalMaterial, disposedMaterials);
     }
     this.trackedByScene.delete(event.scene);
   };

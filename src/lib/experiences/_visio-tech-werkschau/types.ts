@@ -16,12 +16,7 @@ export interface WerkschauState extends ExperienceState {
   fallbackPlane: THREE.Mesh | null;
   renderer: THREE.WebGLRenderer;
   camera: THREE.PerspectiveCamera;
-  tileSelectionCameras: readonly [
-    THREE.PerspectiveCamera,
-    THREE.PerspectiveCamera,
-    THREE.PerspectiveCamera,
-    THREE.PerspectiveCamera,
-  ];
+  tileSelectionCameras: readonly THREE.PerspectiveCamera[];
   player: FlightPlayer;
   targetSpeed: number;
   isLoading: boolean;
