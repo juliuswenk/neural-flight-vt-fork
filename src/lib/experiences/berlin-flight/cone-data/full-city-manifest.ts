@@ -8,7 +8,7 @@ export const BERLIN_FULL_CITY_SOURCE_MESH_DIR =
 export const BERLIN_FULL_CITY_SOURCE_MANIFEST_PATH =
   "src/lib/experiences/berlin-flight/cone-data/source-manifest.full-berlin.json";
 export const BERLIN_FULL_CITY_OUTPUT_DIR =
-  "src/lib/experiences/berlin-flight/cone-data/generated";
+  "static/experiences/berlin-flight/cone-data/generated";
 
 export function createBerlinFullCitySourceManifest(
   sourceFiles: readonly { fileName: string; sourceUrl?: string }[],

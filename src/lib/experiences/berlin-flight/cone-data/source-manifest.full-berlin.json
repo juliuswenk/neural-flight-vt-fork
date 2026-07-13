@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "outputDir": "src/lib/experiences/berlin-flight/cone-data/generated",
+  "outputDir": "static/experiences/berlin-flight/cone-data/generated",
   "sources": [
     {
       "path": "./source-meshes/full-berlin/AJVsH2w_-J1mYn7LosT1nd3usCthB5ejORrMOz5bHE2H53Kg-9537cde4028f.json",

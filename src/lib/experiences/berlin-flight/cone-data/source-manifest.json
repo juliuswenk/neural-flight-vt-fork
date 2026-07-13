@@ -5,7 +5,7 @@
     "z": 0
   },
   "radiusMeters": 1000,
-  "outputDir": "src/lib/experiences/berlin-flight/cone-data/generated",
+  "outputDir": "static/experiences/berlin-flight/cone-data/generated",
   "sources": [
     {
       "path": "./source-meshes/center-1km.json",

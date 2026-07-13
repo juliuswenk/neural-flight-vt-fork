@@ -10,6 +10,9 @@ import type {
   BerlinConeDatasetManifest,
 } from "./contracts";
 
+const BERLIN_CONE_DATASET_BASE_URL =
+  "/experiences/berlin-flight/cone-data/generated";
+
 export interface BerlinConeDatasetAssetLoader {
   loadChunk(chunkKey: string): Promise<BerlinConeChunkSnapshot>;
   loadManifest(): Promise<BerlinConeDatasetManifest>;
@@ -41,58 +44,71 @@ export class BerlinConeDatasetLoadError extends Error {
   }
 }
 
-type ImportGlobModuleLoader = () => Promise<unknown>;
-
 export function createBerlinConeDatasetAssetLoader(): BerlinConeDatasetAssetLoader {
-  const manifestModules: Record<string, ImportGlobModuleLoader> = import.meta.glob(
-    "./generated/manifest.json",
-    {
-      import: "default",
-    },
-  );
-  const chunkModules: Record<string, ImportGlobModuleLoader> = import.meta.glob(
-    "./generated/chunks/*.json",
-    {
-      import: "default",
-    },
-  );
-
   return {
     async loadManifest(): Promise<BerlinConeDatasetManifest> {
-      const manifestModule = Object.values(manifestModules)[0];
-      if (!manifestModule) {
-        throw new BerlinConeDatasetLoadError(
-          "manifest-missing",
-          "[BerlinFlight] Missing precomputed cone manifest at cone-data/generated/manifest.json. Build the dataset first.",
-        );
-      }
-
       try {
-        return parseBerlinConeDatasetManifest(await manifestModule());
+        return parseBerlinConeDatasetManifest(
+          await fetchDatasetJson(
+            `${BERLIN_CONE_DATASET_BASE_URL}/manifest.json`,
+            "manifest-missing",
+          ),
+        );
       } catch (error: unknown) {
         throw asDatasetLoadError("manifest-invalid", error);
       }
     },
     async loadChunk(chunkKey: string): Promise<BerlinConeChunkSnapshot> {
-      const chunkModule =
-        chunkModules[`./generated/chunks/${getBerlinConeChunkFileName(chunkKey)}`];
-      if (!chunkModule) {
-        throw new BerlinConeDatasetLoadError(
-          "chunk-missing",
-          `[BerlinFlight] Missing precomputed cone chunk ${chunkKey} at cone-data/generated/chunks/${getBerlinConeChunkFileName(chunkKey)}.`,
-          { chunkKey },
-        );
-      }
-
       try {
         return createBerlinConeChunkSnapshot(
-          parseBerlinConeChunkData(await chunkModule()),
+          parseBerlinConeChunkData(
+            await fetchDatasetJson(
+              `${BERLIN_CONE_DATASET_BASE_URL}/chunks/${getBerlinConeChunkFileName(chunkKey)}`,
+              "chunk-missing",
+              chunkKey,
+            ),
+          ),
         );
       } catch (error: unknown) {
         throw asDatasetLoadError("chunk-invalid", error, chunkKey);
       }
     },
   };
+}
+
+async function fetchDatasetJson(
+  url: string,
+  missingCode: "manifest-missing" | "chunk-missing",
+  chunkKey?: string,
+): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (error: unknown) {
+    throw new BerlinConeDatasetLoadError(
+      "load-error",
+      `[BerlinFlight] Failed to fetch precomputed cone data at ${url}.`,
+      { cause: error, chunkKey },
+    );
+  }
+
+  if (response.status === 404) {
+    throw new BerlinConeDatasetLoadError(
+      missingCode,
+      `[BerlinFlight] Missing precomputed cone data at ${url}. Build the dataset first.`,
+      { chunkKey },
+    );
+  }
+
+  if (!response.ok) {
+    throw new BerlinConeDatasetLoadError(
+      "load-error",
+      `[BerlinFlight] Failed to fetch precomputed cone data at ${url}: ${response.status} ${response.statusText}`,
+      { chunkKey },
+    );
+  }
+
+  return (await response.json()) as unknown;
 }
 
 function parseBerlinConeDatasetManifest(

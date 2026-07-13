@@ -20,7 +20,7 @@ import {
 const DEFAULT_SOURCE_MANIFEST =
   "src/lib/experiences/berlin-flight/cone-data/source-manifest.json";
 const DEFAULT_OUTPUT_DIR =
-  "src/lib/experiences/berlin-flight/cone-data/generated";
+  "static/experiences/berlin-flight/cone-data/generated";
 
 async function main(): Promise<void> {
   const sourceManifestPath = path.resolve(process.argv[2] ?? DEFAULT_SOURCE_MANIFEST);

@@ -37,7 +37,7 @@ export async function POST({ request }) {
         version: 1,
         center,
         radiusMeters,
-        outputDir: "src/lib/experiences/berlin-flight/cone-data/generated",
+        outputDir: "static/experiences/berlin-flight/cone-data/generated",
         sources: [
           {
             path: "./source-meshes/center-1km.json",
