@@ -37,6 +37,10 @@ export class BerlinRadioStation {
     }
   }
 
+  get isPlaying(): boolean {
+    return this.playing;
+  }
+
   start(): void {
     if (this.playing) return;
 
@@ -86,6 +90,7 @@ export class BerlinRadioStation {
 
     audioElement.play().catch((error: unknown) => {
       console.warn(`[BerlinRadio:${this.id}] play failed:`, error);
+      this.stop();
     });
   }
 

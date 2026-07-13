@@ -5,7 +5,6 @@ import { BerlinRadioStation } from "./radio-station";
 export class BerlinRadioManager {
   readonly group = new THREE.Group();
   private readonly stations: BerlinRadioStation[];
-  private started = false;
 
   constructor(listener: THREE.AudioListener) {
     this.group.name = "BerlinRadioStations";
@@ -17,13 +16,10 @@ export class BerlinRadioManager {
   }
 
   get isStarted(): boolean {
-    return this.started;
+    return this.stations.some((station) => station.isPlaying);
   }
 
   start(): void {
-    if (this.started) return;
-
-    this.started = true;
     for (const station of this.stations) {
       station.start();
     }

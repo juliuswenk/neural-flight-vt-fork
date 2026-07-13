@@ -1,18 +1,20 @@
+This document is the list of things to fix to make the berlin flight experience ready for exhibition. When doing the fixes listed here, make sure everything runs smoothly and still has good performance. These are the final fixes.
+
 After testing the experience, these problems need fixing:
 
 1. No skybox after intro is over -> FIXED & Commited
    - Fix plan: Check `scene.ts` transition logic. The skybox is hidden during onboarding and should become visible when `onboarding.isComplete` is true. Ensure `setBerlinSkyboxVisible(true)` runs after the intro, `scene.background` stays opaque, and AR clear alpha becomes `1`. 
 
-2. No cone textures visible
+2. No cone textures visible -> FIXED
    - Fix plan: Verify the cone mask path first: active cones, tracked tile meshes, `coneMask` attribute writes, and `BERLIN_COLLISION_TICK_ENABLED`. If masks update but textures still do not show, simplify `tiles-material.ts` so inside-cone pixels use the original tile map and outside-cone pixels use the neutral color.
 
-3. Flashing models in the intro
+3. Flashing models in the intro -> FIXED 
    - Fix plan: Stop toggling visibility by traversing every mesh each frame. Put Berlin world visuals under explicit groups and toggle `tilesGroup`, `coneRuntime.root`, debug/grid helpers, and lights directly so newly loaded tile meshes do not flash visible during onboarding.
 
-4. Controller input missing
+4. Controller input missing -> FIXED but needs work
    - Fix plan: Check `player.ts`: input is currently ignored while `state.onboarding.isActive`. Decide whether input should work during the intro. If yes, remove or narrow that guard. If no, test `/controller` WebSocket and ICAROS host input after onboarding completes.
 
-5. No radio audible for VR glasses (works in browser)
+5. No radio audible for VR glasses (works in browser) -> FIXED, needs headset retest
    - Fix plan: Resume the `AudioContext` from an XR/user gesture path. In `scene.ts`, when XR is presenting, call `listener.context.resume()` if suspended, then start `radioManager` only after the context state is `running`.
 
 6. Heatmaps work?
