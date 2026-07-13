@@ -30,9 +30,12 @@
     let canvas: HTMLCanvasElement;
     let renderer: THREE.WebGLRenderer;
     let scene: THREE.Scene;
-    const BERLIN_FLIGHT_ID = "berlin-flight";
-    const BERLIN_AR_UNSUPPORTED_MESSAGE =
-        "Berlin Flight requires browser AR passthrough support on this device and cannot start here.";
+    const AR_EXPERIENCE_IDS = new Set([
+        "berlin-flight",
+        "_visio-tech-werkschau",
+    ]);
+    const AR_UNSUPPORTED_MESSAGE =
+        "This experience requires browser AR passthrough support on this device and cannot start here.";
 
     let xrButton: HTMLElement | null = null;
     let score = $state(0);
@@ -93,7 +96,7 @@
         scene = new THREE.Scene();
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const experienceId = getActiveExperienceId();
-        const isBerlinFlight = experienceId === BERLIN_FLIGHT_ID;
+        const isArExperience = AR_EXPERIENCE_IDS.has(experienceId);
         isDesktopPreview = isPreviewEnabled(window.location.search);
         if (isDesktopPreview) {
             removePreviewKeyboardListeners = createPreviewKeyboardInput();
@@ -101,10 +104,10 @@
 
         renderer = new THREE.WebGLRenderer({
             canvas,
-            antialias: !isBerlinFlight,
-            alpha: isBerlinFlight,
+            antialias: !isArExperience,
+            alpha: isArExperience,
         });
-        if (isBerlinFlight) {
+        if (isArExperience) {
             renderer.setClearColor(0x000000, 0);
         }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -126,8 +129,8 @@
             renderer,
             previewMode: isDesktopPreview,
         }).then((exp: ActiveExperience) => {
-            renderer.shadowMap.enabled = exp.manifest.id !== "berlin-flight";
-            if (isBerlinFlight) {
+            renderer.shadowMap.enabled = !AR_EXPERIENCE_IDS.has(exp.manifest.id);
+            if (isArExperience) {
                 scene.background = null;
             }
             experienceName = exp.manifest.name;
@@ -232,7 +235,7 @@
             return null;
         }
 
-        if (experienceId !== BERLIN_FLIGHT_ID) {
+        if (!AR_EXPERIENCE_IDS.has(experienceId)) {
             return VRButton.createButton(renderer);
         }
 
@@ -245,7 +248,7 @@
                 : false;
 
         if (!supportsImmersiveAr) {
-            blockingError = BERLIN_AR_UNSUPPORTED_MESSAGE;
+            blockingError = AR_UNSUPPORTED_MESSAGE;
             return null;
         }
 
