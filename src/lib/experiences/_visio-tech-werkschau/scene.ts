@@ -1,25 +1,46 @@
 import * as THREE from "three";
+import { Scheduler } from "3d-tiles-renderer";
 import { CAMERA } from "$lib/config/flight";
 import { FlightPlayer } from "$lib/three/player";
 import { createSky } from "$lib/three/sky";
 import type { SetupContext, TickContext } from "../types";
 import {
   WERKSCHAU_ALTITUDE_SPEED,
+  WERKSCHAU_BERLIN_GEO_BOUNDS,
   WERKSCHAU_CAMERA_FAR,
   WERKSCHAU_FLIGHT_BASE_SPEED,
   WERKSCHAU_PLAYER_HEIGHT_LIMITS,
   WERKSCHAU_PLAYER_SPAWN_POSITION,
+  WERKSCHAU_TILE_SELECTION_FOV,
 } from "./constants";
+import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "./geo/berlin-mitte-origin";
+import { geoToLocal } from "./geo/coordinates";
 import { disposeObjectTree } from "./runtime/cleanup";
+import { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
+import {
+  isWerkschauTilesSourceConfigured,
+  resolveWerkschauTilesSource,
+} from "./runtime/tiles-source";
 import type { WerkschauState } from "./types";
 
+const scratchPosition = new THREE.Vector3();
 const WERKSCHAU_SKYBOX_COLOR = 0x87ceeb;
 const WERKSCHAU_SKYBOX_RADIUS = WERKSCHAU_CAMERA_FAR * 0.85;
+const WERKSCHAU_TILE_SELECTION_YAWS = [
+  0,
+  Math.PI * 0.5,
+  Math.PI,
+  -Math.PI * 0.5,
+] as const;
 
 export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const sceneRoot = new THREE.Group();
   sceneRoot.name = "VisioTechWerkschauRoot";
   ctx.scene.add(sceneRoot);
+
+  const tilesGroup = new THREE.Group();
+  tilesGroup.name = "VisioTechWerkschauTilesRoot";
+  sceneRoot.add(tilesGroup);
 
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
@@ -52,17 +73,26 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   sceneRoot.add(fillLights.hemisphere);
   sceneRoot.add(fillLights.directional);
 
-  return {
+  const state: WerkschauState = {
     sceneRoot,
+    tilesRuntime: null,
+    tilesGroup,
+    fallbackPlane: null,
     gridHelper,
     skybox,
     fillLights,
     renderer: ctx.renderer,
     camera: player.camera,
+    tileSelectionCameras: createTileSelectionCameras(player.camera),
     player,
     targetSpeed: WERKSCHAU_FLIGHT_BASE_SPEED,
+    isLoading: true,
     isDisposed: false,
+    abortController: new AbortController(),
   };
+  void loadTilesWhenConfigured(state);
+
+  return state;
 }
 
 export function tick(
@@ -80,6 +110,11 @@ export function tick(
   clampPlayerHeight(state);
   state.player.rig.updateMatrixWorld(true);
   state.camera.getWorldPosition(state.skybox.position);
+  if (state.tilesRuntime) {
+    Scheduler.setXRSession(state.renderer.xr.getSession() as XRSession);
+    syncTileSelectionCameras(state);
+    state.tilesRuntime.update(state.tileSelectionCameras, state.renderer);
+  }
 
   return { state };
 }
@@ -88,6 +123,10 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   if (state.isDisposed) return;
 
   state.isDisposed = true;
+  state.isLoading = false;
+  state.abortController.abort();
+  state.tilesRuntime?.dispose();
+  state.tilesRuntime = null;
   state.fillLights.hemisphere.removeFromParent();
   state.fillLights.directional.removeFromParent();
   state.sceneRoot.removeFromParent();
@@ -130,4 +169,166 @@ function getAltitudeScaledSpeed(baseSpeed: number, altitude: number): number {
   );
 
   return baseSpeed * multiplier;
+}
+
+async function loadTilesWhenConfigured(state: WerkschauState): Promise<void> {
+  if (!isWerkschauTilesSourceConfigured()) {
+    showFallbackPlane(state);
+    state.isLoading = false;
+    return;
+  }
+
+  try {
+    const source = await resolveWerkschauTilesSource(
+      state.abortController.signal,
+    );
+    const runtime = await TilesRuntimeAdapter.create(
+      state.tilesGroup,
+      source,
+      state.abortController.signal,
+    );
+    if (state.isDisposed || state.abortController.signal.aborted) {
+      runtime.dispose();
+      return;
+    }
+
+    removeFallbackPlane(state);
+    state.tilesRuntime = runtime;
+    state.isLoading = false;
+  } catch (error) {
+    if (state.isDisposed || state.abortController.signal.aborted) return;
+
+    console.error("[Werkschau] Failed to load tileset:", error);
+    showFallbackPlane(state);
+    state.isLoading = false;
+  }
+}
+
+function syncTileSelectionCameras(state: WerkschauState): void {
+  scratchPosition.copy(state.player.rig.position);
+  for (const camera of state.tileSelectionCameras) {
+    syncTileSelectionCamera(camera, scratchPosition, state);
+  }
+}
+
+function syncTileSelectionCamera(
+  camera: THREE.PerspectiveCamera,
+  position: THREE.Vector3,
+  state: WerkschauState,
+): void {
+  camera.position.copy(position);
+
+  const nextAspect = state.camera.aspect || 1;
+  if (
+    camera.near !== state.camera.near ||
+    camera.far !== state.camera.far ||
+    camera.aspect !== nextAspect
+  ) {
+    camera.near = state.camera.near;
+    camera.far = state.camera.far;
+    camera.aspect = nextAspect;
+    camera.updateProjectionMatrix();
+  }
+
+  camera.updateMatrixWorld(true);
+}
+
+function createTileSelectionCameras(
+  camera: THREE.PerspectiveCamera,
+): WerkschauState["tileSelectionCameras"] {
+  return [
+    createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[0]),
+    createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[1]),
+    createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[2]),
+    createTileSelectionCamera(camera, WERKSCHAU_TILE_SELECTION_YAWS[3]),
+  ];
+}
+
+function createTileSelectionCamera(
+  camera: THREE.PerspectiveCamera,
+  yaw: number,
+): THREE.PerspectiveCamera {
+  const selectionCamera = new THREE.PerspectiveCamera(
+    WERKSCHAU_TILE_SELECTION_FOV,
+    camera.aspect || 1,
+    camera.near,
+    camera.far,
+  );
+  selectionCamera.rotation.set(0, yaw, 0);
+  selectionCamera.updateProjectionMatrix();
+  selectionCamera.updateMatrixWorld(true);
+  return selectionCamera;
+}
+
+function showFallbackPlane(state: WerkschauState): void {
+  if (state.fallbackPlane) return;
+
+  const bounds = getBerlinLocalBounds();
+  const geometry = new THREE.PlaneGeometry(
+    bounds.maxX - bounds.minX,
+    bounds.maxZ - bounds.minZ,
+  );
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xb8c0c2,
+    side: THREE.DoubleSide,
+  });
+  const plane = new THREE.Mesh(geometry, material);
+  plane.name = "VisioTechWerkschauCesiumFallbackPlane";
+  plane.rotation.x = -Math.PI * 0.5;
+  plane.position.set(
+    (bounds.minX + bounds.maxX) * 0.5,
+    0,
+    (bounds.minZ + bounds.maxZ) * 0.5,
+  );
+  state.fallbackPlane = plane;
+  state.tilesGroup.add(plane);
+}
+
+function removeFallbackPlane(state: WerkschauState): void {
+  const plane = state.fallbackPlane;
+  if (!plane) return;
+
+  plane.removeFromParent();
+  plane.geometry.dispose();
+  if (plane.material instanceof THREE.Material) {
+    plane.material.dispose();
+  }
+  state.fallbackPlane = null;
+}
+
+function getBerlinLocalBounds(): {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+} {
+  const corners = [
+    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
+      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.north,
+      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.west,
+      height: 0,
+    }),
+    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
+      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.north,
+      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.east,
+      height: 0,
+    }),
+    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
+      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.south,
+      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.west,
+      height: 0,
+    }),
+    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
+      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.south,
+      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.east,
+      height: 0,
+    }),
+  ];
+
+  return {
+    minX: Math.min(...corners.map((corner) => corner.x)),
+    maxX: Math.max(...corners.map((corner) => corner.x)),
+    minZ: Math.min(...corners.map((corner) => corner.z)),
+    maxZ: Math.max(...corners.map((corner) => corner.z)),
+  };
 }

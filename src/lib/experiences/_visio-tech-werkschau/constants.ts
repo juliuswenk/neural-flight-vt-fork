@@ -16,10 +16,29 @@ export const WERKSCHAU_PLAYER_SPAWN_POSITION = {
 } as const;
 export const WERKSCHAU_PLAYER_HEIGHT_LIMITS = { MIN: 0, MAX: 400 } as const;
 export const WERKSCHAU_CAMERA_FAR = 3200;
+export const WERKSCHAU_TILE_SELECTION_FOV = 82;
 
 export const WERKSCHAU_ALTITUDE_SPEED = {
   MIN_ALTITUDE: 35,
   MAX_ALTITUDE: 450,
   MIN_MULTIPLIER: 0.45,
   MAX_MULTIPLIER: 3,
+} as const;
+
+export const WERKSCHAU_TILE_RUNTIME = {
+  ERROR_TARGET: 96,
+  DOWNLOAD_JOBS: 8,
+  PARSE_JOBS: 2,
+  PROCESS_NODE_JOBS: 8,
+  MAX_TILES_PROCESSED: 24,
+  LOAD_SIBLINGS: true,
+  CACHE_MIN_BYTES: 512 * 1024 * 1024,
+  CACHE_MAX_BYTES: 768 * 1024 * 1024,
+} as const;
+
+export const WERKSCHAU_BERLIN_GEO_BOUNDS = {
+  north: 52.675,
+  south: 52.338,
+  west: 13.088,
+  east: 13.761,
 } as const;
