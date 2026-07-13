@@ -95,6 +95,10 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     colorBottom: BERLIN_SKYBOX_COLOR,
   });
   skybox.name = "BerlinSkybox";
+  skybox.renderOrder = -1000;
+  if (skybox.material instanceof THREE.Material) {
+    skybox.material.depthWrite = false;
+  }
   sceneRoot.add(skybox);
 
   const fillLights = createBerlinFillLights();
@@ -180,10 +184,9 @@ export function tick(state: BerlinState, ctx: TickContext) {
   if (isXrPresenting) {
     s.onboarding.update(ctx.delta);
   }
-  s.renderer.setClearColor(
-    BERLIN_AR_CLEAR_COLOR,
-    isXrPresenting ? s.onboarding.progress : 0,
-  );
+  const virtualAlpha =
+    !isXrPresenting || s.onboarding.isComplete ? 1 : s.onboarding.progress;
+  s.renderer.setClearColor(BERLIN_AR_CLEAR_COLOR, virtualAlpha);
   setBerlinWorldVisualsVisible(s, !isXrPresenting || s.onboarding.isComplete);
   setBerlinSkyboxVisible(s, !isXrPresenting || s.onboarding.isComplete);
   updateBerlinShutdownFog(s);
@@ -349,6 +352,7 @@ function setBerlinWorldVisualsVisible(
 
   state.worldVisualsVisible = visible;
   state.sceneRoot.traverse((object) => {
+    if (object === state.skybox) return;
     if (
       object instanceof THREE.Mesh ||
       object instanceof THREE.Line ||
@@ -360,11 +364,19 @@ function setBerlinWorldVisualsVisible(
 }
 
 function setBerlinSkyboxVisible(state: BerlinState, visible: boolean): void {
-  if (state.skyboxVisible === visible) return;
-
   state.skyboxVisible = visible;
   state.skybox.visible = visible;
-  state.scene.background = null;
+  if (!visible) {
+    state.scene.background = null;
+    return;
+  }
+
+  if (state.scene.background instanceof THREE.Color) {
+    state.scene.background.set(BERLIN_SKYBOX_COLOR);
+    return;
+  }
+
+  state.scene.background = new THREE.Color(BERLIN_SKYBOX_COLOR);
 }
 
 function updateBerlinShutdownFog(state: BerlinState): void {

@@ -61,7 +61,7 @@ export function createSky(config?: SkyConfig): THREE.Mesh {
 
 	const mat = new THREE.MeshBasicMaterial({
 		vertexColors: true,
-		side: THREE.BackSide,
+		side: THREE.FrontSide,
 		fog: false,
 	});
 
