@@ -1,16 +1,17 @@
 # Architecture — `lennard/` Submodule
 
-> Personal workspace of **Lennard Lev** inside the `visio-technologica` experience.
-> Contains experimental road-network + car-fleet logic, tooling scripts, and a
-> stand-alone lab route to iterate on the system in isolation.
+> Personal workspace of **Lennard Lev** inside the `berlin-flight` experience.
+> Contains experimental road-network + car-fleet logic, 3D positional radio
+> stations, HUD overlay sequences (cyber, sonar, battery), tooling scripts,
+> and stand-alone lab routes to iterate on the system in isolation.
 
 ---
 
 ## 1. Purpose & Scope
 
-The parent experience `visio-technologica/` is a streamed GLB-tile world with
-keyboard-driven flight controls. Lennard's submodule adds a **procedural road
-network and traffic simulation** on top of the tile grid.
+The parent experience `berlin-flight/` is the Berlin city flight experience.
+Lennard's submodule adds **3D positional radio**, **HUD overlay sequences**,
+and experimental **procedural road-network + traffic simulation** helpers.
 
 The submodule is intentionally **self-contained**: it can be tested in a
 throwaway SvelteKit route (`/lab/strassen`) without booting the full VR
@@ -18,21 +19,17 @@ flight stack, and it can later be wired back into `scene.ts` with minimal
 changes.
 
 ```
-visio-technologica/
+berlin-flight/
 ├── index.ts              ← public re-export
 ├── manifest.ts           ← experience contract
-├── scene.ts              ← streamed GLB tiles + camera + flight physics
+├── scene.ts              ← Berlin tiles + camera + flight physics
 ├── player.ts             ← orientation → steering
 ├── settings.ts           ← parameter handling
-├── tile-metadata.ts      ← tile grid + lookup tables
-├── keyboard-camera-controls.ts
-├── optimisation.md       ← perf write-up
-├── 3d assets/            ← optional GLB swaps
-├── static/               ← streamed tile GLBs
 └── lennard/              ← ◀ THIS SUBMODULE
     ├── architecture.md   (you are here)
     ├── straßen/          ← road + car simulation
-    └── scripts/          ← git tooling
+    ├── radio/            ← 3D positional radio stations
+    └── scripts/          ← overlays, sequence controller, git tooling
 ```
 
 ---
@@ -57,13 +54,86 @@ Svelte / SvelteKit imports, so it can be dropped into any route.
 Naming note: the folder is `straßen` (German for "roads") — `ß` is a valid
 filename character on Windows. Keep the import path as written.
 
-### 2.2 `lennard/scripts/` — Overlays & Tooling
+### 2.2 `lennard/radio/` — 3D Positional Radio
+
+A live-streaming radio system using raw Web Audio API nodes (not Three.js
+`PositionalAudio`) for 3D spatial audio with HRTF panning.
+
+| File | Role |
+|------|------|
+| `radio-config.ts` | `RadioStationDef` interface + `RADIO_STATIONS[]` (station positions, URLs, cone settings, `globalBackground`, `loop` flags) + `RADIO` master settings. |
+| `radio-station.ts` | `RadioStation` class — wraps `<audio>` + `MediaElementAudioSourceNode` → `PannerNode` → `GainNode` chain for positional streams, or `AudioBufferSourceNode` with seamless `loop` for global background ambience. Syncs world position to panner every frame. |
+| `radio-manager.ts` | `RadioManager` class — owns the `THREE.Group`, creates all stations, exposes `start()`, `stop()`, `setMasterVolume()`, `tick()`, `dispose()`. |
+
+**Web Audio chains:**
+
+```
+Positional stream: <audio> → MediaElementAudioSourceNode → PannerNode → GainNode → destination
+Global background: AudioBufferSourceNode (loop=true) → GainNode → destination
+```
+
+**Key design decisions:**
+- `MediaElementAudioSourceNode` is used for live Shoutcast/Icecast streams (require a media element).
+- `AudioBufferSourceNode` with `loop = true` is used for background ambience — gapless, no hard cut between repetitions.
+- Local files (URL starting with `/`) bypass the proxy; remote streams are proxied through `/api/radio/proxy?url=...` to avoid CORS on Quest.
+- Panner position is synced via an overridden `updateMatrixWorld()` on the `Object3D`, so it updates automatically with the scene graph.
+- Directional sound cones are optional per station (`coneInnerAngle`, etc.).
+- Each spatial station has a semi-transparent debug marker sphere for visibility; background stations skip it.
+
+**Data flow:**
+
+```
+RadioManager.constructor(listener)    ← creates stations from RADIO_STATIONS
+       │
+       ▼
+RadioManager.start()                 ← positional: starts <audio> stream
+                                     ← background: fetch → decode → AudioBufferSourceNode
+       │
+       ▼ (every frame, automatic)
+object3D.updateMatrixWorld()         ← updates PannerNode positionX/Y/Z (positional only)
+       │
+       ▼
+RadioManager.setMasterVolume(v)      ← scales all station gain nodes
+       │
+       ▼
+RadioManager.dispose()               ← stops streams, disconnects nodes
+```
+
+**Stations (defined in `radio-config.ts`):**
+
+| ID | Name | Position | Notes |
+|----|------|----------|-------|
+| `rbbfritz` | rbb FRITZ | `(0, 3, 0)` | Omni-directional, refDist 20, maxDist 200 |
+| `rbb888` | rbb 88.8 | `(160, 3, 160)` | Directional cone (120°/240°), refDist 15, maxDist 180 |
+| `bg city` | Background City Traffic | `(0, 0, 0)` | Global background, looped, no spatial panner |
+| `bg wind` | Background Wind | `(0, 0, 0)` | Global background, looped, no spatial panner |
+
+### 2.3 `lennard/scripts/` — Overlays, Sequence Controller & Tooling
 
 #### Cyber Overlay
 
 `cyber-overlay.ts` — Full text-grid overlay system with canvas-to-sprite
 rendering, translation dictionary, responsive layout, and glow effects.
 Configured via the `CYBER` settings object.
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `color` | `"#ff44aa"` | Border lines and text colour |
+| `glowPercent` | `50` | Glow intensity 0–100 |
+| `fontSize` | `36` | Text size in canvas pixels |
+| `fontWeight` | `"bold"` | Text thickness |
+| `lineThickness` | `2.5` | Border line width (canvas px) |
+| `fontFamily` | `"monospace"` | Font family |
+| `opacity` | `1` | Global opacity 0–1 |
+| `textureWidth` | `640` | Canvas width in pixels |
+| `textureHeight` | `200` | Canvas height in pixels |
+| `gridRows` | `4` | Number of grid rows |
+| `gridColumns` | `4` | Number of grid columns |
+| `gridGapFraction` | `0.1` | Gap between rectangles (fraction of cell dimension) |
+| `gridCoverageWidth` | `0.6` | Fraction of viewport width the grid fills |
+| `gridCoverageHeight` | `0.6` | Fraction of viewport height the grid fills |
+| `gridDistance` | `1.8` | Distance from camera in world units |
+| `message` | `"HELLO"` | Word displayed in every rectangle (translated per language) |
 
 #### Sonar Overlay
 
@@ -74,19 +144,41 @@ unified ring of radial tick marks.
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
-| `tickCount` | 36 | Total ticks around the circle (every 10°) |
-| `tickInnerRadiusFrac` | 0.85 | Tick start radius as fraction of outer circle |
-| `tickMinorLength` | 12 | Shortest ticks |
-| `tickMajorLength` | 20 | Medium ticks (every 30°) |
-| `tickMajor2Length` | 32 | Longest ticks (every 60°) |
-| `tickMajorInterval` | 3 | Every Nth tick is medium |
-| `tickMajor2Interval` | 6 | Every Nth tick is longest |
-| `tickMinorColor` | `"#008866"` | Minor tick colour |
-| `tickMajorColor` | `"#00ffcc"` | Medium tick colour |
-| `tickMajor2Color` | `"#ff44aa"` | Longest tick colour |
+| `textureWidth` | 800 | Canvas width in pixels |
+| `textureHeight` | 800 | Canvas height in pixels |
+| `spriteScale` | 1.5 | Uniform sprite scale in world units |
+| `distance` | 1.8 | Z-offset from camera (world units) |
+| `circleRadiusFraction` | 0.95 | Outer circle radius as fraction of half-canvas |
+| `circleLineWidth` | 5.5 | Stroke width of outer ring (canvas px) |
 | `rotationSpeed` | 20 | Scan line rotation (deg/s) |
 | `glowAngleDeg` | 80 | Sweep wedge angular width |
+| `glowMaxAlpha` | 0.3 | Peak opacity of the glow wedge |
+| `glowSegments` | 50 | Radial segments for the glow wedge gradient |
 | `dotCount` | 15 | Ambient dots that activate on scan pass |
+| `dotRadius` | 11 | Base dot radius (canvas px) |
+| `dotActiveGlowRadius` | 30 | Outer glow radius when a dot is hit (canvas px) |
+| `dotFadeDuration` | 2.8 | Seconds for a hit dot to fade out completely |
+| `dotActivationThresholdDeg` | 4 | Angular proximity that triggers a dot |
+| `crossArmLength` | 320 | Length of each crosshair arm from center (canvas px) |
+| `crossGap` | 30 | Empty gap around the center (canvas px) |
+| `crossLineWidth` | 1.5 | Stroke width of crosshair lines (canvas px) |
+| `tickCount` | 360 | Total ticks around the full circle |
+| `tickInnerRadiusFrac` | 0.9 | Inner (center-ward) radius of ticks as fraction of circle |
+| `tickMinorLength` | 12 | Length of minor ticks (canvas px) |
+| `tickMajorLength` | 20 | Length of medium ticks — every 10th (canvas px) |
+| `tickMajor2Length` | 32 | Length of largest ticks — every 90th (canvas px) |
+| `tickMajorInterval` | 10 | Every Nth tick is a major tick |
+| `tickMajor2Interval` | 90 | Every Nth tick is the largest major tick |
+| `tickWidth` | 2 | Stroke width of tick marks (canvas px) |
+| `tickGlowBlur` | 6 | Shadow blur for tick glow (canvas px) |
+| `tickMinorColor` | `"#008866"` | Minor tick colour |
+| `tickMajorColor` | `"#ff44aa"` | Medium tick colour |
+| `tickMajor2Color` | `"#ff44aa"` | Longest tick colour |
+| `circleColor` | `"#ff44aa"` | Outer ring stroke colour |
+| `lineColor` | `"#ff44aa"` | Scan line stroke colour |
+| `glowColor` | `"#ff44aa"` | Sweep beam glow colour |
+| `dotColor` | `"#ff44aa"` | Dot fill colour (base + glow) |
+| `crossColor` | `"#00ffcc"` | Crosshair and tick mark stroke colour |
 | `fadeOutDuration` | 1.3 | Fade-out animation length (s) |
 | `fadeOutPeakScale` | 1.2 | Scale multiplier at peak before shrinking |
 | `fadeOutPeakTimeFrac` | 0.45 | When peak occurs (0–1) |
@@ -114,13 +206,14 @@ staggered pop-in, text-switching, and blink effects. Orchestrates
 
 | Setting | Default | Purpose |
 |---------|---------|---------|
+| `fadeOutSeconds` | 0.5 | Seconds to fade out overlays when the last stage ends (0 = instant) |
 | `staggerSeconds` | 0.3 | Delay between each overlay appearing |
 | `staggerFadeSeconds` | 0.3 | Fade-in duration per overlay |
 | `staggerFadeOutSeconds` | 0.2 | Fade-out old text before switching |
 | `staggerRandomOrder` | true | Randomize overlay reveal order |
 | `sonarFadeOutDelay` | 1.5 | Pause after sonar vanishes before next stage |
-| `blinkOnDuration` | 0.3 | How long blink overlays stay visible |
-| `blinkOffDuration` | 0.1 | How long blink overlays stay hidden |
+| `blinkOnDuration` | 1 | How long blink overlays stay visible |
+| `blinkOffDuration` | 0.5 | How long blink overlays stay hidden |
 
 **Stages (in order):**
 
@@ -128,7 +221,7 @@ staggered pop-in, text-switching, and blink effects. Orchestrates
 2. `cyber` — "HUMAN PERCEPTION DETECTED", 10 s
 3. `cyber` — "SWITCHING TO TECHNOLOGICAL PERCEPTION", 6 s
 4. `battery` — Countdown battery icon, 50 s
-5. `blink` — "TURNING OFF TECHNOLOGICAL PERCEPTION" blinking grid, 4 s
+5. `blink` — "TURNING OFF TECHNOLOGICAL PERCEPTION" blinking grid, 10 s
 
 **Transition rules:**
 - Same factory (cyber → cyber): overlays kept, text swapped with stagger.
@@ -156,10 +249,28 @@ SequenceController.update(delta)
 camera-aligned `THREE.Sprite`. Displays remaining time as 4 bars that
 deplete at 25% intervals, with a flicker effect on the last bar.
 
-**Behaviour:**
-- Bars (4→0) disappear at 25%, 50%, 75% of total time elapsed.
-- At 95% elapsed the remaining bar flickers (`flickerColor`).
-- `start()` begins the countdown; `update(now)` drives per-frame state.
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `totalTimeMs` | `50000` | Total countdown duration in ms |
+| `outlineColor` | `"#ff44aa"` | Battery outline stroke colour |
+| `barColor` | `"#00ffcc"` | Fill colour of each battery segment |
+| `flickerColor` | `"#ff44aa"` | Last-bar flicker colour at 95%+ |
+| `flickerSpeedMs` | `700` | Full on/off cycle duration in ms |
+| `textureWidth` | `120` | Canvas width in pixels |
+| `textureHeight` | `220` | Canvas height in pixels |
+| `spriteScaleX` | `0.3` | Sprite width in world units |
+| `spriteScaleY` | `0.15` | Sprite height in world units |
+| `distance` | `1.8` | Distance from camera in world units |
+| `posX` | `1` | Horizontal offset from camera centre (right = +) |
+| `posY` | `0.7` | Vertical offset from camera centre (up = +) |
+| `outlineWidth` | `3` | Stroke width of outline (canvas px) |
+| `glowPercent` | `50` | Glow intensity 0–100 |
+| `padding` | `8` | Padding between outline & bars (canvas px) |
+| `barGap` | `5` | Gap between bars (canvas px) |
+| `barCount` | `4` | Number of battery segments |
+| `tabW` | `35` | Terminal tab width (canvas px) |
+| `tabH` | `15` | Terminal tab height (canvas px) |
+| `tabMargin` | `4` | Margin below tab (canvas px) |
 
 #### Tooling
 
