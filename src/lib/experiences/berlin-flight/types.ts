@@ -33,6 +33,8 @@ export interface BerlinState extends ExperienceState {
   tilesRuntime: TilesRuntimeAdapter | null;
   /** Group containing all tiles for easy management */
   tilesGroup: THREE.Group;
+  /** Browser/debug ground reference helper */
+  gridHelper: THREE.GridHelper;
   /** Streams nearby cone chunks around the player */
   coneRuntime: BerlinConeGridRuntime;
   /** Owns cone/tile collision debug processing */

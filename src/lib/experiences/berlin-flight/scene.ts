@@ -131,6 +131,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     fillLights,
     tilesRuntime: null,
     tilesGroup,
+    gridHelper,
     coneRuntime,
     collisionController,
     renderer: ctx.renderer,
@@ -348,20 +349,14 @@ function setBerlinWorldVisualsVisible(
   state: BerlinState,
   visible: boolean,
 ): void {
-  if (state.worldVisualsVisible === visible && visible) return;
+  if (state.worldVisualsVisible === visible) return;
 
   state.worldVisualsVisible = visible;
-  state.sceneRoot.traverse((object) => {
-    if (object === state.skybox) return;
-    if (
-      object instanceof THREE.Mesh ||
-      object instanceof THREE.Line ||
-      object instanceof THREE.Points
-    ) {
-      object.visible = visible;
-    }
-  });
+  state.tilesGroup.visible = visible;
   state.coneRuntime.setVisible(visible);
+  state.gridHelper.visible = visible;
+  state.fillLights.hemisphere.visible = visible;
+  state.fillLights.directional.visible = visible;
 }
 
 function setBerlinSkyboxVisible(state: BerlinState, visible: boolean): void {
