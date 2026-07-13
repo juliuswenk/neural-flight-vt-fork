@@ -293,9 +293,9 @@ No open product decisions right now. Add implementation questions here when migr
 - [ ] Add full-Berlin clamp bounds.
 - [ ] Verify desktop preview.
 - [ ] Verify Pico 4 WebXR.
-- [ ] Add onboarding sequence and first-movement 3-minute flight timer.
-- [ ] Add retained audio components.
-- [ ] Add sonar, battery, and required text overlays.
+- [x] Add onboarding sequence and first-movement 3-minute flight timer.
+- [x] Add retained audio components.
+- [x] Add sonar, battery, and required text overlays.
 - [ ] Add Cesium-failure fallback plane at height `0`.
 - [ ] Add precomputed cones.
 - [ ] Cap visible cones to nearby cones.
