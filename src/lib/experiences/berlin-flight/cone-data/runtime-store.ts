@@ -4,7 +4,6 @@ import { buildConeSnapshotState } from "../runtime/cone-grid-snapshots";
 import { BERLIN_CONE_GRID } from "../runtime/cone-grid-config";
 import {
   collectConeChunkKeys,
-  getConeGridCoordinate,
   getConeChunkCoordinate,
   parseConeChunkKey,
 } from "../runtime/cone-grid-coordinates";
@@ -69,7 +68,7 @@ export class BerlinConeChunkRuntimeStore {
 
       await this.loadMissingChunks(inBoundsChunkKeys);
       this.unloadFarChunks(center);
-      this.refreshActiveState(inBoundsChunkKeys, playerPosition);
+      this.refreshActiveState(inBoundsChunkKeys);
       this.lastError = null;
       this.clearDiagnosticError();
       this.refreshDiagnostics(inBoundsChunkKeys);
@@ -172,25 +171,13 @@ export class BerlinConeChunkRuntimeStore {
     }
   }
 
-  private refreshActiveState(
-    desiredChunkKeys: readonly string[],
-    playerPosition: THREE.Vector3,
-  ): void {
-    const center = getConeGridCoordinate(playerPosition);
+  private refreshActiveState(desiredChunkKeys: readonly string[]): void {
     const nextChunks = desiredChunkKeys
       .map((chunkKey) => this.loadedChunks.get(chunkKey))
       .filter((chunk): chunk is BerlinConeChunkSnapshot => chunk !== undefined)
       .map((chunk) => ({
         key: chunk.key,
-        cones: chunk.cones.filter((cone) => {
-          const coordinate = getConeGridCoordinate(cone.tip);
-          return (
-            Math.abs(coordinate.x - center.x) <=
-              BERLIN_CONE_GRID.VISIBLE_RADIUS_TILES &&
-            Math.abs(coordinate.z - center.z) <=
-              BERLIN_CONE_GRID.VISIBLE_RADIUS_TILES
-          );
-        }),
+        cones: chunk.cones,
       }));
     const nextState = buildConeSnapshotState(nextChunks);
     const nextSignature = createSnapshotSignature(nextState.chunkSnapshots);

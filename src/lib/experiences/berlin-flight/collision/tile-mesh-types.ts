@@ -16,7 +16,9 @@ export interface TrackedTileMesh {
   vertexMask: Uint8Array;
   coneMaskAttribute: THREE.BufferAttribute | null;
   originalMaterial: THREE.Material | THREE.Material[];
+  neutralMaterial: THREE.Material | THREE.Material[];
   collisionMaterial: THREE.Material | THREE.Material[];
+  hasConeMaskMaterial: boolean;
   localBounds: THREE.Box3;
   localSphere: THREE.Sphere;
   cachedBoundsMatrix: THREE.Matrix4;

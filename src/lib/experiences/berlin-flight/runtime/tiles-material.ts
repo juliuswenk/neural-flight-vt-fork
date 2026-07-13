@@ -31,10 +31,20 @@ export function createBerlinTileMaterial(
   sourceMaterial: THREE.Material | THREE.Material[],
 ): THREE.Material | THREE.Material[] {
   if (Array.isArray(sourceMaterial)) {
-    return sourceMaterial.map((material) => cloneBerlinTileMaterial(material));
+    return sourceMaterial.map((material) => cloneBerlinConeTileMaterial(material));
   }
 
-  return cloneBerlinTileMaterial(sourceMaterial);
+  return cloneBerlinConeTileMaterial(sourceMaterial);
+}
+
+export function createBerlinNeutralTileMaterial(
+  sourceMaterial: THREE.Material | THREE.Material[],
+): THREE.Material | THREE.Material[] {
+  if (Array.isArray(sourceMaterial)) {
+    return sourceMaterial.map((material) => cloneBerlinNeutralTileMaterial(material));
+  }
+
+  return cloneBerlinNeutralTileMaterial(sourceMaterial);
 }
 
 export function disposeClonedMaterial(
@@ -65,33 +75,16 @@ export function disposeMaterial(
   disposeSingleMaterial(material, disposedMaterials);
 }
 
-function cloneBerlinTileMaterial(
+function cloneBerlinConeTileMaterial(
   sourceMaterial: THREE.Material,
 ): THREE.Material {
-  const material = sourceMaterial.clone();
+  const material = cloneBerlinBaseTileMaterial(sourceMaterial);
   const previousOnBeforeCompile = material.onBeforeCompile;
   const previousProgramCacheKey =
     typeof material.customProgramCacheKey === "function"
       ? material.customProgramCacheKey.bind(material)
       : null;
 
-  material.depthTest = true;
-  material.depthWrite = true;
-  material.needsUpdate = true;
-  if ("metalness" in material) {
-    (material as THREE.MeshStandardMaterial).metalness =
-      BERLIN_TILE_LOOK.METALNESS;
-  }
-  if ("roughness" in material) {
-    (material as THREE.MeshStandardMaterial).roughness =
-      BERLIN_TILE_LOOK.ROUGHNESS;
-  }
-  if ("opacity" in material) {
-    material.opacity = BERLIN_TILE_OPAQUE_OPACITY;
-  }
-  if ("transparent" in material) {
-    material.transparent = false;
-  }
   if (!BERLIN_TILE_MATERIAL_EFFECT_ENABLED) {
     return material;
   }
@@ -141,6 +134,56 @@ function cloneBerlinTileMaterial(
   };
   material.customProgramCacheKey = () =>
     `${previousProgramCacheKey?.() ?? material.type}:berlin-cone-mask-v6`;
+
+  return material;
+}
+
+function cloneBerlinNeutralTileMaterial(
+  sourceMaterial: THREE.Material,
+): THREE.Material {
+  const material = cloneBerlinBaseTileMaterial(sourceMaterial);
+  const materialWithMaps = material as MaterialWithTextureMaps;
+
+  materialWithMaps.map = null;
+  materialWithMaps.alphaMap = null;
+  materialWithMaps.aoMap = null;
+  materialWithMaps.bumpMap = null;
+  materialWithMaps.displacementMap = null;
+  materialWithMaps.emissiveMap = null;
+  materialWithMaps.lightMap = null;
+  materialWithMaps.metalnessMap = null;
+  materialWithMaps.normalMap = null;
+  materialWithMaps.roughnessMap = null;
+  materialWithMaps.specularMap = null;
+
+  if ("color" in material) {
+    (material as THREE.MeshBasicMaterial).color.set(BERLIN_TILE_LOOK.NEUTRAL_COLOR);
+  }
+
+  material.needsUpdate = true;
+  return material;
+}
+
+function cloneBerlinBaseTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
+  const material = sourceMaterial.clone();
+
+  material.depthTest = true;
+  material.depthWrite = true;
+  material.needsUpdate = true;
+  if ("metalness" in material) {
+    (material as THREE.MeshStandardMaterial).metalness =
+      BERLIN_TILE_LOOK.METALNESS;
+  }
+  if ("roughness" in material) {
+    (material as THREE.MeshStandardMaterial).roughness =
+      BERLIN_TILE_LOOK.ROUGHNESS;
+  }
+  if ("opacity" in material) {
+    material.opacity = BERLIN_TILE_OPAQUE_OPACITY;
+  }
+  if ("transparent" in material) {
+    material.transparent = false;
+  }
 
   return material;
 }

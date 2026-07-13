@@ -16,6 +16,7 @@ export interface BerlinOnboardingController {
   progress: number;
   isActive: boolean;
   isComplete: boolean;
+  hasEnded: boolean;
   shutdownProgress: number;
   isShutdownEffectActive: boolean;
   update(deltaSeconds: number): void;
@@ -27,6 +28,9 @@ export function createBerlinOnboardingController(
 ): BerlinOnboardingController {
   let started = false;
   const sequence = new SequenceController(camera, (event, stage) => {
+    if (event === "complete") {
+      controller.hasEnded = true;
+    }
     if (event === "stageStart" && shouldStartFullExperience(stage)) {
       controller.progress = 1;
       controller.isActive = false;
@@ -47,6 +51,7 @@ export function createBerlinOnboardingController(
     progress: 0,
     isActive: true,
     isComplete: false,
+    hasEnded: false,
     shutdownProgress: 0,
     isShutdownEffectActive: false,
     update(deltaSeconds: number): void {

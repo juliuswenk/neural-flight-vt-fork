@@ -46,7 +46,7 @@ function createCone() {
   };
 }
 
-test("BerlinCollisionController ignores cone version changes with the same active chunks", () => {
+test("BerlinCollisionController invalidates when cone positions change in the same active chunks", () => {
   const controller = new BerlinCollisionController();
   const trackedMesh = createTrackedMesh();
   const cones = [createCone()];
@@ -68,7 +68,7 @@ test("BerlinCollisionController ignores cone version changes with the same activ
     1,
   );
 
-  expect(Array.from(trackedMesh.vertexMask)).toContain(1);
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([0, 0, 0]);
 });
 
 test("BerlinCollisionController invalidates tracked meshes when cone stream changes", () => {

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import {
+  createBerlinNeutralTileMaterial,
   createBerlinTileMaterial,
   disposeClonedMaterial,
   disposeMaterial,
@@ -10,34 +11,44 @@ import { preprocessTrackedMesh } from "./mesh-preprocess";
 import { initializeConeMaskAttributeForMesh } from "./vertex-color-writer";
 
 export class BerlinTileMeshRegistry {
-  private readonly trackedByScene = new Map<THREE.Object3D, readonly TrackedTileMesh[]>();
+  private readonly trackedByScene = new Map<THREE.Object3D, readonly RegisteredTileMesh[]>();
   private readonly trackedMeshes = new Set<TrackedTileMesh>();
   private version = 0;
 
   public trackTileScene(root: THREE.Object3D, sourceUrl: string): void {
     if (this.trackedByScene.has(root)) return;
 
-    const trackedMeshes = collectTrackedMeshes(root, sourceUrl);
-    this.trackedByScene.set(root, trackedMeshes);
+    const registeredMeshes = collectRegisteredMeshes(root, sourceUrl);
+    this.trackedByScene.set(root, registeredMeshes);
 
-    for (const trackedMesh of trackedMeshes) {
-      this.trackedMeshes.add(trackedMesh);
+    for (const registeredMesh of registeredMeshes) {
+      if (registeredMesh.trackedMesh) {
+        this.trackedMeshes.add(registeredMesh.trackedMesh);
+      }
     }
 
     this.version += 1;
   }
 
   public untrackTileScene(root: THREE.Object3D): void {
-    const trackedMeshes = this.trackedByScene.get(root);
-    if (!trackedMeshes) return;
+    const registeredMeshes = this.trackedByScene.get(root);
+    if (!registeredMeshes) return;
 
     const disposedMaterials = new WeakSet<THREE.Material>();
 
-    for (const trackedMesh of trackedMeshes) {
-      this.trackedMeshes.delete(trackedMesh);
-      disposeClonedMaterial(trackedMesh.collisionMaterial, disposedMaterials);
-      disposeMaterial(trackedMesh.originalMaterial, disposedMaterials);
-      trackedMesh.coneMaskAttribute = null;
+    for (const registeredMesh of registeredMeshes) {
+      if (registeredMesh.trackedMesh) {
+        this.trackedMeshes.delete(registeredMesh.trackedMesh);
+        registeredMesh.trackedMesh.coneMaskAttribute = null;
+      }
+      disposeClonedMaterial(registeredMesh.berlinMaterial, disposedMaterials);
+      if (registeredMesh.trackedMesh) {
+        disposeClonedMaterial(
+          registeredMesh.trackedMesh.collisionMaterial,
+          disposedMaterials,
+        );
+      }
+      disposeMaterial(registeredMesh.originalMaterial, disposedMaterials);
     }
 
     this.trackedByScene.delete(root);
@@ -63,44 +74,54 @@ export class BerlinTileMeshRegistry {
   }
 }
 
-function collectTrackedMeshes(
+interface RegisteredTileMesh {
+  originalMaterial: THREE.Material | THREE.Material[];
+  berlinMaterial: THREE.Material | THREE.Material[];
+  trackedMesh: TrackedTileMesh | null;
+}
+
+function collectRegisteredMeshes(
   root: THREE.Object3D,
   sourceUrl: string,
-): readonly TrackedTileMesh[] {
-  const trackedMeshes: TrackedTileMesh[] = [];
+): readonly RegisteredTileMesh[] {
+  const registeredMeshes: RegisteredTileMesh[] = [];
 
   root.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) return;
     if (!(child.geometry instanceof THREE.BufferGeometry)) return;
 
-    const trackedMesh = createTrackedMesh(child as BerlinTileMesh, sourceUrl);
-    if (!trackedMesh) return;
+    const registeredMesh = createRegisteredMesh(child as BerlinTileMesh, sourceUrl);
+    if (!registeredMesh) return;
 
-    trackedMeshes.push(trackedMesh);
+    registeredMeshes.push(registeredMesh);
   });
 
-  return trackedMeshes;
+  return registeredMeshes;
 }
 
-function createTrackedMesh(
+function createRegisteredMesh(
   mesh: BerlinTileMesh,
   sourceUrl: string,
-): TrackedTileMesh | null {
-  const collisionMaterial = createBerlinTileMaterial(mesh.material);
+): RegisteredTileMesh | null {
+  const originalMaterial = mesh.material;
+  const berlinMaterial = createBerlinNeutralTileMaterial(originalMaterial);
+  const collisionMaterial = createBerlinTileMaterial(originalMaterial);
   const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial);
+
+  mesh.material = berlinMaterial;
 
   if (!trackedMesh) {
     disposeClonedMaterial(collisionMaterial);
-    return null;
+    return { originalMaterial, berlinMaterial, trackedMesh: null };
   }
 
   if (!shouldTrackMeshForConeMask(trackedMesh)) {
     disposeClonedMaterial(collisionMaterial);
-    return null;
+    return { originalMaterial, berlinMaterial, trackedMesh: null };
   }
 
   initializeConeMaskAttributeForMesh(trackedMesh);
   trackedMesh.sourceUrl = sourceUrl;
-  trackedMesh.mesh.material = collisionMaterial;
-  return trackedMesh;
+  trackedMesh.neutralMaterial = berlinMaterial;
+  return { originalMaterial, berlinMaterial, trackedMesh };
 }

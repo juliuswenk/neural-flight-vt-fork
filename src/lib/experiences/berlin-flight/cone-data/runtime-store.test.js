@@ -72,9 +72,20 @@ test("BerlinConeChunkRuntimeStore loads nearby chunks and exposes active cones",
   await store.update(new THREE.Vector3(0, 0, 0));
 
   expect(store.getActiveConeChunks().length).toBeGreaterThan(0);
-  expect(store.getActiveCones()).toHaveLength(1);
-  expect(store.getActiveCones()[0].placementPointId).toBe("0:0:0");
+  expect(store.getActiveCones().map((cone) => cone.placementPointId)).toContain(
+    "0:0:0",
+  );
   expect(store.getSnapshotVersion()).toBe(1);
+});
+
+test("BerlinConeChunkRuntimeStore keeps loaded chunk cones active beyond the visible tile radius", async () => {
+  const store = new BerlinConeChunkRuntimeStore(createLoader());
+
+  await store.update(new THREE.Vector3(0, 0, 0));
+
+  expect(store.getActiveCones().map((cone) => cone.placementPointId)).toContain(
+    "1:0:0",
+  );
 });
 
 test("BerlinConeChunkRuntimeStore drops far chunks from memory", async () => {

@@ -18,7 +18,6 @@ export class BerlinCollisionController {
   private readonly trackedMeshes = new Set<TrackedTileMesh>();
   private dirtyQueue: TrackedTileMesh[] = [];
   private lastConeVersion = -1;
-  private lastConeSignature = "";
   private lastMeshVersion = -1;
   private activeCones = 0;
   private trackedMeshCount = 0;
@@ -36,11 +35,7 @@ export class BerlinCollisionController {
 
     if (this.lastConeVersion !== coneVersion) {
       this.lastConeVersion = coneVersion;
-      const nextConeSignature = createConeChunkSignature(cones);
-      if (this.lastConeSignature !== nextConeSignature) {
-        this.lastConeSignature = nextConeSignature;
-        this.markMeshesDirty(meshes);
-      }
+      this.markMeshesDirty(meshes);
     }
 
     this.processDirtyMeshes(cones);
@@ -112,30 +107,14 @@ export class BerlinCollisionController {
       const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
       updateVertexMask(mesh, overlappingCones);
       writeConeMaskAttributeForMesh(mesh);
+      if (!mesh.hasConeMaskMaterial) {
+        mesh.mesh.material = mesh.collisionMaterial;
+        mesh.hasConeMaskMaterial = true;
+      }
 
       this.verticesTestedLastTick += mesh.vertexCount;
       this.processedMeshesLastTick += 1;
       this.dirtyMeshes.delete(mesh);
     }
   }
-}
-
-function createConeChunkSignature(cones: readonly BerlinConeVolume[]): string {
-  if (cones.length === 0) return "";
-
-  let signature = "";
-  let currentChunkKey = cones[0].chunkKey;
-  let currentChunkCount = 0;
-
-  for (const cone of cones) {
-    if (cone.chunkKey !== currentChunkKey) {
-      signature += `${currentChunkKey}:${currentChunkCount}|`;
-      currentChunkKey = cone.chunkKey;
-      currentChunkCount = 0;
-    }
-
-    currentChunkCount += 1;
-  }
-
-  return `${signature}${currentChunkKey}:${currentChunkCount}`;
 }
