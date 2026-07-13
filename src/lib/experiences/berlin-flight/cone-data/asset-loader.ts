@@ -1,7 +1,10 @@
 import * as THREE from "three";
 import { BERLIN_CONE_PLACEMENT } from "../cone-placement/config";
 import type { BerlinConeChunkSnapshot, BerlinConeVolume } from "../collision/types";
-import type { BerlinConeChunkKey } from "../runtime/cone-grid-coordinates";
+import {
+  getBerlinConeChunkFileName,
+  type BerlinConeChunkKey,
+} from "../runtime/cone-grid-coordinates";
 import type {
   BerlinConeChunkData,
   BerlinConeDatasetManifest,
@@ -71,11 +74,12 @@ export function createBerlinConeDatasetAssetLoader(): BerlinConeDatasetAssetLoad
       }
     },
     async loadChunk(chunkKey: string): Promise<BerlinConeChunkSnapshot> {
-      const chunkModule = chunkModules[`./generated/chunks/${chunkKey}.json`];
+      const chunkModule =
+        chunkModules[`./generated/chunks/${getBerlinConeChunkFileName(chunkKey)}`];
       if (!chunkModule) {
         throw new BerlinConeDatasetLoadError(
           "chunk-missing",
-          `[BerlinFlight] Missing precomputed cone chunk ${chunkKey} at cone-data/generated/chunks/${chunkKey}.json.`,
+          `[BerlinFlight] Missing precomputed cone chunk ${chunkKey} at cone-data/generated/chunks/${getBerlinConeChunkFileName(chunkKey)}.`,
           { chunkKey },
         );
       }

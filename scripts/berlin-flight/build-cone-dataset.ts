@@ -5,6 +5,7 @@ import {
   buildBerlinConeDataset,
   createTrackedMeshFromOfflineGeometry,
 } from "../../src/lib/experiences/berlin-flight/cone-data/build";
+import { getBerlinConeChunkFileName } from "../../src/lib/experiences/berlin-flight/runtime/cone-grid-coordinates";
 import type {
   BerlinConeSourceManifest,
   BerlinConeSourceMeshFile,
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
 
   for (const chunk of result.chunks.values()) {
     await writeFile(
-      path.join(chunksDir, `${chunk.chunkKey}.json`),
+      path.join(chunksDir, getBerlinConeChunkFileName(chunk.chunkKey)),
       JSON.stringify(
         {
           chunkKey: chunk.chunkKey,

@@ -21,7 +21,7 @@ const scratchCenter = new THREE.Vector3();
 const scratchScale = new THREE.Vector3();
 const scratchQuaternion = new THREE.Quaternion();
 const instanceDummy = new THREE.Object3D();
-// ponytail: temporary draw/debug switch; restore to true to render visible cones and cone debug markers.
+// ponytail: temporary test switch; restore to false once cone presence is confirmed in headset.
 const BERLIN_CONE_RENDERING_ENABLED = true;
 
 export interface BerlinConeRuntimeDebugStats {
@@ -55,7 +55,7 @@ export class BerlinConeGridRuntime {
 
   constructor(assetLoader?: BerlinConeDatasetAssetLoader) {
     this.root.name = "BerlinConeGridRoot";
-    this.root.visible = false;
+    this.root.visible = BERLIN_CONE_RENDERING_ENABLED;
     this.coneGeometry = new THREE.ConeGeometry(
       BERLIN_CONE_GRID.CONE_RADIUS,
       BERLIN_CONE_GRID.CONE_HEIGHT,
@@ -71,8 +71,6 @@ export class BerlinConeGridRuntime {
   }
 
   public setDebugEnabled(enabled: boolean): void {
-    this.root.visible = enabled && BERLIN_CONE_RENDERING_ENABLED;
-
     if (!enabled || !BERLIN_CONE_RENDERING_ENABLED) {
       this.debugMarkers?.dispose();
       this.debugMarkers = null;
@@ -85,6 +83,13 @@ export class BerlinConeGridRuntime {
     }
 
     this.debugMarkers.update(this.activeConeVolumes);
+  }
+
+  public setVisible(visible: boolean): void {
+    this.root.visible = visible && BERLIN_CONE_RENDERING_ENABLED;
+    if (this.mesh) {
+      this.mesh.visible = visible && BERLIN_CONE_RENDERING_ENABLED;
+    }
   }
 
   public update(observerPosition: THREE.Vector3): void {

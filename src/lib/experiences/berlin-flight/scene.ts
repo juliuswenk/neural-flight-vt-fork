@@ -361,6 +361,7 @@ function setBerlinWorldVisualsVisible(
       object.visible = visible;
     }
   });
+  state.coneRuntime.setVisible(visible);
 }
 
 function setBerlinSkyboxVisible(state: BerlinState, visible: boolean): void {
