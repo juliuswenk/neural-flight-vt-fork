@@ -72,8 +72,12 @@
                     lastOrientation =
                         orientation.quality > 0
                             ? {
-                                  pitch: orientation.pitch,
-                                  roll: orientation.roll,
+                                  pitch:
+                                      orientation.roll *
+                                      CONTROLS.PITCH_RANGE[1],
+                                  roll:
+                                      orientation.pitch *
+                                      CONTROLS.ROLL_RANGE[1],
                                   ...(orientation.yaw !== undefined
                                       ? { yaw: orientation.yaw }
                                       : {}),

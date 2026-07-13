@@ -11,7 +11,6 @@ export function updatePlayer(
   _delta: number,
 ): void {
   if (state.isDisposed) return;
-  if (state.onboarding.isActive) return;
 
   state.player.updateOrientation({
     type: "orientation",
