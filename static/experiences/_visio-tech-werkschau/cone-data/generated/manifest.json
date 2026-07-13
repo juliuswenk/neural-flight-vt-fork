@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "origin": {
+    "x": 0,
+    "z": 0
+  },
+  "chunkSizeMeters": 1920,
+  "bounds": {
+    "minChunkX": -12,
+    "maxChunkX": 0,
+    "minChunkZ": -9,
+    "maxChunkZ": 10
+  },
+  "chunkCount": 260
+}

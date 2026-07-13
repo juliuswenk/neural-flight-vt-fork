@@ -44,6 +44,21 @@ export const WERKSCHAU_TILE_LOOK = {
   FLAT_SHADING: true,
 } as const;
 
+export const WERKSCHAU_CONE_DATASET_BASE_URL =
+  "/experiences/_visio-tech-werkschau/cone-data/generated";
+export const WERKSCHAU_CONE_MIN_TILT_DEGREES = 10;
+export const WERKSCHAU_CONE_GRID = {
+  SPACING: 240,
+  ORIGIN_HEIGHT: 140,
+  CONE_RADIUS: 48,
+  CONE_HEIGHT: 180,
+  COLOR: 0xff4fd8,
+  OPACITY: 0.34,
+  VISIBLE_RADIUS_TILES: 14,
+  CHUNK_CONES_PER_SIDE: 8,
+  MAX_CHUNK_LOADS_PER_TICK: 4,
+} as const;
+
 export const WERKSCHAU_BERLIN_GEO_BOUNDS = {
   north: 52.675,
   south: 52.338,

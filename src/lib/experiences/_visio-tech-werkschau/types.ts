@@ -3,6 +3,7 @@ import type { ExperienceState } from "../types";
 import type { WerkschauRadioManager } from "./audio/radio-manager";
 import type { WerkschauOnboardingAudio } from "./onboarding/audio";
 import type { WerkschauOnboardingController } from "./onboarding/controller";
+import type { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
 import type { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import type * as THREE from "three";
 
@@ -18,6 +19,8 @@ export interface WerkschauState extends ExperienceState {
   };
   tilesRuntime: TilesRuntimeAdapter | null;
   tilesGroup: THREE.Group;
+  coneRuntime: WerkschauConeGridRuntime;
+  coneDiagnosticElement: HTMLDivElement | null;
   fallbackPlane: THREE.Mesh | null;
   renderer: THREE.WebGLRenderer;
   camera: THREE.PerspectiveCamera;

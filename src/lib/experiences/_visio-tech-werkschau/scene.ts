@@ -19,6 +19,7 @@ import { geoToLocal } from "./geo/coordinates";
 import { createWerkschauOnboardingAudio } from "./onboarding/audio";
 import { createWerkschauOnboardingController } from "./onboarding/controller";
 import { disposeObjectTree } from "./runtime/cleanup";
+import { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
 import { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import {
   isWerkschauTilesSourceConfigured,
@@ -48,6 +49,9 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const tilesGroup = new THREE.Group();
   tilesGroup.name = "VisioTechWerkschauTilesRoot";
   sceneRoot.add(tilesGroup);
+
+  const coneRuntime = new WerkschauConeGridRuntime();
+  sceneRoot.add(coneRuntime.root);
 
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
@@ -96,6 +100,8 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     scene: ctx.scene,
     tilesRuntime: null,
     tilesGroup,
+    coneRuntime,
+    coneDiagnosticElement: null,
     fallbackPlane: null,
     gridHelper,
     skybox,
@@ -173,6 +179,8 @@ export function tick(
     );
   }
   state.player.rig.updateMatrixWorld(true);
+  state.coneRuntime.update(state.player.rig.position);
+  updateWerkschauConeDiagnostic(state);
   state.camera.getWorldPosition(state.skybox.position);
   if (state.tilesRuntime) {
     Scheduler.setXRSession(state.renderer.xr.getSession() as XRSession);
@@ -196,6 +204,8 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   state.camera.remove(state.listener);
   state.tilesRuntime?.dispose();
   state.tilesRuntime = null;
+  state.coneRuntime.dispose();
+  removeWerkschauConeDiagnostic(state);
   state.fillLights.hemisphere.removeFromParent();
   state.fillLights.directional.removeFromParent();
   state.sceneRoot.removeFromParent();
@@ -283,6 +293,7 @@ function setWerkschauWorldVisualsVisible(
 
   state.worldVisualsVisible = visible;
   state.tilesGroup.visible = visible;
+  state.coneRuntime.setVisible(visible);
   if (state.fallbackPlane) state.fallbackPlane.visible = visible;
   state.gridHelper.visible = visible;
   state.fillLights.hemisphere.visible = visible;
@@ -449,6 +460,47 @@ function removeFallbackPlane(state: WerkschauState): void {
     plane.material.dispose();
   }
   state.fallbackPlane = null;
+}
+
+function updateWerkschauConeDiagnostic(state: WerkschauState): void {
+  const stats = state.coneRuntime.getDebugStats();
+  const diagnostics = stats.diagnostics;
+  const message = diagnostics.errorCode
+    ? `cone data: ${diagnostics.errorCode}${diagnostics.errorChunkKey ? ` ${diagnostics.errorChunkKey}` : ""}`
+    : diagnostics.outOfBounds
+      ? "cone data: player outside dataset"
+      : diagnostics.emptyNearby
+        ? "cone data: no nearby cones"
+        : null;
+
+  if (!message || typeof document === "undefined") {
+    removeWerkschauConeDiagnostic(state);
+    return;
+  }
+
+  if (!state.coneDiagnosticElement) {
+    const element = document.createElement("div");
+    element.style.position = "fixed";
+    element.style.left = "12px";
+    element.style.bottom = "12px";
+    element.style.zIndex = "1000";
+    element.style.padding = "6px 8px";
+    element.style.border = "1px solid rgba(255,255,255,0.45)";
+    element.style.background = "rgba(0,0,0,0.68)";
+    element.style.color = "#ffd6f5";
+    element.style.font = "12px/1.3 monospace";
+    element.style.pointerEvents = "none";
+    document.body.append(element);
+    state.coneDiagnosticElement = element;
+  }
+
+  state.coneDiagnosticElement.textContent =
+    `${message}; chunks ${diagnostics.loadedDesiredChunkCount}/${diagnostics.inBoundsChunkCount}; cones ${diagnostics.activeConeCount}`;
+}
+
+function removeWerkschauConeDiagnostic(state: WerkschauState): void {
+  state.coneDiagnosticElement?.remove();
+  state.coneDiagnosticElement = null;
 }
 
 function getBerlinLocalBounds(): {
