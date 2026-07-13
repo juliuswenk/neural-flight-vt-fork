@@ -9,6 +9,7 @@
     import * as THREE from "three";
     import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
     import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
+    import { CONTROLS } from "$lib/config/flight";
     import type { ActiveExperience } from "$lib/experiences/loader";
     import {
         getActiveExperienceId,
@@ -38,6 +39,7 @@
     let experienceName = $state("ICAROS VR");
     let hasOutputs = $state(false);
     let blockingError = $state<string | null>(null);
+    let isDesktopPreview = false;
     let lastProcessedTimestamp = 0;
     const hostOrigin = PUBLIC_ICAROS_HOST_ORIGIN.trim();
     const useIcarosHost = hostOrigin !== "";
@@ -58,6 +60,7 @@
     let lastSpeed = { accelerate: false, brake: false };
     let lastOrientationReceivedAt = 0;
     let removeResizeListener: (() => void) | null = null;
+    let removePreviewKeyboardListeners: (() => void) | null = null;
     let unsubscribeHostOrientation: (() => void) | null = null;
 
     onMount(() => {
@@ -87,6 +90,11 @@
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const experienceId = getActiveExperienceId();
         const isBerlinFlight = experienceId === BERLIN_FLIGHT_ID;
+        isDesktopPreview =
+            new URLSearchParams(window.location.search).get("preview") === "1";
+        if (isDesktopPreview) {
+            removePreviewKeyboardListeners = createPreviewKeyboardInput();
+        }
 
         renderer = new THREE.WebGLRenderer({
             canvas,
@@ -102,7 +110,7 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        void createXrEntryButton(experienceId).then((button) => {
+        void createXrEntryButton(experienceId, isDesktopPreview).then((button) => {
             if (!mounted || button === null) return;
             xrButton = button;
             document.body.appendChild(button);
@@ -113,6 +121,7 @@
             scene,
             camera: dummyCamera,
             renderer,
+            previewMode: isDesktopPreview,
         }).then((exp: ActiveExperience) => {
             renderer.shadowMap.enabled = exp.manifest.id !== "berlin-flight";
             if (isBerlinFlight) {
@@ -133,6 +142,7 @@
 
             renderer.setAnimationLoop(() => {
                 const delta = clock.getDelta();
+                updatePreviewInput();
 
                 const msg = ws?.lastMessage;
                 if (!useIcarosHost && msg && msg.timestamp > lastProcessedTimestamp) {
@@ -213,7 +223,12 @@
 
     async function createXrEntryButton(
         experienceId: string,
+        previewMode: boolean,
     ): Promise<HTMLElement | null> {
+        if (previewMode) {
+            return null;
+        }
+
         if (experienceId !== BERLIN_FLIGHT_ID) {
             return VRButton.createButton(renderer);
         }
@@ -234,11 +249,73 @@
         return ARButton.createButton(renderer);
     }
 
+    const previewKeys = new Set<string>();
+
+    function createPreviewKeyboardInput(): () => void {
+        const onKeyDown = (event: KeyboardEvent): void => {
+            const key = event.key.toLowerCase();
+            if (!isPreviewKey(key)) return;
+            event.preventDefault();
+            previewKeys.add(key);
+        };
+        const onKeyUp = (event: KeyboardEvent): void => {
+            const key = event.key.toLowerCase();
+            if (!isPreviewKey(key)) return;
+            event.preventDefault();
+            previewKeys.delete(key);
+        };
+        const onBlur = (): void => previewKeys.clear();
+
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+        window.addEventListener("blur", onBlur);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+            window.removeEventListener("blur", onBlur);
+            previewKeys.clear();
+        };
+    }
+
+    function updatePreviewInput(): void {
+        if (!isDesktopPreview) return;
+
+        const pitch =
+            (previewKeys.has("arrowup") ? -1 : 0) +
+            (previewKeys.has("arrowdown") ? 1 : 0);
+        const roll =
+            (previewKeys.has("arrowleft") ? -1 : 0) +
+            (previewKeys.has("arrowright") ? 1 : 0);
+
+        lastOrientation = {
+            pitch: pitch * CONTROLS.STEP_DEGREES,
+            roll: roll * CONTROLS.STEP_DEGREES,
+        };
+        lastSpeed = {
+            accelerate: previewKeys.has("w"),
+            brake: previewKeys.has("s"),
+        };
+        lastOrientationReceivedAt = performance.now();
+    }
+
+    function isPreviewKey(key: string): boolean {
+        return (
+            key === "w" ||
+            key === "s" ||
+            key === "arrowup" ||
+            key === "arrowdown" ||
+            key === "arrowleft" ||
+            key === "arrowright"
+        );
+    }
+
     onDestroy(() => {
         renderer?.setAnimationLoop(null);
         if (scene) unloadExperience(scene);
         renderer?.dispose();
         xrButton?.remove();
+        removePreviewKeyboardListeners?.();
         unsubscribeHostOrientation?.();
         hostControl?.disconnect();
         hostRuntime?.disconnect();

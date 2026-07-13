@@ -141,6 +141,7 @@ export interface SetupContext {
 	scene: THREE.Scene;
 	camera: THREE.PerspectiveCamera;
 	renderer: THREE.WebGLRenderer;
+	previewMode?: boolean;
 }
 
 export interface TickContext {

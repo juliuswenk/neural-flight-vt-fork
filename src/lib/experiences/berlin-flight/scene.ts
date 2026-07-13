@@ -152,6 +152,12 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     abortController: new AbortController(),
   };
 
+  if (ctx.previewMode) {
+    state.onboarding.progress = 1;
+    state.onboarding.isActive = false;
+    state.onboarding.isComplete = true;
+  }
+
   setBerlinDebugEnabled(state, BERLIN_DEBUG_OVERLAY_DEFAULT);
   setBerlinWorldVisualsVisible(state, false);
   setBerlinSkyboxVisible(state, false);
