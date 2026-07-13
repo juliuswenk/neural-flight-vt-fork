@@ -2,14 +2,11 @@ import { TilesRenderer } from "3d-tiles-renderer";
 import { GoogleCloudAuthPlugin } from "3d-tiles-renderer/plugins";
 import * as THREE from "three";
 import type { Camera, Group, WebGLRenderer } from "three";
+import { WerkschauTileMeshRegistry } from "../collision/mesh-tracker";
+import type { TrackedTileMesh } from "../collision/tile-mesh-types";
 import { WERKSCHAU_TILE_RUNTIME } from "../constants";
 import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
 import { getECEFToLocalMatrix } from "../geo/coordinates";
-import {
-  createWerkschauNeutralTileMaterial,
-  disposeClonedMaterial,
-  disposeMaterial,
-} from "./tiles-material";
 import type { WerkschauTilesSource } from "./tiles-source";
 
 export interface TilesRuntimeDebugStats {
@@ -20,12 +17,6 @@ export interface TilesRuntimeDebugStats {
   visibleTiles: number;
   activeTiles: number;
   trackedMeshes: number;
-}
-
-interface RegisteredTileMesh {
-  mesh: THREE.Mesh;
-  neutralMaterial: THREE.Material | THREE.Material[];
-  originalMaterial: THREE.Material | THREE.Material[];
 }
 
 type TileLoadEvent = {
@@ -44,11 +35,7 @@ type TileDisposeEvent = {
 export class TilesRuntimeAdapter {
   private renderer: TilesRenderer | null = null;
   private activeCameras: Camera[] = [];
-  private readonly trackedByScene = new Map<
-    THREE.Object3D,
-    RegisteredTileMesh[]
-  >();
-  private readonly trackedMeshes = new Set<THREE.Mesh>();
+  private readonly meshRegistry = new WerkschauTileMeshRegistry();
   private readonly resolution = new THREE.Vector2();
   private readonly url: string;
   private readonly token: string;
@@ -95,8 +82,7 @@ export class TilesRuntimeAdapter {
       }
 
       this.activeCameras = [];
-      this.trackedByScene.clear();
-      this.trackedMeshes.clear();
+      this.meshRegistry.dispose();
       this.renderer = null;
       throw error;
     }
@@ -153,34 +139,11 @@ export class TilesRuntimeAdapter {
   }
 
   private readonly handleLoadModel = (event: TileLoadEvent): void => {
-    if (this.trackedByScene.has(event.scene)) return;
-
-    const meshes: RegisteredTileMesh[] = [];
-    event.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        this.trackedMeshes.add(child);
-        const originalMaterial = child.material;
-        const neutralMaterial =
-          createWerkschauNeutralTileMaterial(originalMaterial);
-        child.material = neutralMaterial;
-        meshes.push({ mesh: child, neutralMaterial, originalMaterial });
-      }
-    });
-    this.trackedByScene.set(event.scene, meshes);
+    this.meshRegistry.trackTileScene(event.scene, event.url);
   };
 
   private readonly handleDisposeModel = (event: TileDisposeEvent): void => {
-    const meshes = this.trackedByScene.get(event.scene);
-    if (!meshes) return;
-
-    const disposedMaterials = new WeakSet<THREE.Material>();
-
-    for (const registeredMesh of meshes) {
-      this.trackedMeshes.delete(registeredMesh.mesh);
-      disposeClonedMaterial(registeredMesh.neutralMaterial, disposedMaterials);
-      disposeMaterial(registeredMesh.originalMaterial, disposedMaterials);
-    }
-    this.trackedByScene.delete(event.scene);
+    this.meshRegistry.untrackTileScene(event.scene);
   };
 
   public update(
@@ -236,7 +199,7 @@ export class TilesRuntimeAdapter {
         loadProgress: 0,
         visibleTiles: 0,
         activeTiles: 0,
-        trackedMeshes: this.trackedMeshes.size,
+        trackedMeshes: this.meshRegistry.getTrackedMeshCount(),
       };
     }
 
@@ -247,13 +210,21 @@ export class TilesRuntimeAdapter {
       loadProgress: renderer.loadProgress,
       visibleTiles: renderer.visibleTiles.size,
       activeTiles: renderer.activeTiles.size,
-      trackedMeshes: this.trackedMeshes.size,
+      trackedMeshes: this.meshRegistry.getTrackedMeshCount(),
     };
   }
 
   private getRenderer(): TilesRenderer | null {
     if (this.disposed) return null;
     return this.renderer;
+  }
+
+  public getTrackedTileMeshes(): readonly TrackedTileMesh[] {
+    return this.meshRegistry.getTrackedTileMeshes();
+  }
+
+  public getTrackedTileMeshVersion(): number {
+    return this.meshRegistry.getVersion();
   }
 
   public dispose(): void {
@@ -263,8 +234,7 @@ export class TilesRuntimeAdapter {
 
     if (!this.renderer) {
       this.activeCameras = [];
-      this.trackedByScene.clear();
-      this.trackedMeshes.clear();
+      this.meshRegistry.dispose();
       return;
     }
 
@@ -275,10 +245,9 @@ export class TilesRuntimeAdapter {
     this.renderer.group.removeFromParent();
     this.renderer.removeEventListener("load-model", this.handleLoadModel);
     this.renderer.removeEventListener("dispose-model", this.handleDisposeModel);
+    this.meshRegistry.dispose();
     this.renderer.dispose();
     this.renderer = null;
     this.activeCameras = [];
-    this.trackedByScene.clear();
-    this.trackedMeshes.clear();
   }
 }

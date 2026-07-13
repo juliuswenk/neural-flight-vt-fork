@@ -297,7 +297,7 @@ No open product decisions right now. Add implementation questions here when migr
 - [x] Add retained audio components.
 - [x] Add sonar, battery, and required text overlays.
 - [ ] Add Cesium-failure fallback plane at height `0`.
-- [ ] Add cone collision.
 - [x] Add precomputed cones.
 - [x] Cap visible cones to nearby cones.
+- [x] Add cone collision.
 - [ ] Add stable cone intersection texture reveal on high-detail nearby tiles.

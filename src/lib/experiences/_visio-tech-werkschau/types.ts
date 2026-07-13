@@ -1,6 +1,7 @@
 import type { FlightPlayer } from "$lib/three/player";
 import type { ExperienceState } from "../types";
 import type { WerkschauRadioManager } from "./audio/radio-manager";
+import type { WerkschauCollisionController } from "./collision/controller";
 import type { WerkschauOnboardingAudio } from "./onboarding/audio";
 import type { WerkschauOnboardingController } from "./onboarding/controller";
 import type { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
@@ -20,6 +21,7 @@ export interface WerkschauState extends ExperienceState {
   tilesRuntime: TilesRuntimeAdapter | null;
   tilesGroup: THREE.Group;
   coneRuntime: WerkschauConeGridRuntime;
+  collisionController: WerkschauCollisionController;
   coneDiagnosticElement: HTMLDivElement | null;
   fallbackPlane: THREE.Mesh | null;
   renderer: THREE.WebGLRenderer;

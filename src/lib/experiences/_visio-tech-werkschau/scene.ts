@@ -5,6 +5,8 @@ import { FlightPlayer } from "$lib/three/player";
 import { createSky } from "$lib/three/sky";
 import type { SetupContext, TickContext } from "../types";
 import { WerkschauRadioManager } from "./audio/radio-manager";
+import { WERKSCHAU_COLLISION } from "./collision/config";
+import { WerkschauCollisionController } from "./collision/controller";
 import {
   WERKSCHAU_ALTITUDE_SPEED,
   WERKSCHAU_BERLIN_GEO_BOUNDS,
@@ -52,6 +54,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
 
   const coneRuntime = new WerkschauConeGridRuntime();
   sceneRoot.add(coneRuntime.root);
+  const collisionController = new WerkschauCollisionController();
 
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
@@ -101,6 +104,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     tilesRuntime: null,
     tilesGroup,
     coneRuntime,
+    collisionController,
     coneDiagnosticElement: null,
     fallbackPlane: null,
     gridHelper,
@@ -186,6 +190,14 @@ export function tick(
     Scheduler.setXRSession(state.renderer.xr.getSession() as XRSession);
     syncTileSelectionCameras(state);
     state.tilesRuntime.update(state.tileSelectionCameras, state.renderer);
+    if (WERKSCHAU_COLLISION.ENABLED) {
+      state.collisionController.update(
+        state.coneRuntime.getActiveCones(),
+        state.coneRuntime.getSnapshotVersion(),
+        state.tilesRuntime.getTrackedTileMeshes(),
+        state.tilesRuntime.getTrackedTileMeshVersion(),
+      );
+    }
   }
 
   return { state };

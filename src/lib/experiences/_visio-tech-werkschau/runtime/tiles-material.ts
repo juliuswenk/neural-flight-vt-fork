@@ -25,6 +25,12 @@ export function createWerkschauNeutralTileMaterial(
   return cloneNeutralTileMaterial(sourceMaterial);
 }
 
+export function createWerkschauTileMaterial(
+  sourceMaterial: THREE.Material | THREE.Material[],
+): THREE.Material | THREE.Material[] {
+  return createWerkschauNeutralTileMaterial(sourceMaterial);
+}
+
 export function disposeClonedMaterial(
   material: THREE.Material | THREE.Material[],
   disposedMaterials?: WeakSet<THREE.Material>,
