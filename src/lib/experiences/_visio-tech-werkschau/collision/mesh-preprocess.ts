@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { WerkschauTileMesh, TrackedTileMesh } from "./tile-mesh-types";
+import { isValidConeMaskAttribute } from "./vertex-color-writer";
 
 export function preprocessTrackedMesh(
   mesh: WerkschauTileMesh,
@@ -25,6 +26,14 @@ export function preprocessTrackedMesh(
   const worldPositions = new Float32Array(positions.length);
   const vertexCount = positionAttribute.count;
   const coneMaskAttribute = geometry.getAttribute("coneMask");
+  const hasPrebakedConeMask = isValidConeMaskAttribute(
+    coneMaskAttribute,
+    vertexCount,
+  );
+  const prebakedConeIntersection = hasPrebakedConeMask
+    ? readPrebakedConeIntersection(geometry.userData) ??
+      readPrebakedConeIntersection(mesh.userData)
+    : null;
 
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
@@ -38,8 +47,9 @@ export function preprocessTrackedMesh(
     worldPositionsInitialized: false,
     vertexCount,
     vertexMask: new Uint8Array(vertexCount),
-    coneMaskAttribute:
-      coneMaskAttribute instanceof THREE.BufferAttribute ? coneMaskAttribute : null,
+    coneMaskAttribute: hasPrebakedConeMask ? coneMaskAttribute : null,
+    hasPrebakedConeMask,
+    prebakedConeIntersection,
     originalMaterial,
     neutralMaterial: originalMaterial,
     collisionMaterial,
@@ -52,6 +62,17 @@ export function preprocessTrackedMesh(
       geometry.boundingSphere?.clone().applyMatrix4(mesh.matrixWorld) ??
       new THREE.Sphere(),
   };
+}
+
+function readPrebakedConeIntersection(userData: unknown): boolean | null {
+  if (!isRecord(userData)) return null;
+
+  const value = userData.werkschauHasConeIntersection;
+  return typeof value === "boolean" ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function getPositions(array: THREE.TypedArray): Float32Array | null {

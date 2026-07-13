@@ -12,7 +12,7 @@ export function initializeConeMaskAttributeForMesh(mesh: TrackedTileMesh): void 
 
 function ensureConeMaskAttribute(mesh: TrackedTileMesh): void {
   const existingMaskAttribute = mesh.geometry.getAttribute("coneMask");
-  if (isWritableMaskAttribute(existingMaskAttribute, mesh.vertexCount)) {
+  if (isValidConeMaskAttribute(existingMaskAttribute, mesh.vertexCount)) {
     mesh.coneMaskAttribute = existingMaskAttribute;
     return;
   }
@@ -23,7 +23,7 @@ function ensureConeMaskAttribute(mesh: TrackedTileMesh): void {
   mesh.coneMaskAttribute = maskAttribute;
 }
 
-function isWritableMaskAttribute(
+export function isValidConeMaskAttribute(
   attribute: THREE.BufferAttribute | THREE.InterleavedBufferAttribute | undefined,
   vertexCount: number,
 ): attribute is THREE.BufferAttribute {

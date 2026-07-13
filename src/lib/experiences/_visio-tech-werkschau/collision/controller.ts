@@ -117,14 +117,18 @@ export class WerkschauCollisionController {
       const mesh = this.dirtyQueue.shift();
       if (!mesh) break;
       if (!this.dirtyMeshes.has(mesh)) continue;
+      if (hasResolvedPrebakedConeIntersection(mesh)) {
+        this.dirtyMeshes.delete(mesh);
+        continue;
+      }
       if (!this.trackedMeshes.has(mesh)) {
         this.dirtyMeshes.delete(mesh);
         continue;
       }
 
-      this.processMesh(cones, mesh);
-
-      this.verticesTestedLastTick += mesh.vertexCount;
+      if (this.processMesh(cones, mesh)) {
+        this.verticesTestedLastTick += mesh.vertexCount;
+      }
       this.processedMeshesLastTick += 1;
       this.dirtyMeshes.delete(mesh);
     }
@@ -133,28 +137,39 @@ export class WerkschauCollisionController {
   private processMesh(
     cones: readonly WerkschauConeVolume[],
     mesh: TrackedTileMesh,
-  ): void {
+  ): boolean {
+    if (hasResolvedPrebakedConeIntersection(mesh)) return false;
+
     const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
     if (overlappingCones.length === 0) {
-      updateVertexMask(mesh, overlappingCones);
-      writeConeMaskAttributeForMesh(mesh);
+      if (!mesh.hasPrebakedConeMask) {
+        updateVertexMask(mesh, overlappingCones);
+        writeConeMaskAttributeForMesh(mesh);
+      }
       setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, []);
       if (mesh.hasConeMaskMaterial) {
         mesh.mesh.material = mesh.neutralMaterial;
         mesh.hasConeMaskMaterial = false;
       }
-      return;
+      return !mesh.hasPrebakedConeMask;
     }
 
     const fragmentCones = getNearestFragmentCones(mesh, overlappingCones);
-    updateVertexMask(mesh, overlappingCones);
-    writeConeMaskAttributeForMesh(mesh);
+    if (!mesh.hasPrebakedConeMask) {
+      updateVertexMask(mesh, overlappingCones);
+      writeConeMaskAttributeForMesh(mesh);
+    }
     setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, fragmentCones);
     if (!mesh.hasConeMaskMaterial) {
       mesh.mesh.material = mesh.collisionMaterial;
       mesh.hasConeMaskMaterial = true;
     }
+    return !mesh.hasPrebakedConeMask;
   }
+}
+
+function hasResolvedPrebakedConeIntersection(mesh: TrackedTileMesh): boolean {
+  return mesh.hasPrebakedConeMask && mesh.prebakedConeIntersection !== null;
 }
 
 function getNearestFragmentCones(

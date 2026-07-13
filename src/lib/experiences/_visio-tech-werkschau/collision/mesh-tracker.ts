@@ -123,5 +123,19 @@ function createRegisteredMesh(
   initializeConeMaskAttributeForMesh(trackedMesh);
   trackedMesh.sourceUrl = sourceUrl;
   trackedMesh.neutralMaterial = werkschauMaterial;
+  applyPrebakedConeIntersectionMaterial(trackedMesh);
   return { originalMaterial, werkschauMaterial, trackedMesh };
+}
+
+function applyPrebakedConeIntersectionMaterial(mesh: TrackedTileMesh): void {
+  if (!mesh.hasPrebakedConeMask || mesh.prebakedConeIntersection === null) return;
+
+  if (mesh.prebakedConeIntersection) {
+    mesh.mesh.material = mesh.collisionMaterial;
+    mesh.hasConeMaskMaterial = true;
+    return;
+  }
+
+  mesh.mesh.material = mesh.neutralMaterial;
+  mesh.hasConeMaskMaterial = false;
 }
