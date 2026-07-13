@@ -14,6 +14,7 @@ export interface WerkschauCollisionDebugStats {
   trackedMeshes: number;
   dirtyMeshes: number;
   processedMeshesLastTick: number;
+  prebakedMeshes: number;
   verticesTestedLastTick: number;
 }
 
@@ -25,6 +26,7 @@ export class WerkschauCollisionController {
   private lastMeshVersion = -1;
   private activeCones = 0;
   private trackedMeshCount = 0;
+  private prebakedMeshCount = 0;
   private processedMeshesLastTick = 0;
   private verticesTestedLastTick = 0;
 
@@ -50,6 +52,7 @@ export class WerkschauCollisionController {
     target.trackedMeshes = this.trackedMeshCount;
     target.dirtyMeshes = this.dirtyQueue.length;
     target.processedMeshesLastTick = this.processedMeshesLastTick;
+    target.prebakedMeshes = this.prebakedMeshCount;
     target.verticesTestedLastTick = this.verticesTestedLastTick;
   }
 
@@ -59,6 +62,7 @@ export class WerkschauCollisionController {
     meshVersion: number,
   ): void {
     this.trackedMeshCount = meshes.length;
+    this.prebakedMeshCount = countPrebakedMeshes(meshes);
     if (this.lastMeshVersion === meshVersion) return;
 
     this.lastMeshVersion = meshVersion;
@@ -170,6 +174,14 @@ export class WerkschauCollisionController {
 
 function hasResolvedPrebakedConeIntersection(mesh: TrackedTileMesh): boolean {
   return mesh.hasPrebakedConeMask && mesh.prebakedConeIntersection !== null;
+}
+
+function countPrebakedMeshes(meshes: readonly TrackedTileMesh[]): number {
+  let count = 0;
+  for (const mesh of meshes) {
+    if (mesh.hasPrebakedConeMask) count += 1;
+  }
+  return count;
 }
 
 function getNearestFragmentCones(

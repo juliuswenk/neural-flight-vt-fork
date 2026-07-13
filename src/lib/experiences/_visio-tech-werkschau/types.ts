@@ -23,6 +23,7 @@ export interface WerkschauState extends ExperienceState {
   coneRuntime: WerkschauConeGridRuntime;
   collisionController: WerkschauCollisionController;
   coneDiagnosticElement: HTMLDivElement | null;
+  collisionDiagnosticElement: HTMLDivElement | null;
   fallbackPlane: THREE.Mesh | null;
   renderer: THREE.WebGLRenderer;
   camera: THREE.PerspectiveCamera;

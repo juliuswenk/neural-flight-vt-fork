@@ -106,6 +106,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     coneRuntime,
     collisionController,
     coneDiagnosticElement: null,
+    collisionDiagnosticElement: null,
     fallbackPlane: null,
     gridHelper,
     skybox,
@@ -198,6 +199,9 @@ export function tick(
         state.tilesRuntime.getTrackedTileMeshVersion(),
       );
     }
+    updateWerkschauCollisionDiagnostic(state);
+  } else {
+    removeWerkschauCollisionDiagnostic(state);
   }
 
   return { state };
@@ -218,6 +222,7 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   state.tilesRuntime = null;
   state.coneRuntime.dispose();
   removeWerkschauConeDiagnostic(state);
+  removeWerkschauCollisionDiagnostic(state);
   state.fillLights.hemisphere.removeFromParent();
   state.fillLights.directional.removeFromParent();
   state.sceneRoot.removeFromParent();
@@ -513,6 +518,52 @@ function updateWerkschauConeDiagnostic(state: WerkschauState): void {
 function removeWerkschauConeDiagnostic(state: WerkschauState): void {
   state.coneDiagnosticElement?.remove();
   state.coneDiagnosticElement = null;
+}
+
+function updateWerkschauCollisionDiagnostic(state: WerkschauState): void {
+  if (typeof document === "undefined") return;
+
+  if (!state.collisionDiagnosticElement) {
+    const element = document.createElement("div");
+    element.style.position = "fixed";
+    element.style.left = "12px";
+    element.style.bottom = state.coneDiagnosticElement ? "48px" : "12px";
+    element.style.zIndex = "1000";
+    element.style.padding = "6px 8px";
+    element.style.border = "1px solid rgba(255,255,255,0.45)";
+    element.style.background = "rgba(0,0,0,0.68)";
+    element.style.color = "#d7f8ff";
+    element.style.font = "12px/1.3 monospace";
+    element.style.pointerEvents = "none";
+    document.body.append(element);
+    state.collisionDiagnosticElement = element;
+  }
+
+  state.collisionDiagnosticElement.style.bottom = state.coneDiagnosticElement
+    ? "48px"
+    : "12px";
+
+  if (!WERKSCHAU_COLLISION.ENABLED) {
+    state.collisionDiagnosticElement.textContent = "collision: disabled";
+    return;
+  }
+
+  const stats = {
+    activeCones: 0,
+    trackedMeshes: 0,
+    dirtyMeshes: 0,
+    processedMeshesLastTick: 0,
+    prebakedMeshes: 0,
+    verticesTestedLastTick: 0,
+  };
+  state.collisionController.writeDebugStats(stats);
+  state.collisionDiagnosticElement.textContent =
+    `collision: tracked ${stats.trackedMeshes}; prebaked ${stats.prebakedMeshes}; processed ${stats.processedMeshesLastTick}; vertices ${stats.verticesTestedLastTick}; dirty ${stats.dirtyMeshes}`;
+}
+
+function removeWerkschauCollisionDiagnostic(state: WerkschauState): void {
+  state.collisionDiagnosticElement?.remove();
+  state.collisionDiagnosticElement = null;
 }
 
 function getBerlinLocalBounds(): {
