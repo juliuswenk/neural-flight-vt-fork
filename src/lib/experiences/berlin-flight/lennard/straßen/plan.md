@@ -54,6 +54,6 @@
 
 ## Bekannte Probleme
 
-- `three-mesh-bvh` fehlt als Dependency → Fehler in `visio-technologica-city-test` (pre-existing)
+- `three-mesh-bvh` fehlt als Dependency in alten lokalen Tests (pre-existing)
 - `svelte-check` findet 5 Fehler, alle in `city-test/scene.ts` (nicht von uns)
 - Dev-Server benötigt HTTPS: `mkcert localhost` im Projekt-Root ausführen

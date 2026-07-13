@@ -2,7 +2,6 @@
   import { onDestroy, onMount } from "svelte";
   import * as THREE from "three";
   import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { VISIO_TECHNOLOGICA_TILE_METADATA } from "$lib/experiences/visio-technologica/tile-metadata";
   import { buildRoadGraph, type TileInfo } from "$lib/experiences/berlin-flight/lennard/straßen/road-graph";
   import { createCarFleet } from "$lib/experiences/berlin-flight/lennard/straßen/car-fleet";
 
@@ -10,6 +9,29 @@
   let renderer: THREE.WebGLRenderer;
   let controls: OrbitControls;
   let fleet: ReturnType<typeof createCarFleet>;
+
+  function createLabTiles(): TileInfo[] {
+    const tiles: TileInfo[] = [];
+    const size = 5;
+    const step = 80;
+    const center = (size - 1) / 2;
+
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        tiles.push({
+          id: `lab-${x}-${y}`,
+          center: { x, y },
+          worldPosition: new THREE.Vector3(
+            (x - center) * step,
+            0,
+            (y - center) * step,
+          ),
+        });
+      }
+    }
+
+    return tiles;
+  }
 
   onMount(() => {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -49,29 +71,7 @@
     const gridHelper = new THREE.GridHelper(600, 20, 0x444466, 0x333355);
     scene.add(gridHelper);
 
-    const columns = [...new Set(VISIO_TECHNOLOGICA_TILE_METADATA.map((t) => t.center.x))].sort((a, b) => a - b);
-    const rows = [...new Set(VISIO_TECHNOLOGICA_TILE_METADATA.map((t) => t.center.y))].sort((a, b) => a - b);
-    const colIndex = new Map(columns.map((x, i) => [x, i]));
-    const rowIndex = new Map(rows.map((y, i) => [y, i]));
-
-    const STEP = 80;
-    const centerCol = (columns.length - 1) / 2;
-    const centerRow = (rows.length - 1) / 2;
-
-    const tiles: TileInfo[] = VISIO_TECHNOLOGICA_TILE_METADATA.map((t) => {
-      const ci = colIndex.get(t.center.x) ?? 0;
-      const ri = rowIndex.get(t.center.y) ?? 0;
-      return {
-        id: t.id,
-        center: { x: t.center.x, y: t.center.y },
-        worldPosition: new THREE.Vector3(
-          (ci - centerCol) * STEP,
-          0,
-          (ri - centerRow) * STEP,
-        ),
-      };
-    });
-
+    const tiles = createLabTiles();
     const graph = buildRoadGraph(tiles);
     fleet = createCarFleet(graph, 6);
     scene.add(fleet.roadGroup);
