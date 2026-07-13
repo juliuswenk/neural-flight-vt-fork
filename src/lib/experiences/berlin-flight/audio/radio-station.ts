@@ -9,7 +9,10 @@ export class BerlinRadioStation {
   readonly object3D: THREE.Object3D;
   readonly baseVolume: number;
   private audioElement: HTMLAudioElement | null = null;
-  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private sourceNode:
+    | MediaElementAudioSourceNode
+    | AudioBufferSourceNode
+    | null = null;
   private pannerNode: PannerNode | null = null;
   private gainNode: GainNode | null = null;
   private marker: THREE.Mesh | null = null;
@@ -28,41 +31,55 @@ export class BerlinRadioStation {
     this.object3D = new THREE.Object3D();
     this.object3D.name = `berlin-radio-${def.id}`;
     this.object3D.position.set(def.position.x, def.position.y, def.position.z);
-    this.setupPannerSync();
-    this.addDebugMarker();
+    if (!def.globalBackground) {
+      this.setupPannerSync();
+      this.addDebugMarker();
+    }
   }
 
   start(): void {
     if (this.playing) return;
 
+    const streamUrl = this.def.url.startsWith("/")
+      ? this.def.url
+      : `${PROXY_BASE}?url=${encodeURIComponent(this.def.url)}`;
+
+    if (this.def.loop && this.def.globalBackground) {
+      void this.startLoopingBuffer(streamUrl);
+      return;
+    }
+
     const audioElement = new Audio();
     audioElement.crossOrigin = "anonymous";
-    audioElement.src = `${PROXY_BASE}?url=${encodeURIComponent(this.def.url)}`;
+    audioElement.src = streamUrl;
     audioElement.preload = "none";
     this.audioElement = audioElement;
 
     const sourceNode = this.audioContext.createMediaElementSource(audioElement);
-    const pannerNode = this.audioContext.createPanner();
-    pannerNode.panningModel = "HRTF";
-    pannerNode.distanceModel = BERLIN_RADIO.DISTANCE_MODEL;
-    pannerNode.refDistance = this.def.refDistance;
-    pannerNode.maxDistance = this.def.maxDistance;
-    pannerNode.rolloffFactor = BERLIN_RADIO.ROLLOFF_FACTOR;
-    if (this.def.coneInnerAngle !== undefined) {
-      pannerNode.coneInnerAngle = this.def.coneInnerAngle;
-      pannerNode.coneOuterAngle = this.def.coneOuterAngle ?? 360;
-      pannerNode.coneOuterGain = this.def.coneOuterGain ?? 0;
-    }
-
     const gainNode = this.audioContext.createGain();
     gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
 
-    sourceNode.connect(pannerNode);
-    pannerNode.connect(gainNode);
+    if (this.def.globalBackground) {
+      sourceNode.connect(gainNode);
+    } else {
+      const pannerNode = this.audioContext.createPanner();
+      pannerNode.panningModel = "HRTF";
+      pannerNode.distanceModel = BERLIN_RADIO.DISTANCE_MODEL;
+      pannerNode.refDistance = this.def.refDistance;
+      pannerNode.maxDistance = this.def.maxDistance;
+      pannerNode.rolloffFactor = BERLIN_RADIO.ROLLOFF_FACTOR;
+      if (this.def.coneInnerAngle !== undefined) {
+        pannerNode.coneInnerAngle = this.def.coneInnerAngle;
+        pannerNode.coneOuterAngle = this.def.coneOuterAngle ?? 360;
+        pannerNode.coneOuterGain = this.def.coneOuterGain ?? 0;
+      }
+      sourceNode.connect(pannerNode);
+      pannerNode.connect(gainNode);
+      this.pannerNode = pannerNode;
+    }
     gainNode.connect(this.audioContext.destination);
 
     this.sourceNode = sourceNode;
-    this.pannerNode = pannerNode;
     this.gainNode = gainNode;
     this.playing = true;
     this.object3D.updateMatrixWorld(true);
@@ -83,6 +100,9 @@ export class BerlinRadioStation {
     this.sourceNode?.disconnect();
     this.pannerNode?.disconnect();
     this.gainNode?.disconnect();
+    if (this.sourceNode instanceof AudioBufferSourceNode) {
+      this.sourceNode.stop();
+    }
     this.audioElement?.pause();
     this.audioElement?.removeAttribute("src");
     this.audioElement?.load();
@@ -102,6 +122,30 @@ export class BerlinRadioStation {
       this.marker.material.dispose();
     }
     this.marker = null;
+  }
+
+  private async startLoopingBuffer(url: string): Promise<void> {
+    try {
+      const response = await fetch(url);
+      const audioBuffer = await this.audioContext.decodeAudioData(
+        await response.arrayBuffer(),
+      );
+      const sourceNode = this.audioContext.createBufferSource();
+      const gainNode = this.audioContext.createGain();
+
+      sourceNode.buffer = audioBuffer;
+      sourceNode.loop = true;
+      gainNode.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
+      sourceNode.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+
+      this.sourceNode = sourceNode;
+      this.gainNode = gainNode;
+      this.playing = true;
+      sourceNode.start();
+    } catch (error: unknown) {
+      console.warn(`[BerlinRadio:${this.id}] loop buffer failed:`, error);
+    }
   }
 
   private setupPannerSync(): void {

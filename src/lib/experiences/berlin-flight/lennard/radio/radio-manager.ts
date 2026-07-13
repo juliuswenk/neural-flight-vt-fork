@@ -33,6 +33,10 @@ export class RadioManager {
     return this._started;
   }
 
+  getStation(index: number): RadioStation | undefined {
+    return this.stations[index];
+  }
+
   /**
    * Begin streaming all stations.
    *

@@ -162,6 +162,13 @@ const routes = [
 		planned: false,
 	},
 	{
+		path: "/lab/radio",
+		icon: RadioTower,
+		title: "Radio Tuning Lab",
+		description: "Adjust live radio station positions and ranges",
+		planned: false,
+	},
+	{
 		path: "/shader-playground",
 		icon: Palette,
 		title: "Shader Playground",
