@@ -37,6 +37,7 @@ const WERKSCHAU_TILE_SELECTION_YAWS = [
   -Math.PI * 0.5,
 ] as const;
 const WERKSCHAU_TILE_SELECTION_DOWN_PITCH = -Math.PI * 0.5;
+const WERKSCHAU_BERLIN_LOCAL_BOUNDS = getBerlinLocalBounds();
 const werkschauAudioResumeByContext = new WeakMap<AudioContext, Promise<void>>();
 
 export async function setup(ctx: SetupContext): Promise<WerkschauState> {
@@ -166,7 +167,7 @@ export function tick(
   ) {
     scratchPosition.copy(state.player.rig.position);
     state.player.tick(ctx.delta);
-    clampPlayerHeight(state);
+    clampPlayerToBerlinBounds(state);
     state.onboarding.markMoved(
       scratchPosition.distanceToSquared(state.player.rig.position),
     );
@@ -255,11 +256,22 @@ function createFillLights(): {
   return { directional, hemisphere };
 }
 
-function clampPlayerHeight(state: WerkschauState): void {
-  state.player.rig.position.y = THREE.MathUtils.clamp(
-    state.player.rig.position.y,
+function clampPlayerToBerlinBounds(state: WerkschauState): void {
+  const position = state.player.rig.position;
+  position.x = THREE.MathUtils.clamp(
+    position.x,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX,
+  );
+  position.y = THREE.MathUtils.clamp(
+    position.y,
     WERKSCHAU_PLAYER_HEIGHT_LIMITS.MIN,
     WERKSCHAU_PLAYER_HEIGHT_LIMITS.MAX,
+  );
+  position.z = THREE.MathUtils.clamp(
+    position.z,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ,
   );
 }
 
@@ -402,10 +414,9 @@ function createTileSelectionCamera(
 function showFallbackPlane(state: WerkschauState): void {
   if (state.fallbackPlane) return;
 
-  const bounds = getBerlinLocalBounds();
   const geometry = new THREE.PlaneGeometry(
-    bounds.maxX - bounds.minX,
-    bounds.maxZ - bounds.minZ,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX - WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX,
+    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ - WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ,
   );
   const material = new THREE.MeshBasicMaterial({
     color: 0xb8c0c2,
@@ -416,9 +427,13 @@ function showFallbackPlane(state: WerkschauState): void {
   plane.rotation.x = -Math.PI * 0.5;
   plane.visible = state.worldVisualsVisible;
   plane.position.set(
-    (bounds.minX + bounds.maxX) * 0.5,
+    (WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX +
+      WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX) *
+      0.5,
     0,
-    (bounds.minZ + bounds.maxZ) * 0.5,
+    (WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ +
+      WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ) *
+      0.5,
   );
   state.fallbackPlane = plane;
   state.tilesGroup.add(plane);

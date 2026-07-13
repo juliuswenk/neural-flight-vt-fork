@@ -290,7 +290,7 @@ No open product decisions right now. Add implementation questions here when migr
 - [ ] Keep nearby-only lazy tile streaming.
 - [ ] Use neutral tile material by default.
 - [ ] Add position-based tile selection.
-- [ ] Add full-Berlin clamp bounds.
+- [x] Add full-Berlin clamp bounds.
 - [ ] Verify desktop preview.
 - [ ] Verify Pico 4 WebXR.
 - [x] Add onboarding sequence and first-movement 3-minute flight timer.
