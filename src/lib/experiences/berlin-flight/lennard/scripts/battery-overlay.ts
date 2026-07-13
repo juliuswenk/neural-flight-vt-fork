@@ -21,11 +21,11 @@ export const BATTERY = {
   textureHeight: 220, // Canvas height in pixels
 
   // ── Sprite (world-space) ────────────────────────────────────────
-  spriteScaleX: 0.225, // Sprite width in world units
-  spriteScaleY: 0.1125, // Sprite height in world units
+  spriteScaleX: 0.3, // Sprite width in world units
+  spriteScaleY: 0.15, // Sprite height in world units
   distance: 1.8, // Distance from camera in world units
-  posX: 1.3, // Horizontal offset from camera center (right = +)
-  posY: 0.85, // Vertical offset from camera center (up = +)
+  posX: 1, // Horizontal offset from camera center (right = +)
+  posY: 0.7, // Vertical offset from camera center (up = +)
 
   // ── Visual ──────────────────────────────────────────────────────
   outlineWidth: 3, // Stroke width of outline (canvas px)

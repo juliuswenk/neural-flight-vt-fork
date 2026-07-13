@@ -75,12 +75,13 @@ export const SEQ = {
 };
 
 export type StageFactory = (typeof SEQ.stages)[number]["factory"];
+export type StageDef = (typeof SEQ.stages)[number];
 
 // ══════════════════════════════════════════════════════════════════
 // Overlay factory registry
 // ══════════════════════════════════════════════════════════════════
 
-type OverlayFactoryFn = (
+export type OverlayFactoryFn = (
   message: string,
   camera: PerspectiveCamera,
 ) => {
@@ -175,6 +176,11 @@ const FACTORIES: Record<string, OverlayFactoryFn> = {
     };
   },
 };
+
+/** Register a custom overlay factory */
+export function registerFactory(name: string, fn: OverlayFactoryFn): void {
+  FACTORIES[name] = fn;
+}
 
 // ══════════════════════════════════════════════════════════════════
 // SequenceController — runs through stages with timing

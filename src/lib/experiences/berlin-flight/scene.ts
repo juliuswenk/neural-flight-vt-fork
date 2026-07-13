@@ -43,6 +43,7 @@ const BERLIN_SKYBOX_COLOR = 0x87ceeb;
 const BERLIN_SKYBOX_RADIUS = BERLIN_CAMERA_FAR * 0.85;
 const BERLIN_SHUTDOWN_FOG_NEAR = 0.05;
 const BERLIN_SHUTDOWN_FOG_FAR = 2;
+const berlinAudioResumeByContext = new WeakMap<AudioContext, Promise<void>>();
 
 function createBerlinFillLights(): {
   directional: THREE.DirectionalLight;
@@ -193,9 +194,7 @@ export function tick(state: BerlinState, ctx: TickContext) {
   updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
   s.radioManager.setMasterVolume(s.onboardingAudio.fullGain);
-  if (!s.radioManager.isStarted && s.listener.context.state === "running") {
-    s.radioManager.start();
-  }
+  updateBerlinRadioAudio(s, isXrPresenting);
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
     s.player.rig.position.y,
@@ -240,6 +239,44 @@ export function tick(state: BerlinState, ctx: TickContext) {
   s.fpsCounter?.update(ctx.delta);
 
   return { state: s };
+}
+
+function updateBerlinRadioAudio(
+  state: BerlinState,
+  isXrPresenting: boolean,
+): void {
+  const audioContext = state.listener.context;
+  if (!state.radioManager.isStarted && audioContext.state === "running") {
+    state.radioManager.start();
+    return;
+  }
+
+  if (
+    !isXrPresenting ||
+    audioContext.state !== "suspended" ||
+    berlinAudioResumeByContext.has(audioContext)
+  ) {
+    return;
+  }
+
+  const resume = audioContext
+    .resume()
+    .catch((error: unknown) => {
+      console.warn("[BerlinRadio] AudioContext resume failed:", error);
+    })
+    .finally(() => {
+      berlinAudioResumeByContext.delete(audioContext);
+    });
+  berlinAudioResumeByContext.set(audioContext, resume);
+  void resume.then(() => {
+    if (
+      !state.isDisposed &&
+      !state.radioManager.isStarted &&
+      audioContext.state === "running"
+    ) {
+      state.radioManager.start();
+    }
+  });
 }
 
 async function loadTilesWhenConfigured(state: BerlinState): Promise<void> {

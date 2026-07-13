@@ -22,8 +22,8 @@ export const CYBER = {
   gridRows: 4, // Number of rows
   gridColumns: 4, // Number of columns
   gridGapFraction: 0.1, // Gap between rectangles (fraction of smaller cell dimension)
-  gridCoverageWidth: 0.7125, // Fraction of viewport width the grid fills (0–1)
-  gridCoverageHeight: 0.6375, // Fraction of viewport height the grid fills (0–1)
+  gridCoverageWidth: 0.6, // Fraction of viewport width the grid fills (0–1)
+  gridCoverageHeight: 0.6, // Fraction of viewport height the grid fills (0–1)
   gridDistance: 1.8, // Distance from camera in world units (higher = smaller on screen)
 
   // ── Message & Languages ─────────────────────────────────────────
@@ -483,6 +483,81 @@ export class CyberOverlay {
     ctx.globalAlpha = 1;
     this.texture.needsUpdate = true;
   }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// Grid helper — creates N overlays arranged in rows/columns
+// ══════════════════════════════════════════════════════════════════
+
+/** Low-level: fixed-size grid (not viewport-responsive). Use createResponsiveGrid instead. */
+export function createOverlayGrid(
+  texts: readonly string[],
+  config?: Partial<{
+    rows: number;
+    columns: number;
+    gapWorld: number;
+    scaleX: number;
+    scaleY: number;
+    distance: number;
+    overrides: Partial<{
+      color: string;
+      glowPercent: number;
+      fontSize: number;
+      fontWeight: string;
+      lineThickness: number;
+      fontFamily: string;
+      opacity: number;
+    }>;
+  }>,
+): CyberOverlay[] {
+  const c = {
+    rows: 2,
+    columns: 4,
+    gapWorld: 0.15,
+    scaleX: 0.55,
+    scaleY: 0.16,
+    distance: 1.8,
+    ...config,
+  };
+  const overlays = texts.map((t) => new CyberOverlay(t, c.overrides));
+
+  applyGridLayout(
+    overlays,
+    c.rows,
+    c.columns,
+    c.gapWorld,
+    c.scaleX,
+    c.scaleY,
+    c.distance,
+  );
+
+  return overlays;
+}
+
+/** Reposition existing overlays in a fixed-size grid */
+export function applyGridLayout(
+  overlays: readonly CyberOverlay[],
+  rows: number,
+  columns: number,
+  gapWorld: number = 0.15,
+  scaleX: number = 0.55,
+  scaleY: number = 0.16,
+  distance: number = 1.8,
+): void {
+  const count = overlays.length;
+  const r = Math.min(rows, count);
+  const cols = Math.ceil(count / r);
+
+  overlays.forEach((ov, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+
+    const x = (col - (cols - 1) / 2) * (scaleX + gapWorld);
+    const y = ((r - 1) / 2 - row) * (scaleY + gapWorld);
+
+    ov.sprite.position.set(x, y, -distance);
+    ov.sprite.scale.set(scaleX, scaleY, 1);
+  });
 }
 
 /** Re-draw all overlays from current CYBER config */

@@ -170,7 +170,7 @@ export class TilesRuntimeAdapter {
     cameras: readonly Camera[],
     webglRenderer: WebGLRenderer,
   ): void {
-    const renderer = this.getVisibleRenderer();
+    const renderer = this.getRenderer();
     if (!renderer) return;
 
     renderer.group.updateMatrixWorld(true);
@@ -237,10 +237,9 @@ export class TilesRuntimeAdapter {
     };
   }
 
-  private getVisibleRenderer(): TilesRenderer | null {
+  private getRenderer(): TilesRenderer | null {
     if (this.disposed) return null;
     if (!this.renderer) return null;
-    if (!this.renderer.group.visible) return null;
 
     return this.renderer;
   }
