@@ -77,4 +77,6 @@ export interface BerlinState extends ExperienceState {
   isDisposed: boolean;
   /** Cancels async tile setup when disposing mid-load */
   abortController: AbortController;
+  /** Removes the XR audio resume hook */
+  removeAudioResumeListener: () => void;
 }

@@ -13,6 +13,7 @@ import {
   BERLIN_ALTITUDE_SPEED,
   BERLIN_CAMERA_FAR,
   BERLIN_FLIGHT_BASE_SPEED,
+  BERLIN_PLAYER_HEIGHT_LIMITS,
   BERLIN_PLAYER_SPAWN_POSITION,
   BERLIN_TILE_PRELOAD,
   BERLIN_TILE_SELECTION_FOV,
@@ -109,6 +110,10 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   const coneRuntime = new BerlinConeGridRuntime();
   sceneRoot.add(coneRuntime.root);
   const collisionController = new BerlinCollisionController();
+  let state: BerlinState;
+  const resumeAudioFromXr = (): void => {
+    updateBerlinRadioAudio(state, true);
+  };
   const tileSelectionCamera = new THREE.PerspectiveCamera(
     Math.max(player.camera.fov, BERLIN_TILE_SELECTION_FOV),
     player.camera.aspect || 1,
@@ -125,7 +130,7 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   tilePreloadCamera.updateProjectionMatrix();
 
   // Initial state
-  const state: BerlinState = {
+  state = {
     sceneRoot,
     scene: ctx.scene,
     baseFog: getBerlinBaseFog(ctx.scene),
@@ -156,7 +161,11 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
       : null,
     isDisposed: false,
     abortController: new AbortController(),
+    removeAudioResumeListener: () => {
+      ctx.renderer.xr.removeEventListener("sessionstart", resumeAudioFromXr);
+    },
   };
+  ctx.renderer.xr.addEventListener("sessionstart", resumeAudioFromXr);
 
   if (ctx.previewMode) {
     state.onboarding.progress = 1;
@@ -202,9 +211,11 @@ export function tick(state: BerlinState, ctx: TickContext) {
   s.player.setXRPresenting(isXrPresenting);
   if (s.onboarding.isComplete) {
     s.player.tick(ctx.delta);
+    clampBerlinPlayerHeight(s);
   }
   if (s.debugEnabled && !s.renderer.xr.isPresenting) {
     applyBerlinDebugCamera(s);
+    clampBerlinPlayerHeight(s);
   }
   s.player.rig.updateMatrixWorld(true);
   s.camera.getWorldPosition(s.skybox.position);
@@ -246,8 +257,7 @@ function updateBerlinRadioAudio(
   isXrPresenting: boolean,
 ): void {
   const audioContext = state.listener.context;
-  if (!state.radioManager.isStarted && audioContext.state === "running") {
-    state.radioManager.start();
+  if (startBerlinRadioIfAudioRunning(state)) {
     return;
   }
 
@@ -269,14 +279,21 @@ function updateBerlinRadioAudio(
     });
   berlinAudioResumeByContext.set(audioContext, resume);
   void resume.then(() => {
-    if (
-      !state.isDisposed &&
-      !state.radioManager.isStarted &&
-      audioContext.state === "running"
-    ) {
-      state.radioManager.start();
-    }
+    startBerlinRadioIfAudioRunning(state);
   });
+}
+
+function startBerlinRadioIfAudioRunning(state: BerlinState): boolean {
+  if (
+    state.isDisposed ||
+    state.radioManager.isStarted ||
+    state.listener.context.state !== "running"
+  ) {
+    return false;
+  }
+
+  state.radioManager.start();
+  return true;
 }
 
 async function loadTilesWhenConfigured(state: BerlinState): Promise<void> {
@@ -382,6 +399,14 @@ function applyBerlinDebugCamera(state: BerlinState): void {
   state.camera.updateMatrixWorld(true);
 }
 
+function clampBerlinPlayerHeight(state: BerlinState): void {
+  state.player.rig.position.y = THREE.MathUtils.clamp(
+    state.player.rig.position.y,
+    BERLIN_PLAYER_HEIGHT_LIMITS.MIN,
+    BERLIN_PLAYER_HEIGHT_LIMITS.MAX,
+  );
+}
+
 function setBerlinWorldVisualsVisible(
   state: BerlinState,
   visible: boolean,
@@ -476,6 +501,7 @@ export function dispose(state: BerlinState, _scene: THREE.Scene): void {
   s.fpsCounter = null;
   s.onboarding.dispose();
   s.onboardingAudio.dispose();
+  s.removeAudioResumeListener();
   s.radioManager.dispose();
   s.camera.remove(s.listener);
 
