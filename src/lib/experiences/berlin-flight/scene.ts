@@ -195,11 +195,13 @@ export function tick(state: BerlinState, ctx: TickContext) {
   if (isXrPresenting) {
     s.onboarding.update(ctx.delta);
   }
+  const showVirtualWorld =
+    !isXrPresenting || (s.onboarding.isComplete && !s.onboarding.hasEnded);
   const virtualAlpha =
-    !isXrPresenting || s.onboarding.isComplete ? 1 : s.onboarding.progress;
+    !isXrPresenting ? 1 : s.onboarding.hasEnded ? 0 : s.onboarding.progress;
   s.renderer.setClearColor(BERLIN_AR_CLEAR_COLOR, virtualAlpha);
-  setBerlinWorldVisualsVisible(s, !isXrPresenting || s.onboarding.isComplete);
-  setBerlinSkyboxVisible(s, !isXrPresenting || s.onboarding.isComplete);
+  setBerlinWorldVisualsVisible(s, showVirtualWorld);
+  setBerlinSkyboxVisible(s, showVirtualWorld);
   updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
   s.radioManager.setMasterVolume(s.onboardingAudio.fullGain);
@@ -209,7 +211,7 @@ export function tick(state: BerlinState, ctx: TickContext) {
     s.player.rig.position.y,
   );
   s.player.setXRPresenting(isXrPresenting);
-  if (s.onboarding.isComplete) {
+  if (s.onboarding.isComplete && !s.onboarding.hasEnded) {
     s.player.tick(ctx.delta);
     clampBerlinPlayerHeight(s);
   }
@@ -442,9 +444,7 @@ function updateBerlinShutdownFog(state: BerlinState): void {
   if (!baseFog) return;
 
   const progress = state.onboarding.shutdownProgress;
-  const amount = state.onboarding.isShutdownEffectActive
-    ? Math.sin(progress * Math.PI)
-    : 0;
+  const amount = state.onboarding.isShutdownEffectActive ? progress : 0;
 
   const fog = getOrCreateBerlinFog(state);
   fog.near = THREE.MathUtils.lerp(
