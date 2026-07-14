@@ -22,6 +22,7 @@ import { createWerkschauOnboardingAudio } from "./onboarding/audio";
 import { createWerkschauOnboardingController } from "./onboarding/controller";
 import { disposeObjectTree } from "./runtime/cleanup";
 import { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
+import { WerkschauTextureRevealProjector } from "./runtime/texture-reveal-projector";
 import { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import {
   isWerkschauTilesSourceConfigured,
@@ -33,6 +34,7 @@ const scratchPosition = new THREE.Vector3();
 const WERKSCHAU_SKYBOX_COLOR = 0x87ceeb;
 const WERKSCHAU_AR_CLEAR_COLOR = 0x79b8d9;
 const WERKSCHAU_SKYBOX_RADIUS = WERKSCHAU_CAMERA_FAR * 0.85;
+const WERKSCHAU_SHUTDOWN_RENDER_DISTANCE = 0.11;
 const WERKSCHAU_TILE_SELECTION_YAWS = [
   0,
   Math.PI * 0.5,
@@ -54,6 +56,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const coneRuntime = new WerkschauConeGridRuntime();
   sceneRoot.add(coneRuntime.root);
   const collisionController = new WerkschauCollisionController();
+  const textureRevealProjector = new WerkschauTextureRevealProjector();
 
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
@@ -96,17 +99,18 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
 
   let state: WerkschauState;
   const onXrSessionStart = (): void => {
-    state.onboarding.reset(false);
     updateWerkschauRadioAudio(state, true);
   };
 
   state = {
     sceneRoot,
     scene: ctx.scene,
+    baseCameraFar: player.camera.far,
     tilesRuntime: null,
     tilesGroup,
     coneRuntime,
     collisionController,
+    textureRevealProjector,
     coneDiagnosticElement: null,
     collisionDiagnosticElement: null,
     fallbackPlane: null,
@@ -134,11 +138,13 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     },
   };
   ctx.renderer.xr.addEventListener("sessionstart", onXrSessionStart);
-  state.onboarding.reset(ctx.previewMode);
-  if (!ctx.previewMode) {
-    setWerkschauWorldVisualsVisible(state, false);
-    setWerkschauSkyboxVisible(state, false);
+  if (ctx.previewMode) {
+    state.onboarding.progress = 1;
+    state.onboarding.isActive = false;
+    state.onboarding.isComplete = true;
   }
+  setWerkschauWorldVisualsVisible(state, false);
+  setWerkschauSkyboxVisible(state, false);
   void loadTilesWhenConfigured(state);
 
   return state;
@@ -151,7 +157,7 @@ export function tick(
   if (state.isDisposed) return { state };
 
   const isXrPresenting = state.renderer.xr.isPresenting;
-  if (isXrPresenting || state.previewMode) {
+  if (isXrPresenting) {
     state.onboarding.update(ctx.delta);
   }
 
@@ -160,14 +166,16 @@ export function tick(
     (state.onboarding.isComplete && !state.onboarding.hasEnded);
   const virtualAlpha = !isXrPresenting
     ? 1
-    : state.onboarding.hasEnded
+    : state.onboarding.hasEnded || hasWerkschauShutdownStarted(state)
       ? 0
-      : state.onboarding.isComplete
-        ? state.onboarding.progress
-        : 0;
+      : state.onboarding.progress;
   state.renderer.setClearColor(WERKSCHAU_AR_CLEAR_COLOR, virtualAlpha);
   setWerkschauWorldVisualsVisible(state, showVirtualWorld);
-  setWerkschauSkyboxVisible(state, showVirtualWorld);
+  setWerkschauSkyboxVisible(
+    state,
+    showVirtualWorld && !hasWerkschauShutdownStarted(state),
+  );
+  updateWerkschauShutdownRenderDistance(state);
   state.onboardingAudio.update(state.onboarding.progress);
   state.radioManager.setMasterVolume(state.onboardingAudio.fullGain);
   updateWerkschauRadioAudio(state, isXrPresenting || state.previewMode);
@@ -176,16 +184,9 @@ export function tick(
     getAltitudeScaledSpeed(state.targetSpeed, state.player.rig.position.y) *
     getExhibitionBorderSpeedMultiplier(state.player.rig.position);
   state.player.setXRPresenting(isXrPresenting);
-  if (
-    !isXrPresenting ||
-    (state.onboarding.isComplete && !state.onboarding.hasEnded)
-  ) {
-    scratchPosition.copy(state.player.rig.position);
+  if (state.onboarding.isComplete && !state.onboarding.hasEnded) {
     state.player.tick(ctx.delta);
     clampPlayerToExhibitionBounds(state);
-    state.onboarding.markMoved(
-      scratchPosition.distanceToSquared(state.player.rig.position),
-    );
   }
   state.player.rig.updateMatrixWorld(true);
   updateExhibitionBorderGridVisibility(state);
@@ -196,6 +197,12 @@ export function tick(
     Scheduler.setXRSession(state.renderer.xr.getSession() as XRSession);
     syncTileSelectionCameras(state);
     state.tilesRuntime.update(state.tileSelectionCameras, state.renderer);
+    state.textureRevealProjector.update(
+      state.coneRuntime.getActiveCones(),
+      state.camera,
+      state.tilesRuntime,
+      state.renderer,
+    );
     if (WERKSCHAU_COLLISION.ENABLED) {
       state.collisionController.update(
         state.coneRuntime.getActiveCones(),
@@ -206,6 +213,7 @@ export function tick(
     }
     updateWerkschauCollisionDiagnostic(state);
   } else {
+    state.textureRevealProjector.update([], state.camera, null, state.renderer);
     removeWerkschauCollisionDiagnostic(state);
   }
 
@@ -225,6 +233,7 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   state.camera.remove(state.listener);
   state.tilesRuntime?.dispose();
   state.tilesRuntime = null;
+  state.textureRevealProjector.dispose();
   state.coneRuntime.dispose();
   removeWerkschauConeDiagnostic(state);
   removeWerkschauCollisionDiagnostic(state);
@@ -426,6 +435,29 @@ function setWerkschauSkyboxVisible(
   state.scene.background = visible
     ? new THREE.Color(WERKSCHAU_SKYBOX_COLOR)
     : null;
+}
+
+function updateWerkschauShutdownRenderDistance(state: WerkschauState): void {
+  const progress = hasWerkschauShutdownStarted(state)
+    ? state.onboarding.shutdownProgress
+    : 0;
+  const far = THREE.MathUtils.lerp(
+    state.baseCameraFar,
+    WERKSCHAU_SHUTDOWN_RENDER_DISTANCE,
+    progress,
+  );
+  if (state.camera.far === far) return;
+
+  state.camera.far = far;
+  state.camera.updateProjectionMatrix();
+}
+
+function hasWerkschauShutdownStarted(state: WerkschauState): boolean {
+  return (
+    state.onboarding.isShutdownEffectActive ||
+    state.onboarding.shutdownProgress > 0 ||
+    state.onboarding.hasEnded
+  );
 }
 
 function getAltitudeScaledSpeed(baseSpeed: number, altitude: number): number {

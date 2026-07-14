@@ -7,6 +7,7 @@ import type { TrackedTileMesh } from "../collision/tile-mesh-types";
 import { WERKSCHAU_TILE_RUNTIME } from "../constants";
 import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
 import { getECEFToLocalMatrix } from "../geo/coordinates";
+import { renderDepthScene } from "./texture-reveal-projector";
 import type { WerkschauTilesSource } from "./tiles-source";
 
 export interface TilesRuntimeDebugStats {
@@ -232,6 +233,22 @@ export class TilesRuntimeAdapter {
 
   public getTrackedTileMeshVersion(): number {
     return this.meshRegistry.getVersion();
+  }
+
+  public renderTextureRevealDepth(
+    webglRenderer: WebGLRenderer,
+    camera: Camera,
+    target: THREE.WebGLRenderTarget,
+  ): void {
+    if (this.disposed) return;
+
+    this.meshRegistry.syncDepthMeshes();
+    renderDepthScene(
+      webglRenderer,
+      this.meshRegistry.depthScene,
+      camera,
+      target,
+    );
   }
 
   public dispose(): void {

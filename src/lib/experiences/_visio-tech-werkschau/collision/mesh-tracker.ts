@@ -11,6 +11,8 @@ import { preprocessTrackedMesh } from "./mesh-preprocess";
 import { initializeConeMaskAttributeForMesh } from "./vertex-color-writer";
 
 export class WerkschauTileMeshRegistry {
+  public readonly depthScene = new THREE.Scene();
+
   private readonly trackedByScene = new Map<THREE.Object3D, readonly RegisteredTileMesh[]>();
   private readonly trackedMeshes = new Set<TrackedTileMesh>();
   private readonly frozenSourceTextures = new Set<THREE.Texture>();
@@ -27,6 +29,7 @@ export class WerkschauTileMeshRegistry {
     this.trackedByScene.set(root, registeredMeshes);
 
     for (const registeredMesh of registeredMeshes) {
+      this.depthScene.add(registeredMesh.depthMesh);
       if (registeredMesh.trackedMesh) {
         this.trackedMeshes.add(registeredMesh.trackedMesh);
       }
@@ -46,17 +49,14 @@ export class WerkschauTileMeshRegistry {
         this.trackedMeshes.delete(registeredMesh.trackedMesh);
         registeredMesh.trackedMesh.coneMaskAttribute = null;
       }
+      registeredMesh.depthMesh.removeFromParent();
+      disposeClonedMaterial(registeredMesh.depthMesh.material, disposedMaterials);
       freezeMaterialTextures(
         registeredMesh.originalMaterial,
         this.frozenSourceTextures,
       );
       disposeClonedMaterial(registeredMesh.werkschauMaterial, disposedMaterials);
-      if (registeredMesh.trackedMesh) {
-        disposeClonedMaterial(
-          registeredMesh.trackedMesh.collisionMaterial,
-          disposedMaterials,
-        );
-      }
+      disposeClonedMaterial(registeredMesh.collisionMaterial, disposedMaterials);
       disposeClonedMaterial(registeredMesh.originalMaterial, disposedMaterials);
     }
 
@@ -76,6 +76,17 @@ export class WerkschauTileMeshRegistry {
     return this.version;
   }
 
+  public syncDepthMeshes(): void {
+    for (const registeredMeshes of this.trackedByScene.values()) {
+      for (const registeredMesh of registeredMeshes) {
+        registeredMesh.depthMesh.matrix.copy(registeredMesh.sourceMesh.matrixWorld);
+        registeredMesh.depthMesh.matrixWorld.copy(
+          registeredMesh.sourceMesh.matrixWorld,
+        );
+      }
+    }
+  }
+
   public dispose(): void {
     for (const root of this.trackedByScene.keys()) {
       this.untrackTileScene(root);
@@ -88,7 +99,10 @@ export class WerkschauTileMeshRegistry {
 }
 
 interface RegisteredTileMesh {
+  collisionMaterial: THREE.Material | THREE.Material[];
+  depthMesh: THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
   originalMaterial: THREE.Material | THREE.Material[];
+  sourceMesh: WerkschauTileMesh;
   werkschauMaterial: THREE.Material | THREE.Material[];
   trackedMesh: TrackedTileMesh | null;
 }
@@ -172,6 +186,7 @@ function createRegisteredMesh(
 ): RegisteredTileMesh | null {
   const originalMaterial = mesh.material;
   freezeMaterialTextures(originalMaterial, frozenSourceTextures);
+  const depthMesh = createDepthMesh(mesh);
   const werkschauMaterial = createWerkschauNeutralTileMaterial(originalMaterial);
   const collisionMaterial = createWerkschauTileMaterial(originalMaterial);
   const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial, sourceUrl);
@@ -180,12 +195,14 @@ function createRegisteredMesh(
 
   if (!trackedMesh) {
     disposeClonedMaterial(collisionMaterial);
-    return { originalMaterial, werkschauMaterial, trackedMesh: null };
-  }
-
-  if (!shouldTrackMeshForConeMask(trackedMesh)) {
-    disposeClonedMaterial(collisionMaterial);
-    return { originalMaterial, werkschauMaterial, trackedMesh: null };
+    return {
+      collisionMaterial: werkschauMaterial,
+      depthMesh,
+      originalMaterial,
+      sourceMesh: mesh,
+      trackedMesh: null,
+      werkschauMaterial,
+    };
   }
 
   initializeConeMaskAttributeForMesh(trackedMesh);
@@ -194,19 +211,81 @@ function createRegisteredMesh(
     trackedMesh.collisionMaterial,
   );
   trackedMesh.neutralMaterial = werkschauMaterial;
+  trackedMesh.mesh.material = trackedMesh.collisionMaterial;
+  trackedMesh.hasConeMaskMaterial = true;
+
+  if (!shouldTrackMeshForConeMask(trackedMesh)) {
+    return {
+      collisionMaterial,
+      depthMesh,
+      originalMaterial,
+      sourceMesh: mesh,
+      trackedMesh: null,
+      werkschauMaterial,
+    };
+  }
+
   applyPrebakedConeIntersectionMaterial(trackedMesh);
-  return { originalMaterial, werkschauMaterial, trackedMesh };
+  return {
+    collisionMaterial,
+    depthMesh,
+    originalMaterial,
+    sourceMesh: mesh,
+    trackedMesh,
+    werkschauMaterial,
+  };
+}
+
+function createDepthMesh(
+  sourceMesh: WerkschauTileMesh,
+): THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]> {
+  const depthMesh = new THREE.Mesh(
+    sourceMesh.geometry,
+    createDepthMaterialSet(sourceMesh.material),
+  );
+  depthMesh.name = `${sourceMesh.name || "tile-mesh"}-texture-reveal-depth`;
+  depthMesh.matrixAutoUpdate = false;
+  depthMesh.matrix.copy(sourceMesh.matrixWorld);
+  depthMesh.matrixWorld.copy(sourceMesh.matrixWorld);
+  depthMesh.frustumCulled = false;
+  return depthMesh;
+}
+
+function createDepthMaterialSet(
+  sourceMaterial: THREE.Material | THREE.Material[],
+): THREE.Material | THREE.Material[] {
+  if (Array.isArray(sourceMaterial)) {
+    return sourceMaterial.map((material) => createDepthMaterial(material));
+  }
+
+  return createDepthMaterial(sourceMaterial);
+}
+
+function createDepthMaterial(sourceMaterial: THREE.Material): THREE.Material {
+  const source = sourceMaterial as MaterialWithTextureMaps & {
+    alphaTest?: number;
+    opacity?: number;
+    transparent?: boolean;
+  };
+  const material = new THREE.MeshDepthMaterial({
+    alphaMap: source.alphaMap ?? null,
+    alphaTest:
+      source.alphaTest && source.alphaTest > 0
+        ? source.alphaTest
+        : source.transparent
+          ? 0.5
+          : 0,
+    depthPacking: THREE.RGBADepthPacking,
+    map: source.map ?? null,
+    side: THREE.DoubleSide,
+  });
+  material.opacity = source.opacity ?? 1;
+  return material;
 }
 
 function applyPrebakedConeIntersectionMaterial(mesh: TrackedTileMesh): void {
   if (!mesh.hasPrebakedConeMask || mesh.prebakedConeIntersection === null) return;
 
-  if (mesh.prebakedConeIntersection) {
-    mesh.mesh.material = mesh.collisionMaterial;
-    mesh.hasConeMaskMaterial = true;
-    return;
-  }
-
-  mesh.mesh.material = mesh.neutralMaterial;
-  mesh.hasConeMaskMaterial = false;
+  mesh.mesh.material = mesh.collisionMaterial;
+  mesh.hasConeMaskMaterial = true;
 }

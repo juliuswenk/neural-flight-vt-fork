@@ -5,12 +5,14 @@ import type { WerkschauCollisionController } from "./collision/controller";
 import type { WerkschauOnboardingAudio } from "./onboarding/audio";
 import type { WerkschauOnboardingController } from "./onboarding/controller";
 import type { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
+import type { WerkschauTextureRevealProjector } from "./runtime/texture-reveal-projector";
 import type { TilesRuntimeAdapter } from "./runtime/tiles-runtime";
 import type * as THREE from "three";
 
 export interface WerkschauState extends ExperienceState {
   sceneRoot: THREE.Group;
   scene: THREE.Scene;
+  baseCameraFar: number;
   gridHelper: THREE.GridHelper;
   borderGrid: THREE.LineSegments;
   skybox: THREE.Mesh;
@@ -23,6 +25,7 @@ export interface WerkschauState extends ExperienceState {
   tilesGroup: THREE.Group;
   coneRuntime: WerkschauConeGridRuntime;
   collisionController: WerkschauCollisionController;
+  textureRevealProjector: WerkschauTextureRevealProjector;
   coneDiagnosticElement: HTMLDivElement | null;
   collisionDiagnosticElement: HTMLDivElement | null;
   fallbackPlane: THREE.Mesh | null;

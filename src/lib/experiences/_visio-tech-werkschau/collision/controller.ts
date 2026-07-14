@@ -140,10 +140,14 @@ export class WerkschauCollisionController {
         updateVertexMask(mesh, overlappingCones);
         writeConeMaskAttributeForMesh(mesh);
       }
+      syncWerkschauTileMaterialSourceMaps(
+        mesh.originalMaterial,
+        mesh.collisionMaterial,
+      );
       setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, []);
-      if (mesh.hasConeMaskMaterial) {
-        mesh.mesh.material = mesh.neutralMaterial;
-        mesh.hasConeMaskMaterial = false;
+      if (!mesh.hasConeMaskMaterial) {
+        mesh.mesh.material = mesh.collisionMaterial;
+        mesh.hasConeMaskMaterial = true;
       }
       return !mesh.hasPrebakedConeMask;
     }

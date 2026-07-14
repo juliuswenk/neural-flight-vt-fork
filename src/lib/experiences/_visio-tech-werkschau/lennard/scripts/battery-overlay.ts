@@ -6,7 +6,7 @@ import * as THREE from "three";
 
 export const BATTERY = {
   // ── Timing ──────────────────────────────────────────────────────
-  totalTimeMs: 180000, // Total experience time in ms (default 5 min=300000)
+  totalTimeMs: 50000, // Total experience time in ms (default 5 min=300000)
 
   // ── Colors ──────────────────────────────────────────────────────
   outlineColor: "#ff44aa", // Battery outline stroke color

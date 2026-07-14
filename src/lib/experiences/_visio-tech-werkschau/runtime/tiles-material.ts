@@ -1,7 +1,11 @@
 import * as THREE from "three";
 import { WERKSCHAU_COLLISION } from "../collision/config";
 import type { WerkschauConeVolume } from "../collision/types";
-import { WERKSCHAU_EXHIBITION_BOUNDS, WERKSCHAU_TILE_LOOK } from "../constants";
+import {
+  WERKSCHAU_EXHIBITION_BOUNDS,
+  WERKSCHAU_TEXTURE_REVEAL_PROJECTOR,
+  WERKSCHAU_TILE_LOOK,
+} from "../constants";
 
 type ShaderCompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
 
@@ -25,7 +29,37 @@ interface FragmentConeUniforms {
   tipRadius: { value: THREE.Vector4[] };
 }
 
+interface ProjectorRevealState {
+  count: number;
+  depthBias: number;
+  depthMaps: readonly THREE.Texture[];
+  projectionMatrices: readonly THREE.Matrix4[];
+}
+
+interface ProjectorRevealUniforms {
+  count: { value: number };
+  depthBias: { value: number };
+  depthMaps: { value: THREE.Texture[] };
+  projectionMatrices: { value: THREE.Matrix4[] };
+}
+
 const emptyVector4 = new THREE.Vector4();
+const emptyProjectorProjectionMatrix = new THREE.Matrix4();
+const defaultProjectorDepthTexture = new THREE.DataTexture(
+  new Uint8Array([255, 255, 255, 255]),
+  1,
+  1,
+  THREE.RGBAFormat,
+);
+defaultProjectorDepthTexture.needsUpdate = true;
+const defaultProjectorDepthTextures = Array.from(
+  { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
+  () => defaultProjectorDepthTexture,
+);
+const defaultProjectorProjectionMatrices = Array.from(
+  { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
+  () => new THREE.Matrix4(),
+);
 const shaderNeutralColor = new THREE.Color(WERKSCHAU_TILE_LOOK.NEUTRAL_COLOR);
 const shaderNeutralLightDirection = new THREE.Vector3(
   WERKSCHAU_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.x,
@@ -33,10 +67,44 @@ const shaderNeutralLightDirection = new THREE.Vector3(
   WERKSCHAU_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.z,
 ).normalize();
 const fragmentConeMaskShader = createFragmentConeMaskShader();
+const projectorRevealMaskShader = createProjectorRevealMaskShader();
+const projectorRevealUniforms: ProjectorRevealUniforms = {
+  count: { value: 0 },
+  depthBias: { value: 0.000_5 },
+  depthMaps: { value: [...defaultProjectorDepthTextures] },
+  projectionMatrices: { value: [...defaultProjectorProjectionMatrices] },
+};
 const fragmentConeUniformsByMaterial = new WeakMap<
   THREE.Material,
   FragmentConeUniforms
 >();
+
+export function setWerkschauTileMaterialProjectorReveal(
+  state: ProjectorRevealState,
+): void {
+  const count = Math.min(
+    WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS,
+    state.count,
+  );
+  projectorRevealUniforms.count.value = count;
+  projectorRevealUniforms.depthBias.value = state.depthBias;
+
+  for (
+    let index = 0;
+    index < WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS;
+    index += 1
+  ) {
+    projectorRevealUniforms.depthMaps.value[index] =
+      index < count
+        ? (state.depthMaps[index] ?? defaultProjectorDepthTexture)
+        : defaultProjectorDepthTexture;
+    projectorRevealUniforms.projectionMatrices.value[index].copy(
+      index < count
+        ? (state.projectionMatrices[index] ?? emptyProjectorProjectionMatrix)
+        : emptyProjectorProjectionMatrix,
+    );
+  }
+}
 
 export function createWerkschauNeutralTileMaterial(
   sourceMaterial: THREE.Material | THREE.Material[],
@@ -177,6 +245,14 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.uniforms.uWerkschauFragmentConeEdgeFeather = {
       value: WERKSCHAU_COLLISION.FRAGMENT_MASK_EDGE_FEATHER_METERS,
     };
+    shader.uniforms.uWerkschauProjectorRevealCount =
+      projectorRevealUniforms.count;
+    shader.uniforms.uWerkschauProjectorRevealDepthBias =
+      projectorRevealUniforms.depthBias;
+    shader.uniforms.uWerkschauProjectorRevealDepthMap =
+      projectorRevealUniforms.depthMaps;
+    shader.uniforms.uWerkschauProjectorRevealProjectionMatrix =
+      projectorRevealUniforms.projectionMatrices;
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -191,7 +267,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform float uWerkschauFragmentConeEdgeFeather;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}`,
+        `#include <common>\n#include <packing>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform float uWerkschauFragmentConeEdgeFeather;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform float uWerkschauProjectorRevealCount;\nuniform float uWerkschauProjectorRevealDepthBias;\nuniform sampler2D uWerkschauProjectorRevealDepthMap[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform mat4 uWerkschauProjectorRevealProjectionMatrix[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}\n${projectorRevealMaskShader}`,
       )
       .replace(
         "#include <normal_fragment_begin>",
@@ -199,11 +275,11 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       )
       .replace(
         "#include <map_fragment>",
-        "float werkschauConeMask = 0.0;\n#ifdef USE_MAP\nwerkschauConeMask = max(\n  step(0.5, vWerkschauConeMask),\n  werkschauFragmentConeMask(vWerkschauWorldPosition)\n);\n#endif\nfloat werkschauInsideBounds = step(uWerkschauExhibitionBounds.x, vWerkschauWorldPosition.x) * step(vWerkschauWorldPosition.x, uWerkschauExhibitionBounds.y) * step(uWerkschauExhibitionBounds.z, vWerkschauWorldPosition.z) * step(vWerkschauWorldPosition.z, uWerkschauExhibitionBounds.w);\nwerkschauConeMask *= werkschauInsideBounds;\nvec3 werkschauFlatColor = uWerkschauNeutralColor;\nvec3 werkschauWorldNormal = normalize(cross(dFdx(vWerkschauWorldPosition), dFdy(vWerkschauWorldPosition)));\nfloat werkschauDirectional = max(dot(werkschauWorldNormal, normalize(uWerkschauNeutralLightDirection)), 0.0);\nfloat werkschauHemisphere = werkschauWorldNormal.y * 0.5 + 0.5;\nfloat werkschauShade = clamp(\n  uWerkschauNeutralShadeAmbient +\n    werkschauHemisphere * uWerkschauNeutralShadeHemisphere +\n    werkschauDirectional * uWerkschauNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 werkschauShadedFlatColor = werkschauFlatColor * werkschauShade;\n#include <map_fragment>\ndiffuseColor.rgb = mix(werkschauShadedFlatColor, diffuseColor.rgb, werkschauConeMask);\ndiffuseColor.a = mix(uWerkschauOutsideOpacity, 1.0, werkschauConeMask);",
+        "float werkschauConeMask = 0.0;\n#ifdef USE_MAP\nwerkschauConeMask = werkschauProjectorRevealMask(vWerkschauWorldPosition);\nwerkschauConeMask = max(\n  werkschauConeMask,\n  max(step(0.5, vWerkschauConeMask), werkschauFragmentConeMask(vWerkschauWorldPosition))\n);\n#endif\nfloat werkschauInsideBounds = step(uWerkschauExhibitionBounds.x, vWerkschauWorldPosition.x) * step(vWerkschauWorldPosition.x, uWerkschauExhibitionBounds.y) * step(uWerkschauExhibitionBounds.z, vWerkschauWorldPosition.z) * step(vWerkschauWorldPosition.z, uWerkschauExhibitionBounds.w);\nwerkschauConeMask *= werkschauInsideBounds;\nvec3 werkschauFlatColor = uWerkschauNeutralColor;\nvec3 werkschauWorldNormal = normalize(cross(dFdx(vWerkschauWorldPosition), dFdy(vWerkschauWorldPosition)));\nfloat werkschauDirectional = max(dot(werkschauWorldNormal, normalize(uWerkschauNeutralLightDirection)), 0.0);\nfloat werkschauHemisphere = werkschauWorldNormal.y * 0.5 + 0.5;\nfloat werkschauShade = clamp(\n  uWerkschauNeutralShadeAmbient +\n    werkschauHemisphere * uWerkschauNeutralShadeHemisphere +\n    werkschauDirectional * uWerkschauNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 werkschauShadedFlatColor = werkschauFlatColor * werkschauShade;\n#include <map_fragment>\ndiffuseColor.rgb = mix(werkschauShadedFlatColor, diffuseColor.rgb, werkschauConeMask);\ndiffuseColor.a = mix(uWerkschauOutsideOpacity, 1.0, werkschauConeMask);",
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v7`;
+    `${previousProgramCacheKey?.() ?? material.type}:werkschau-projector-texture-reveal-v10`;
 
   return material;
 }
@@ -237,6 +313,35 @@ function createFragmentConeMaskShader(): string {
   ).join("\n");
 
   return `float werkschauFragmentConeMask(vec3 worldPosition) {
+  float result = 0.0;
+${body}
+  return result;
+}`;
+}
+
+function createProjectorRevealMaskShader(): string {
+  const body = Array.from(
+    { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
+    (_, index) => `  {
+    float projectorActive = step(${index.toFixed(1)} + 0.5, uWerkschauProjectorRevealCount);
+    vec4 projected = uWerkschauProjectorRevealProjectionMatrix[${index}] * vec4(worldPosition, 1.0);
+    if (projected.w > 0.0 && projectorActive > 0.0) {
+      vec3 revealUv = projected.xyz / projected.w;
+      float inside =
+        step(0.0, revealUv.x) *
+        step(revealUv.x, 1.0) *
+        step(0.0, revealUv.y) *
+        step(revealUv.y, 1.0) *
+        step(0.0, revealUv.z) *
+        step(revealUv.z, 1.0);
+      float nearestDepth = unpackRGBAToDepth(texture2D(uWerkschauProjectorRevealDepthMap[${index}], revealUv.xy));
+      float visible = step(revealUv.z, nearestDepth + uWerkschauProjectorRevealDepthBias);
+      result = max(result, projectorActive * inside * visible);
+    }
+  }`,
+  ).join("\n");
+
+  return `float werkschauProjectorRevealMask(vec3 worldPosition) {
   float result = 0.0;
 ${body}
   return result;
