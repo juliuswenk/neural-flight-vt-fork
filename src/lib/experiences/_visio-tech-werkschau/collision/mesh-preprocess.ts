@@ -61,7 +61,6 @@ export function preprocessTrackedMesh(
     neutralMaterial: originalMaterial,
     collisionMaterial,
     hasConeMaskMaterial: false,
-    hasSyncedConeActiveSourceMaps: false,
     localBounds: geometry.boundingBox?.clone() ?? new THREE.Box3(),
     localSphere: geometry.boundingSphere?.clone() ?? new THREE.Sphere(),
     cachedBoundsMatrix: mesh.matrixWorld.clone(),

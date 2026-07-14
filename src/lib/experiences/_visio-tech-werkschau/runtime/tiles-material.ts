@@ -174,6 +174,9 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       fragmentConeUniforms.tipRadius;
     shader.uniforms.uWerkschauFragmentConeAxisHeight =
       fragmentConeUniforms.axisHeight;
+    shader.uniforms.uWerkschauFragmentConeEdgeFeather = {
+      value: WERKSCHAU_COLLISION.FRAGMENT_MASK_EDGE_FEATHER_METERS,
+    };
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -188,7 +191,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}`,
+        `#include <common>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform float uWerkschauFragmentConeEdgeFeather;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}`,
       )
       .replace(
         "#include <normal_fragment_begin>",
@@ -200,7 +203,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v5`;
+    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v6`;
 
   return material;
 }
@@ -216,10 +219,19 @@ function createFragmentConeMaskShader(): string {
     float height = max(axisHeight.w, 0.0001);
     vec3 tipToPosition = worldPosition - tipRadius.xyz;
     float projectedDistance = dot(tipToPosition, axisHeight.xyz);
-    float insideHeight = step(0.0, projectedDistance) * step(projectedDistance, height);
+    float edgeFeather = max(uWerkschauFragmentConeEdgeFeather, 0.0001);
+    float insideHeight = smoothstep(0.0, edgeFeather, projectedDistance) *
+      (1.0 - smoothstep(height - edgeFeather, height, projectedDistance));
     vec3 radialVector = axisHeight.xyz * projectedDistance - tipToPosition;
     float allowedRadius = tipRadius.w * projectedDistance / height;
-    float insideRadius = step(dot(radialVector, radialVector), allowedRadius * allowedRadius);
+    float radialDistance = length(radialVector);
+    float radiusFeatherStart = max(allowedRadius - edgeFeather, 0.0);
+    float radiusFeatherEnd = max(allowedRadius, radiusFeatherStart + 0.0001);
+    float insideRadius = 1.0 - smoothstep(
+      radiusFeatherStart,
+      radiusFeatherEnd,
+      radialDistance
+    );
     result = max(result, coneActive * insideHeight * insideRadius);
   }`,
   ).join("\n");

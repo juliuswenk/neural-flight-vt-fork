@@ -153,14 +153,11 @@ export class WerkschauCollisionController {
       updateVertexMask(mesh, overlappingCones);
       writeConeMaskAttributeForMesh(mesh);
     }
+    syncWerkschauTileMaterialSourceMaps(
+      mesh.originalMaterial,
+      mesh.collisionMaterial,
+    );
     setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, fragmentCones);
-    if (!mesh.hasSyncedConeActiveSourceMaps) {
-      syncWerkschauTileMaterialSourceMaps(
-        mesh.originalMaterial,
-        mesh.collisionMaterial,
-      );
-      mesh.hasSyncedConeActiveSourceMaps = true;
-    }
     if (!mesh.hasConeMaskMaterial) {
       mesh.mesh.material = mesh.collisionMaterial;
       mesh.hasConeMaskMaterial = true;

@@ -3,7 +3,6 @@ import {
   createWerkschauNeutralTileMaterial,
   createWerkschauTileMaterial,
   disposeClonedMaterial,
-  disposeMaterial,
   syncWerkschauTileMaterialSourceMaps,
 } from "../runtime/tiles-material";
 import { shouldTrackMeshForConeMask } from "./mesh-filter";
@@ -14,12 +13,17 @@ import { initializeConeMaskAttributeForMesh } from "./vertex-color-writer";
 export class WerkschauTileMeshRegistry {
   private readonly trackedByScene = new Map<THREE.Object3D, readonly RegisteredTileMesh[]>();
   private readonly trackedMeshes = new Set<TrackedTileMesh>();
+  private readonly frozenSourceTextures = new Set<THREE.Texture>();
   private version = 0;
 
   public trackTileScene(root: THREE.Object3D, sourceUrl: string): void {
     if (this.trackedByScene.has(root)) return;
 
-    const registeredMeshes = collectRegisteredMeshes(root, sourceUrl);
+    const registeredMeshes = collectRegisteredMeshes(
+      root,
+      sourceUrl,
+      this.frozenSourceTextures,
+    );
     this.trackedByScene.set(root, registeredMeshes);
 
     for (const registeredMesh of registeredMeshes) {
@@ -42,6 +46,10 @@ export class WerkschauTileMeshRegistry {
         this.trackedMeshes.delete(registeredMesh.trackedMesh);
         registeredMesh.trackedMesh.coneMaskAttribute = null;
       }
+      freezeMaterialTextures(
+        registeredMesh.originalMaterial,
+        this.frozenSourceTextures,
+      );
       disposeClonedMaterial(registeredMesh.werkschauMaterial, disposedMaterials);
       if (registeredMesh.trackedMesh) {
         disposeClonedMaterial(
@@ -49,7 +57,7 @@ export class WerkschauTileMeshRegistry {
           disposedMaterials,
         );
       }
-      disposeMaterial(registeredMesh.originalMaterial, disposedMaterials);
+      disposeClonedMaterial(registeredMesh.originalMaterial, disposedMaterials);
     }
 
     this.trackedByScene.delete(root);
@@ -72,6 +80,10 @@ export class WerkschauTileMeshRegistry {
     for (const root of this.trackedByScene.keys()) {
       this.untrackTileScene(root);
     }
+    for (const texture of this.frozenSourceTextures) {
+      texture.dispose();
+    }
+    this.frozenSourceTextures.clear();
   }
 }
 
@@ -81,9 +93,58 @@ interface RegisteredTileMesh {
   trackedMesh: TrackedTileMesh | null;
 }
 
+type MaterialWithTextureMaps = THREE.Material & {
+  alphaMap?: THREE.Texture | null;
+  aoMap?: THREE.Texture | null;
+  bumpMap?: THREE.Texture | null;
+  displacementMap?: THREE.Texture | null;
+  emissiveMap?: THREE.Texture | null;
+  lightMap?: THREE.Texture | null;
+  map?: THREE.Texture | null;
+  metalnessMap?: THREE.Texture | null;
+  normalMap?: THREE.Texture | null;
+  roughnessMap?: THREE.Texture | null;
+  specularMap?: THREE.Texture | null;
+};
+
+const textureMapKeys = [
+  "alphaMap",
+  "aoMap",
+  "bumpMap",
+  "displacementMap",
+  "emissiveMap",
+  "lightMap",
+  "map",
+  "metalnessMap",
+  "normalMap",
+  "roughnessMap",
+  "specularMap",
+] as const satisfies readonly (keyof MaterialWithTextureMaps)[];
+
+function freezeMaterialTextures(
+  material: THREE.Material | THREE.Material[],
+  frozenTextures: Set<THREE.Texture>,
+): void {
+  if (Array.isArray(material)) {
+    for (const entry of material) {
+      freezeMaterialTextures(entry, frozenTextures);
+    }
+    return;
+  }
+
+  const materialWithMaps = material as MaterialWithTextureMaps;
+  for (const key of textureMapKeys) {
+    const texture = materialWithMaps[key];
+    if (texture instanceof THREE.Texture) {
+      frozenTextures.add(texture);
+    }
+  }
+}
+
 function collectRegisteredMeshes(
   root: THREE.Object3D,
   sourceUrl: string,
+  frozenSourceTextures: Set<THREE.Texture>,
 ): readonly RegisteredTileMesh[] {
   const registeredMeshes: RegisteredTileMesh[] = [];
 
@@ -91,7 +152,11 @@ function collectRegisteredMeshes(
     if (!(child instanceof THREE.Mesh)) return;
     if (!(child.geometry instanceof THREE.BufferGeometry)) return;
 
-    const registeredMesh = createRegisteredMesh(child as WerkschauTileMesh, sourceUrl);
+    const registeredMesh = createRegisteredMesh(
+      child as WerkschauTileMesh,
+      sourceUrl,
+      frozenSourceTextures,
+    );
     if (!registeredMesh) return;
 
     registeredMeshes.push(registeredMesh);
@@ -103,8 +168,10 @@ function collectRegisteredMeshes(
 function createRegisteredMesh(
   mesh: WerkschauTileMesh,
   sourceUrl: string,
+  frozenSourceTextures: Set<THREE.Texture>,
 ): RegisteredTileMesh | null {
   const originalMaterial = mesh.material;
+  freezeMaterialTextures(originalMaterial, frozenSourceTextures);
   const werkschauMaterial = createWerkschauNeutralTileMaterial(originalMaterial);
   const collisionMaterial = createWerkschauTileMaterial(originalMaterial);
   const trackedMesh = preprocessTrackedMesh(mesh, collisionMaterial, sourceUrl);

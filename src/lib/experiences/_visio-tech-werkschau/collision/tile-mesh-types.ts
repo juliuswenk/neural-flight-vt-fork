@@ -21,7 +21,6 @@ export interface TrackedTileMesh {
   neutralMaterial: THREE.Material | THREE.Material[];
   collisionMaterial: THREE.Material | THREE.Material[];
   hasConeMaskMaterial: boolean;
-  hasSyncedConeActiveSourceMaps: boolean;
   localBounds: THREE.Box3;
   localSphere: THREE.Sphere;
   cachedBoundsMatrix: THREE.Matrix4;
