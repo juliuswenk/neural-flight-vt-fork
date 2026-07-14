@@ -162,7 +162,9 @@ export function tick(
     ? 1
     : state.onboarding.hasEnded
       ? 0
-      : state.onboarding.progress;
+      : state.onboarding.isComplete
+        ? state.onboarding.progress
+        : 0;
   state.renderer.setClearColor(WERKSCHAU_AR_CLEAR_COLOR, virtualAlpha);
   setWerkschauWorldVisualsVisible(state, showVirtualWorld);
   setWerkschauSkyboxVisible(state, showVirtualWorld);

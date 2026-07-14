@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import {
   WERKSCHAU_INTRO_DURATION_SECONDS,
+  WERKSCHAU_INTRO_SONAR_DELAY_SECONDS,
+  WERKSCHAU_INTRO_TEXT_DELAY_SECONDS,
   WERKSCHAU_OUTRO_DURATION_SECONDS,
   WERKSCHAU_PUBLIC_FLIGHT_DURATION_MS,
 } from "../constants";
@@ -49,6 +51,8 @@ export function createWerkschauOnboardingController(
 
   sonar.attachToCamera(camera);
   battery.attachToCamera(camera);
+  sonar.setVisible(false);
+  introText.setVisible(false);
   outroText.setVisible(false);
 
   const controller: WerkschauOnboardingController = {
@@ -70,6 +74,15 @@ export function createWerkschauOnboardingController(
           introElapsed + delta,
         );
         this.progress = introElapsed / WERKSCHAU_INTRO_DURATION_SECONDS;
+        if (
+          introElapsed >= WERKSCHAU_INTRO_SONAR_DELAY_SECONDS &&
+          !sonar.sprite.visible
+        ) {
+          sonar.setVisible(true);
+        }
+        if (introElapsed >= WERKSCHAU_INTRO_TEXT_DELAY_SECONDS) {
+          introText.setVisible(true);
+        }
         if (introElapsed >= WERKSCHAU_INTRO_DURATION_SECONDS) {
           this.isActive = false;
           this.isComplete = true;
@@ -133,8 +146,8 @@ export function createWerkschauOnboardingController(
       this.hasEnded = false;
       this.shutdownProgress = 0;
       this.isShutdownEffectActive = false;
-      sonar.setVisible(!skipIntro);
-      introText.setVisible(!skipIntro);
+      sonar.setVisible(false);
+      introText.setVisible(false);
       outroText.setVisible(false);
       battery.reset();
       if (skipIntro) battery.start();

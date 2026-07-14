@@ -1,10 +1,15 @@
 import type { TrackedTileMesh } from "../collision/tile-mesh-types";
 import { BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
 import { geoToLocal } from "../geo/coordinates";
-import { parseBerlinHeatmapBounds } from "../heatmaps/camera-density";
-import heatmapBoundsJson from "../heatmaps/camera-density.berlin.json";
 import type { BerlinConeSourceMeshFile } from "./source-contracts";
 import { createBerlinConeSourceMeshRecord } from "./source-export";
+
+const BERLIN_FULL_CITY_GEO_BOUNDS = {
+  north: 52.675,
+  south: 52.338,
+  west: 13.088,
+  east: 13.761,
+} as const;
 
 export interface BerlinSweepCell {
   x: number;
@@ -34,7 +39,7 @@ export function createBerlinFullCitySweepPlan(
     throw new Error("[BerlinFlight] Sweep step must be a positive finite number.");
   }
 
-  const bounds = parseBerlinHeatmapBounds(heatmapBoundsJson);
+  const bounds = BERLIN_FULL_CITY_GEO_BOUNDS;
   const corners = [
     geoToLocal(BERLIN_MITTE_ORIGIN, {
       lat: bounds.north,

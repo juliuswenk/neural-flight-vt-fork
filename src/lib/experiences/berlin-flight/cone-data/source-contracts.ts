@@ -11,9 +11,13 @@ export interface BerlinConeSourceManifest {
     z: number;
   };
   radiusMeters?: number;
+  bounds?: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+  };
   outputDir?: string;
-  heatmapImagePath?: string;
-  heatmapBoundsPath?: string;
 }
 
 export interface BerlinConeSourceMeshRecord {

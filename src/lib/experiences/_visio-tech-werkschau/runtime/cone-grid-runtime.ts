@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createCameraFrustumGeometry } from "../../shared/camera-frustum-geometry";
 import type {
   WerkschauConeChunkSnapshot,
   WerkschauConeVolume,
@@ -32,7 +33,7 @@ export interface WerkschauConeRuntimeDebugStats {
 export class WerkschauConeGridRuntime {
   public readonly root = new THREE.Group();
 
-  private readonly coneGeometry: THREE.ConeGeometry;
+  private readonly coneGeometry: THREE.BufferGeometry;
   private readonly coneMaterial: THREE.MeshBasicMaterial;
   private readonly chunkStore: WerkschauConeChunkRuntimeStore;
   private readonly queuedObserverPosition = new THREE.Vector3();
@@ -50,13 +51,10 @@ export class WerkschauConeGridRuntime {
 
   constructor(assetLoader?: WerkschauConeDatasetAssetLoader) {
     this.root.name = "VisioTechWerkschauConeGridRoot";
-    this.coneGeometry = new THREE.ConeGeometry(
-      WERKSCHAU_CONE_RUNTIME_GRID.CONE_RADIUS,
-      WERKSCHAU_CONE_RUNTIME_GRID.CONE_HEIGHT,
-      16,
-      1,
-      true,
-    );
+    this.coneGeometry = createCameraFrustumGeometry({
+      halfLongSide: WERKSCHAU_CONE_RUNTIME_GRID.CONE_RADIUS,
+      height: WERKSCHAU_CONE_RUNTIME_GRID.CONE_HEIGHT,
+    });
     this.coneMaterial = new THREE.MeshBasicMaterial({
       color: WERKSCHAU_CONE_RUNTIME_GRID.COLOR,
       transparent: true,

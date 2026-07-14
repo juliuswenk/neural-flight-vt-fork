@@ -22,7 +22,7 @@ test("extractBerlinRoofCornerCandidates keeps roof hull corners and ignores inte
   );
 
   const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
-  mesh.position.set(10, 5, -3);
+  mesh.position.set(10, 5, 3);
   mesh.updateMatrixWorld(true);
 
   const source = {
@@ -39,7 +39,7 @@ test("extractBerlinRoofCornerCandidates keeps roof hull corners and ignores inte
 
   const candidates = extractBerlinRoofCornerCandidates(source);
 
-  expect(candidates).toHaveLength(2);
+  expect(candidates).toHaveLength(4);
   expect(candidates.map((candidate) => candidate.cornerIndex)).not.toContain(6);
   expect(candidates.every((candidate) => candidate.elevation >= 125)).toBe(true);
   expect(

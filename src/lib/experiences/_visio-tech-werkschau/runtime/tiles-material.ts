@@ -203,7 +203,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v6`;
+    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v7`;
 
   return material;
 }

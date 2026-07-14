@@ -114,8 +114,15 @@ export class TilesRuntimeAdapter {
     renderer.processNodeQueue.maxJobs =
       WERKSCHAU_TILE_RUNTIME.PROCESS_NODE_JOBS;
     renderer.maxTilesProcessed = WERKSCHAU_TILE_RUNTIME.MAX_TILES_PROCESSED;
-    renderer.lruCache.minBytesSize = WERKSCHAU_TILE_RUNTIME.CACHE_MIN_BYTES;
-    renderer.lruCache.maxBytesSize = WERKSCHAU_TILE_RUNTIME.CACHE_MAX_BYTES;
+    if (WERKSCHAU_TILE_RUNTIME.FREEZE_LOADED_TILES) {
+      renderer.lruCache.minSize = Number.POSITIVE_INFINITY;
+      renderer.lruCache.maxSize = Number.POSITIVE_INFINITY;
+      renderer.lruCache.minBytesSize = Number.POSITIVE_INFINITY;
+      renderer.lruCache.maxBytesSize = Number.POSITIVE_INFINITY;
+    } else {
+      renderer.lruCache.minBytesSize = WERKSCHAU_TILE_RUNTIME.CACHE_MIN_BYTES;
+      renderer.lruCache.maxBytesSize = WERKSCHAU_TILE_RUNTIME.CACHE_MAX_BYTES;
+    }
     renderer.addEventListener("load-model", this.handleLoadModel);
     renderer.addEventListener("dispose-model", this.handleDisposeModel);
   }

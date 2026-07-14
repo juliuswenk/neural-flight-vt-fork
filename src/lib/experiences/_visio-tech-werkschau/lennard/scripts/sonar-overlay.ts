@@ -137,6 +137,11 @@ export class SonarOverlay {
   /** Instantly hide/show the sonar (useful for reset). */
   setVisible(visible: boolean): void {
     this.sprite.visible = visible;
+    if (!visible) return;
+    this.fadeOutStart = -1;
+    this.fadeOutComplete = false;
+    this.sprite.scale.set(SONAR.spriteScale, SONAR.spriteScale, 1);
+    this.baseScale = SONAR.spriteScale;
   }
 
   attachToCamera(camera: THREE.Camera): void {

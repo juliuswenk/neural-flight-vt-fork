@@ -35,18 +35,12 @@ test("buildBerlinConeDataset creates chunked cone output from offline meshes", (
 
   const result = buildBerlinConeDataset({
     trackedMeshes,
-    densitySampler: {
-      sampleDensity() {
-        return 1;
-      },
-    },
   });
 
   expect(result.manifest.chunkCount).toBeGreaterThan(0);
   expect(result.stats.scannedBuildings).toBe(3);
   expect(result.stats.rawCandidates).toBeGreaterThan(0);
   expect(result.stats.stagedCandidates).toBeGreaterThan(0);
-  expect(result.stats.rejectedByDensity).toBeGreaterThanOrEqual(0);
   expect(result.stats.rejectedBySpacing).toBeGreaterThanOrEqual(0);
   expect(result.stats.generatedCones).toBeGreaterThan(0);
 
@@ -65,11 +59,6 @@ test("buildBerlinConeDataset can filter buildings by radius around a center", ()
 
   const result = buildBerlinConeDataset({
     trackedMeshes,
-    densitySampler: {
-      sampleDensity() {
-        return 1;
-      },
-    },
     radiusFilter: {
       center: { x: 0, z: 0 },
       radiusMeters: 1000,
@@ -82,6 +71,28 @@ test("buildBerlinConeDataset can filter buildings by radius around a center", ()
   expect(result.stats.generatedCones).toBeGreaterThan(0);
 });
 
+test("buildBerlinConeDataset can filter buildings by square bounds", () => {
+  const trackedMeshes = [
+    createBoxTrackedMesh("inside", new THREE.Vector3(0, 120, 0)),
+    createBoxTrackedMesh("overlap", new THREE.Vector3(1020, 120, 0)),
+    createBoxTrackedMesh("outside", new THREE.Vector3(1200, 120, 0)),
+  ];
+
+  const result = buildBerlinConeDataset({
+    trackedMeshes,
+    boundsFilter: {
+      minX: -1000,
+      maxX: 1000,
+      minZ: -1000,
+      maxZ: 1000,
+    },
+  });
+
+  expect(result.stats.sourceMeshes).toBe(2);
+  expect(result.stats.scannedBuildings).toBe(2);
+  expect(result.stats.generatedCones).toBeGreaterThan(0);
+});
+
 test("buildBerlinConeDataset chunk data round-trips through the runtime loader", () => {
   const trackedMeshes = [
     createBoxTrackedMesh("mesh-a", new THREE.Vector3(0, 120, 0)),
@@ -90,11 +101,6 @@ test("buildBerlinConeDataset chunk data round-trips through the runtime loader",
 
   const result = buildBerlinConeDataset({
     trackedMeshes,
-    densitySampler: {
-      sampleDensity() {
-        return 1;
-      },
-    },
   });
 
   const firstChunk = Array.from(result.chunks.values())[0];

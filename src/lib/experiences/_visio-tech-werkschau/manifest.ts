@@ -40,8 +40,8 @@ export const manifest: ExperienceManifest = {
   camera: { fov: 75, near: 0.1, far: WERKSCHAU_CAMERA_FAR },
   scene: {
     background: "#87ceeb",
-    fogNear: 450,
-    fogFar: 1450,
+    fogNear: WERKSCHAU_CAMERA_FAR * 0.65,
+    fogFar: WERKSCHAU_CAMERA_FAR * 0.95,
     fogColor: "#87ceeb",
     ambientIntensity: 0.5,
     sunIntensity: 1,

@@ -5,10 +5,7 @@ import { createBerlinConeVolume } from "../cone-placement/cone-volume";
 import { sampleBerlinMeshNeighborhood } from "../cone-placement/mesh-neighborhood";
 import { solveBerlinConeAxisDirection } from "../cone-placement/orientation-solver";
 import { extractBerlinRoofCornerCandidates } from "../placement/corner-extractor";
-import {
-  filterBerlinRoofCornerCandidates,
-  type BerlinDensitySampler,
-} from "../placement/corner-filter";
+import { filterBerlinRoofCornerCandidates } from "../placement/corner-filter";
 import type { BerlinPlacementBuildingSource } from "../placement/types";
 import type {
   BerlinConeChunkData,
@@ -36,7 +33,6 @@ export interface BerlinConeDatasetBuildStats {
   scannedBuildings: number;
   rawCandidates: number;
   stagedCandidates: number;
-  rejectedByDensity: number;
   rejectedBySpacing: number;
   acceptedPoints: number;
   generatedCones: number;
@@ -52,7 +48,6 @@ export interface BerlinConeDatasetBuildResult {
 
 export function buildBerlinConeDataset(input: {
   trackedMeshes: readonly TrackedTileMesh[];
-  densitySampler: BerlinDensitySampler | null;
   radiusFilter?: {
     center: {
       x: number;
@@ -60,19 +55,23 @@ export function buildBerlinConeDataset(input: {
     };
     radiusMeters: number;
   };
+  boundsFilter?: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+  };
 }): BerlinConeDatasetBuildResult {
-  const filteredMeshes = filterTrackedMeshesByRadius(
+  const filteredMeshes = filterTrackedMeshes(
     input.trackedMeshes,
     input.radiusFilter,
+    input.boundsFilter,
   );
   const buildingSources = filteredMeshes.map(createOfflineBuildingSource);
   const candidates = buildingSources.flatMap((source) =>
     extractBerlinRoofCornerCandidates(source),
   );
-  const filterResult = filterBerlinRoofCornerCandidates(
-    candidates,
-    input.densitySampler,
-  );
+  const filterResult = filterBerlinRoofCornerCandidates(candidates);
   const chunkBuffers = new Map<BerlinConeChunkKey, MutableChunkBuffers>();
   let generatedCones = 0;
   let skippedMissingNeighborhood = 0;
@@ -134,7 +133,6 @@ export function buildBerlinConeDataset(input: {
       scannedBuildings: buildingSources.length,
       rawCandidates: candidates.length,
       stagedCandidates: filterResult.stagedCandidates,
-      rejectedByDensity: candidates.length - filterResult.stagedCandidates,
       rejectedBySpacing: filterResult.rejectedBySpacing,
       acceptedPoints: filterResult.acceptedPoints.length,
       generatedCones,
@@ -176,7 +174,7 @@ export function createTrackedMeshFromOfflineGeometry(input: {
   return trackedMesh;
 }
 
-function filterTrackedMeshesByRadius(
+function filterTrackedMeshes(
   trackedMeshes: readonly TrackedTileMesh[],
   radiusFilter:
     | {
@@ -187,17 +185,42 @@ function filterTrackedMeshesByRadius(
         radiusMeters: number;
       }
     | undefined,
+  boundsFilter:
+    | {
+        minX: number;
+        maxX: number;
+        minZ: number;
+        maxZ: number;
+      }
+    | undefined,
 ): readonly TrackedTileMesh[] {
-  if (!radiusFilter) {
+  if (!radiusFilter && !boundsFilter) {
     return trackedMeshes;
   }
 
-  const radiusSq = radiusFilter.radiusMeters * radiusFilter.radiusMeters;
+  const radiusSq =
+    radiusFilter !== undefined
+      ? radiusFilter.radiusMeters * radiusFilter.radiusMeters
+      : 0;
 
   return trackedMeshes.filter((trackedMesh) => {
-    const deltaX = trackedMesh.worldSphere.center.x - radiusFilter.center.x;
-    const deltaZ = trackedMesh.worldSphere.center.z - radiusFilter.center.z;
-    return deltaX * deltaX + deltaZ * deltaZ <= radiusSq;
+    if (radiusFilter) {
+      const deltaX = trackedMesh.worldSphere.center.x - radiusFilter.center.x;
+      const deltaZ = trackedMesh.worldSphere.center.z - radiusFilter.center.z;
+      if (deltaX * deltaX + deltaZ * deltaZ > radiusSq) return false;
+    }
+
+    if (boundsFilter) {
+      const sphere = trackedMesh.worldSphere;
+      return (
+        sphere.center.x + sphere.radius >= boundsFilter.minX &&
+        sphere.center.x - sphere.radius <= boundsFilter.maxX &&
+        sphere.center.z + sphere.radius >= boundsFilter.minZ &&
+        sphere.center.z - sphere.radius <= boundsFilter.maxZ
+      );
+    }
+
+    return true;
   });
 }
 
