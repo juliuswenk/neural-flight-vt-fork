@@ -163,6 +163,27 @@ export function tick(
 
   const isXrPresenting = state.renderer.xr.isPresenting;
   if (isXrPresenting) {
+    if (state.onboarding.isActive) {
+      const session = state.renderer.xr.getSession();
+      if (session) {
+        let skipPressed = false;
+        for (const source of session.inputSources) {
+          const gamepad = source.gamepad;
+          if (gamepad) {
+            for (const button of gamepad.buttons) {
+              if (button.pressed) {
+                skipPressed = true;
+                break;
+              }
+            }
+          }
+          if (skipPressed) break;
+        }
+        if (skipPressed) {
+          state.onboarding.skip();
+        }
+      }
+    }
     state.onboarding.update(ctx.delta);
   }
 

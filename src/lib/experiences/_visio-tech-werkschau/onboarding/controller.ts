@@ -10,6 +10,7 @@ const WERKSCHAU_ONBOARDING_DURATION_MS =
   SEQ.stages
     .slice(0, WERKSCHAU_FULL_EXPERIENCE_STAGE_INDEX)
     .reduce((total, stage) => total + stage.durationSeconds, 0) * 1000;
+const WERKSCHAU_SHUTDOWN_DELAY_SECONDS = 3;
 
 export interface WerkschauOnboardingController {
   readonly durationMs: number;
@@ -20,6 +21,7 @@ export interface WerkschauOnboardingController {
   shutdownProgress: number;
   isShutdownEffectActive: boolean;
   update(deltaSeconds: number): void;
+  skip(): void;
   dispose(): void;
 }
 
@@ -37,6 +39,7 @@ export function createWerkschauOnboardingController(
       controller.isComplete = true;
     }
     if (event === "stageStart" && shouldStartShutdownEffect(stage)) {
+      shutdownDelayRemaining = WERKSCHAU_SHUTDOWN_DELAY_SECONDS;
       shutdownElapsedSeconds = 0;
       shutdownDurationSeconds = stage.duration;
       controller.shutdownProgress = 0;
@@ -45,6 +48,7 @@ export function createWerkschauOnboardingController(
   });
   let shutdownElapsedSeconds = 0;
   let shutdownDurationSeconds = 1;
+  let shutdownDelayRemaining = 0;
 
   const controller: WerkschauOnboardingController = {
     durationMs: WERKSCHAU_ONBOARDING_DURATION_MS,
@@ -62,13 +66,25 @@ export function createWerkschauOnboardingController(
       }
       sequence.update(safeDelta);
       if (this.isShutdownEffectActive) {
-        shutdownElapsedSeconds = Math.min(
-          shutdownDurationSeconds,
-          shutdownElapsedSeconds + safeDelta,
-        );
-        this.shutdownProgress = shutdownElapsedSeconds / shutdownDurationSeconds;
-        this.isShutdownEffectActive = this.shutdownProgress < 1;
+        if (shutdownDelayRemaining > 0) {
+          shutdownDelayRemaining = Math.max(
+            0,
+            shutdownDelayRemaining - safeDelta,
+          );
+        } else {
+          shutdownElapsedSeconds = Math.min(
+            shutdownDurationSeconds,
+            shutdownElapsedSeconds + safeDelta,
+          );
+          this.shutdownProgress =
+            shutdownElapsedSeconds / shutdownDurationSeconds;
+          this.isShutdownEffectActive = this.shutdownProgress < 1;
+        }
       }
+    },
+    skip(): void {
+      if (this.isComplete || this.hasEnded) return;
+      sequence.advanceTo(WERKSCHAU_FULL_EXPERIENCE_STAGE_INDEX);
     },
     dispose(): void {
       sequence.stop();

@@ -195,6 +195,27 @@ export function tick(state: BerlinState, ctx: TickContext) {
 
   const isXrPresenting = s.renderer.xr.isPresenting;
   if (isXrPresenting) {
+    if (s.onboarding.isActive) {
+      const session = s.renderer.xr.getSession();
+      if (session) {
+        let skipPressed = false;
+        for (const source of session.inputSources) {
+          const gamepad = source.gamepad;
+          if (gamepad) {
+            for (const button of gamepad.buttons) {
+              if (button.pressed) {
+                skipPressed = true;
+                break;
+              }
+            }
+          }
+          if (skipPressed) break;
+        }
+        if (skipPressed) {
+          s.onboarding.skip();
+        }
+      }
+    }
     s.onboarding.update(ctx.delta);
   }
   const showVirtualWorld =

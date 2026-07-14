@@ -64,7 +64,7 @@ export const SEQ = {
     {
       factory: "battery" as const,
       message: "",
-      durationSeconds: 50,
+      durationSeconds: 134,
     },
     {
       factory: "blink" as const,
@@ -416,7 +416,7 @@ export class SequenceController {
     }
   }
 
-  private advanceTo(stageIndex: number): void {
+  advanceTo(stageIndex: number): void {
     const stage = SEQ.stages[stageIndex];
     const prev = CYBER.message;
     CYBER.message = stage.message;
