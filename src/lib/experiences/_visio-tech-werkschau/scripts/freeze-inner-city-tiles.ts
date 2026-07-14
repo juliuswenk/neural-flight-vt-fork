@@ -15,7 +15,12 @@ const WERKSCHAU_FROZEN_INNER_CITY_BOUNDS = {
     y: 100,
     z: 0,
   },
-  radiusMeters: 4000,
+  sideLengthMeters: 4000,
+  halfSideMeters: 2000,
+  minX: -2000,
+  maxX: 2000,
+  minZ: -2000,
+  maxZ: 2000,
 } as const;
 const ecefToLocalMatrix = getECEFToLocalMatrix(WERKSCHAU_BERLIN_MITTE_ORIGIN);
 
@@ -32,8 +37,14 @@ interface FreezeManifest {
   cesiumIonAssetId: number | null;
   resolvedTilesetUrl: string;
   extractionDate: string;
-  radiusMeters: number;
+  sideLengthMeters: number;
   centerLocalPosition: typeof WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center;
+  squareBounds: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+  };
   smoke: boolean;
   filesSaved: string[];
   bytesSaved: number;
@@ -468,8 +479,14 @@ async function writeManifest(
       : null,
     resolvedTilesetUrl: redactUrl(sourceUrl),
     extractionDate: new Date().toISOString(),
-    radiusMeters: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.radiusMeters,
+    sideLengthMeters: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.sideLengthMeters,
     centerLocalPosition: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center,
+    squareBounds: {
+      minX: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX,
+      maxX: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX,
+      minZ: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ,
+      maxZ: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ,
+    },
     smoke,
     filesSaved: [...context.savedFiles].sort(),
     bytesSaved: context.bytesSaved,
@@ -491,7 +508,7 @@ function intersectsFrozenBounds(boundingVolume: JsonObject | null): boolean {
     const center = new THREE.Vector3(sphere[0], sphere[1], sphere[2]).applyMatrix4(
       ecefToLocalMatrix,
     );
-    return isInsideRadius(center.x, center.z, sphere[3]);
+    return isInsideSquare(center.x, center.z, sphere[3]);
   }
 
   const box = getNumberArray(boundingVolume.box, 12);
@@ -522,7 +539,7 @@ function boxIntersectsFrozenBounds(box: readonly number[]): boolean {
     xzExtent += Math.hypot(endpoint.x - center.x, endpoint.z - center.z);
   }
 
-  return isInsideRadius(center.x, center.z, xzExtent);
+  return isInsideSquare(center.x, center.z, xzExtent);
 }
 
 function regionIntersectsFrozenBounds(region: readonly number[]): boolean {
@@ -556,18 +573,15 @@ function regionIntersectsFrozenBounds(region: readonly number[]): boolean {
   const maxX = Math.max(...corners.map((corner) => corner.x));
   const minZ = Math.min(...corners.map((corner) => corner.z));
   const maxZ = Math.max(...corners.map((corner) => corner.z));
-  const center = WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center;
-  const closestX = THREE.MathUtils.clamp(center.x, minX, maxX);
-  const closestZ = THREE.MathUtils.clamp(center.z, minZ, maxZ);
 
-  return isInsideRadius(closestX, closestZ, 0);
+  return squareIntersectsSquare(minX, maxX, minZ, maxZ, 0);
 }
 
 function intersectsRenderContentBounds(boundingVolume: JsonObject | null): boolean {
   const center = getBoundingVolumeCenter(boundingVolume);
   if (!center) return true;
 
-  return isInsideRadius(
+  return isInsideSquare(
     center.x,
     center.z,
     RENDER_CONTENT_MARGIN_METERS,
@@ -613,14 +627,28 @@ function getBoundingVolumeCenter(
   return null;
 }
 
-function isInsideRadius(x: number, z: number, extraRadius: number): boolean {
-  const center = WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center;
-  const radius =
-    WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.radiusMeters + extraRadius;
-  const dx = x - center.x;
-  const dz = z - center.z;
+function isInsideSquare(x: number, z: number, extraRadius: number): boolean {
+  return (
+    x >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX - extraRadius &&
+    x <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX + extraRadius &&
+    z >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ - extraRadius &&
+    z <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ + extraRadius
+  );
+}
 
-  return dx * dx + dz * dz <= radius * radius;
+function squareIntersectsSquare(
+  minX: number,
+  maxX: number,
+  minZ: number,
+  maxZ: number,
+  extraRadius: number,
+): boolean {
+  return (
+    maxX >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX - extraRadius &&
+    minX <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX + extraRadius &&
+    maxZ >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ - extraRadius &&
+    minZ <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ + extraRadius
+  );
 }
 
 function getContentRefs(tile: JsonObject): ContentRef[] {

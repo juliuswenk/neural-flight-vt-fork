@@ -9,15 +9,15 @@ import { WERKSCHAU_COLLISION } from "./collision/config";
 import { WerkschauCollisionController } from "./collision/controller";
 import {
   WERKSCHAU_ALTITUDE_SPEED,
-  WERKSCHAU_BERLIN_GEO_BOUNDS,
   WERKSCHAU_CAMERA_FAR,
+  WERKSCHAU_EXHIBITION_BORDER_DAMPING,
+  WERKSCHAU_EXHIBITION_BORDER_GRID,
+  WERKSCHAU_EXHIBITION_BOUNDS,
   WERKSCHAU_FLIGHT_BASE_SPEED,
   WERKSCHAU_PLAYER_HEIGHT_LIMITS,
   WERKSCHAU_PLAYER_SPAWN_POSITION,
   WERKSCHAU_TILE_SELECTION_FOV,
 } from "./constants";
-import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "./geo/berlin-mitte-origin";
-import { geoToLocal } from "./geo/coordinates";
 import { createWerkschauOnboardingAudio } from "./onboarding/audio";
 import { createWerkschauOnboardingController } from "./onboarding/controller";
 import { disposeObjectTree } from "./runtime/cleanup";
@@ -40,7 +40,6 @@ const WERKSCHAU_TILE_SELECTION_YAWS = [
   -Math.PI * 0.5,
 ] as const;
 const WERKSCHAU_TILE_SELECTION_DOWN_PITCH = -Math.PI * 0.5;
-const WERKSCHAU_BERLIN_LOCAL_BOUNDS = getBerlinLocalBounds();
 const werkschauAudioResumeByContext = new WeakMap<AudioContext, Promise<void>>();
 
 export async function setup(ctx: SetupContext): Promise<WerkschauState> {
@@ -74,6 +73,9 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const gridHelper = new THREE.GridHelper(2000, 100);
   gridHelper.position.y = 0;
   sceneRoot.add(gridHelper);
+
+  const borderGrid = createExhibitionBorderGrid();
+  sceneRoot.add(borderGrid);
 
   const skybox = createSky({
     radius: WERKSCHAU_SKYBOX_RADIUS,
@@ -109,6 +111,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     collisionDiagnosticElement: null,
     fallbackPlane: null,
     gridHelper,
+    borderGrid,
     skybox,
     skyboxVisible: true,
     fillLights,
@@ -167,10 +170,9 @@ export function tick(
   state.radioManager.setMasterVolume(state.onboardingAudio.fullGain);
   updateWerkschauRadioAudio(state, isXrPresenting || state.previewMode);
 
-  state.player.baseSpeed = getAltitudeScaledSpeed(
-    state.targetSpeed,
-    state.player.rig.position.y,
-  );
+  state.player.baseSpeed =
+    getAltitudeScaledSpeed(state.targetSpeed, state.player.rig.position.y) *
+    getExhibitionBorderSpeedMultiplier(state.player.rig.position);
   state.player.setXRPresenting(isXrPresenting);
   if (
     !isXrPresenting ||
@@ -178,12 +180,13 @@ export function tick(
   ) {
     scratchPosition.copy(state.player.rig.position);
     state.player.tick(ctx.delta);
-    clampPlayerToBerlinBounds(state);
+    clampPlayerToExhibitionBounds(state);
     state.onboarding.markMoved(
       scratchPosition.distanceToSquared(state.player.rig.position),
     );
   }
   state.player.rig.updateMatrixWorld(true);
+  updateExhibitionBorderGridVisibility(state);
   state.coneRuntime.update(state.player.rig.position);
   updateWerkschauConeDiagnostic(state);
   state.camera.getWorldPosition(state.skybox.position);
@@ -283,12 +286,104 @@ function createFillLights(): {
   return { directional, hemisphere };
 }
 
-function clampPlayerToBerlinBounds(state: WerkschauState): void {
+function createExhibitionBorderGrid(): THREE.LineSegments {
+  const bounds = WERKSCHAU_EXHIBITION_BOUNDS;
+  const height = WERKSCHAU_EXHIBITION_BORDER_GRID.HEIGHT;
+  const step = WERKSCHAU_EXHIBITION_BORDER_GRID.STEP;
+  const positions: number[] = [];
+
+  for (let offset = 0; offset <= bounds.sideLengthMeters; offset += step) {
+    const x = bounds.minX + offset;
+    const z = bounds.minZ + offset;
+    addLine(positions, bounds.minX, 0, z, bounds.minX, height, z);
+    addLine(positions, bounds.maxX, 0, z, bounds.maxX, height, z);
+    addLine(positions, x, 0, bounds.minZ, x, height, bounds.minZ);
+    addLine(positions, x, 0, bounds.maxZ, x, height, bounds.maxZ);
+  }
+
+  for (let y = 0; y <= height; y += step) {
+    addLine(positions, bounds.minX, y, bounds.minZ, bounds.minX, y, bounds.maxZ);
+    addLine(positions, bounds.maxX, y, bounds.minZ, bounds.maxX, y, bounds.maxZ);
+    addLine(positions, bounds.minX, y, bounds.minZ, bounds.maxX, y, bounds.minZ);
+    addLine(positions, bounds.minX, y, bounds.maxZ, bounds.maxX, y, bounds.maxZ);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  const material = new THREE.LineBasicMaterial({
+    color: WERKSCHAU_EXHIBITION_BORDER_GRID.COLOR,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  });
+  const grid = new THREE.LineSegments(geometry, material);
+  grid.name = "VisioTechWerkschauExhibitionBorderGrid";
+  grid.visible = false;
+  return grid;
+}
+
+function addLine(
+  positions: number[],
+  x1: number,
+  y1: number,
+  z1: number,
+  x2: number,
+  y2: number,
+  z2: number,
+): void {
+  positions.push(x1, y1, z1, x2, y2, z2);
+}
+
+function updateExhibitionBorderGridVisibility(state: WerkschauState): void {
+  const distance = getDistanceToExhibitionBorder(state.player.rig.position);
+  const alpha = THREE.MathUtils.clamp(
+    1 - distance / WERKSCHAU_EXHIBITION_BORDER_GRID.VISIBLE_DISTANCE,
+    0,
+    1,
+  );
+  state.borderGrid.visible = state.worldVisualsVisible && alpha > 0;
+
+  if (state.borderGrid.material instanceof THREE.LineBasicMaterial) {
+    state.borderGrid.material.opacity = alpha;
+  }
+}
+
+function getExhibitionBorderSpeedMultiplier(position: THREE.Vector3): number {
+  const distance = getDistanceToExhibitionBorder(position);
+  const normalizedDistance = THREE.MathUtils.clamp(
+    distance / WERKSCHAU_EXHIBITION_BORDER_DAMPING.DISTANCE,
+    0,
+    1,
+  );
+
+  return THREE.MathUtils.lerp(
+    WERKSCHAU_EXHIBITION_BORDER_DAMPING.MIN_SPEED_MULTIPLIER,
+    1,
+    normalizedDistance,
+  );
+}
+
+function getDistanceToExhibitionBorder(position: THREE.Vector3): number {
+  return Math.max(
+    0,
+    Math.min(
+      position.x - WERKSCHAU_EXHIBITION_BOUNDS.minX,
+      WERKSCHAU_EXHIBITION_BOUNDS.maxX - position.x,
+      position.z - WERKSCHAU_EXHIBITION_BOUNDS.minZ,
+      WERKSCHAU_EXHIBITION_BOUNDS.maxZ - position.z,
+    ),
+  );
+}
+
+function clampPlayerToExhibitionBounds(state: WerkschauState): void {
   const position = state.player.rig.position;
   position.x = THREE.MathUtils.clamp(
     position.x,
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX,
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX,
+    WERKSCHAU_EXHIBITION_BOUNDS.minX,
+    WERKSCHAU_EXHIBITION_BOUNDS.maxX,
   );
   position.y = THREE.MathUtils.clamp(
     position.y,
@@ -297,8 +392,8 @@ function clampPlayerToBerlinBounds(state: WerkschauState): void {
   );
   position.z = THREE.MathUtils.clamp(
     position.z,
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ,
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ,
+    WERKSCHAU_EXHIBITION_BOUNDS.minZ,
+    WERKSCHAU_EXHIBITION_BOUNDS.maxZ,
   );
 }
 
@@ -313,6 +408,7 @@ function setWerkschauWorldVisualsVisible(
   state.coneRuntime.setVisible(visible);
   if (state.fallbackPlane) state.fallbackPlane.visible = visible;
   state.gridHelper.visible = visible;
+  updateExhibitionBorderGridVisibility(state);
   state.fillLights.hemisphere.visible = visible;
   state.fillLights.directional.visible = visible;
 }
@@ -443,8 +539,8 @@ function showFallbackPlane(state: WerkschauState): void {
   if (state.fallbackPlane) return;
 
   const geometry = new THREE.PlaneGeometry(
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX - WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX,
-    WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ - WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ,
+    WERKSCHAU_EXHIBITION_BOUNDS.sideLengthMeters,
+    WERKSCHAU_EXHIBITION_BOUNDS.sideLengthMeters,
   );
   const material = new THREE.MeshBasicMaterial({
     color: 0xb8c0c2,
@@ -455,13 +551,9 @@ function showFallbackPlane(state: WerkschauState): void {
   plane.rotation.x = -Math.PI * 0.5;
   plane.visible = state.worldVisualsVisible;
   plane.position.set(
-    (WERKSCHAU_BERLIN_LOCAL_BOUNDS.minX +
-      WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxX) *
-      0.5,
+    WERKSCHAU_EXHIBITION_BOUNDS.center.x,
     0,
-    (WERKSCHAU_BERLIN_LOCAL_BOUNDS.minZ +
-      WERKSCHAU_BERLIN_LOCAL_BOUNDS.maxZ) *
-      0.5,
+    WERKSCHAU_EXHIBITION_BOUNDS.center.z,
   );
   state.fallbackPlane = plane;
   state.tilesGroup.add(plane);
@@ -564,41 +656,4 @@ function updateWerkschauCollisionDiagnostic(state: WerkschauState): void {
 function removeWerkschauCollisionDiagnostic(state: WerkschauState): void {
   state.collisionDiagnosticElement?.remove();
   state.collisionDiagnosticElement = null;
-}
-
-function getBerlinLocalBounds(): {
-  minX: number;
-  maxX: number;
-  minZ: number;
-  maxZ: number;
-} {
-  const corners = [
-    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
-      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.north,
-      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.west,
-      height: 0,
-    }),
-    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
-      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.north,
-      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.east,
-      height: 0,
-    }),
-    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
-      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.south,
-      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.west,
-      height: 0,
-    }),
-    geoToLocal(WERKSCHAU_BERLIN_MITTE_ORIGIN, {
-      lat: WERKSCHAU_BERLIN_GEO_BOUNDS.south,
-      lon: WERKSCHAU_BERLIN_GEO_BOUNDS.east,
-      height: 0,
-    }),
-  ];
-
-  return {
-    minX: Math.min(...corners.map((corner) => corner.x)),
-    maxX: Math.max(...corners.map((corner) => corner.x)),
-    minZ: Math.min(...corners.map((corner) => corner.z)),
-    maxZ: Math.max(...corners.map((corner) => corner.z)),
-  };
 }

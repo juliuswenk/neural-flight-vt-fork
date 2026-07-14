@@ -5,9 +5,9 @@ Goal: use a dual tile strategy that gets the collision-bake CPU win where it mat
 The chosen approach:
 
 1. Use the currently configured Cesium Ion city asset as the authoritative source.
-2. Freeze only the inner city: 4 km radius around `WERKSCHAU_PLAYER_SPAWN_POSITION`.
-3. Serve baked local tiles inside that radius.
-4. Keep the current remote streamed tile runtime outside that radius.
+2. Freeze only the inner city: a 4 km square around `WERKSCHAU_PLAYER_SPAWN_POSITION`.
+3. Serve baked local tiles inside that square.
+4. Keep the current remote streamed tile runtime outside that square.
 5. During bake, hide cone-masked mesh parts that are not visible from the cone origin that produced the mask.
 
 ## Why This Exists
@@ -22,7 +22,7 @@ Full local Berlin tiles are too large. Texture-only download does not help becau
 ## Non-Negotiables
 
 - Remote streamed tiles must keep working unchanged outside the frozen area.
-- The frozen source must record Cesium Ion asset ID, resolved tileset URL, date, and extraction radius.
+- The frozen source must record Cesium Ion asset ID, resolved tileset URL, date, and extraction square.
 - Runtime must reject stale baked metadata and fall back to live collision.
 - Do not duplicate all Berlin.
 - Do not add a rendering abstraction.
@@ -90,7 +90,7 @@ bun run src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts \
 collision: tracked N; prebaked N; processed 0; vertices 0; dirty 0
 ```
 
-4. If the smoke subset works, freeze the full 4 km radius:
+4. If the smoke subset works, freeze the full 4 km square:
 
 ```bash
 bun run src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tiles.ts \
@@ -121,21 +121,21 @@ Implementation:
 
 - Add a small config value for the frozen local area:
   - center: `WERKSCHAU_PLAYER_SPAWN_POSITION`
-  - radius: `4000` meters
+  - side length: `4000` meters
 - Keep this local to Werkschau constants/config.
-- Add a helper that tests whether a local world position is inside the frozen radius.
+- Add a helper that tests whether a local world position is inside the frozen square.
 - Use local X/Z distance only; ignore altitude.
 
 Acceptance:
 
-- The 4 km radius is represented in one config location.
-- Runtime and export scripts use the same radius value.
-- A future radius change does not require editing multiple scripts.
+- The 4 km square is represented in one config location.
+- Runtime and export scripts use the same square bounds.
+- A future boundary change does not require editing multiple scripts.
 
 Coding agent prompt:
 
 ```text
-In _visio-tech-werkschau, add a small frozen inner-city bounds config centered on WERKSCHAU_PLAYER_SPAWN_POSITION with radius 4000m. Add a helper that tests local X/Z positions against it. Keep it scoped to this experience and do not change runtime behavior yet. Run biome and svelte-check.
+In _visio-tech-werkschau, add a small frozen inner-city square bounds config centered on WERKSCHAU_PLAYER_SPAWN_POSITION with side length 4000m. Add a helper that tests local X/Z positions against it. Keep it scoped to this experience and do not change runtime behavior yet. Run biome and svelte-check.
 ```
 
 ## Step 2: Freeze The Cesium Ion Inner Tile Subset
@@ -155,7 +155,7 @@ bun run src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tile
 
 - Resolve the current Cesium Ion source through the existing `resolveWerkschauTilesSource()` path.
 - Load the root remote `tileset.json`.
-- Recursively visit tiles whose bounding volume intersects the 4 km local radius.
+- Recursively visit tiles whose bounding volume intersects the 4 km local square.
 - In `--smoke` mode, stop after a tiny deterministic subset, for example the root plus first 5 intersecting content payloads.
 - Download and save:
   - each visited `tileset.json`;
@@ -167,7 +167,7 @@ bun run src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tile
   - Cesium Ion asset ID
   - resolved tileset URL
   - extraction date
-  - radius meters
+  - side length and square bounds
   - center local position
   - smoke mode boolean
   - files saved
@@ -177,7 +177,7 @@ bun run src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tile
 
 Keep it boring:
 
-- Start with a small smoke subset before the full 4 km radius.
+- Start with a small smoke subset before the full 4 km square.
 - Do not attempt full Berlin traversal.
 - Do not optimize download concurrency until needed.
 - Use sequential fetches first.
@@ -187,9 +187,9 @@ Bounding-volume selection:
 
 - Use existing local/ECEF transform helpers where possible.
 - For tile bounding volumes:
-  - `sphere`: transform/check center distance plus radius.
+  - `sphere`: transform/check center against the square expanded by the sphere radius.
   - `box`: conservative check is acceptable; include the tile if any doubt.
-  - `region`: conservative check is acceptable; include if it overlaps the Berlin local radius bounds.
+  - `region`: conservative check is acceptable; include if it overlaps the Berlin local square bounds.
 - Conservative over-inclusion is fine. Missing inner tiles is not.
 
 Output shape:
@@ -211,7 +211,7 @@ Acceptance:
 Coding agent prompt:
 
 ```text
-Add src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tiles.ts. It should resolve the current Cesium Ion source, download a local 4km-radius tile subset around WERKSCHAU_PLAYER_SPAWN_POSITION into static/experiences/_visio-tech-werkschau/tiles/frozen-inner-4km, support --smoke for a tiny deterministic subset, preserve/rewrite relative tile payload paths, and write werkschau-freeze-manifest.json with asset ID/source URL/date/radius/files/bytes/skips/failures. Use installed packages only. Run biome and svelte-check.
+Add src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tiles.ts. It should resolve the current Cesium Ion source, download a local 4km-square tile subset around WERKSCHAU_PLAYER_SPAWN_POSITION into static/experiences/_visio-tech-werkschau/tiles/frozen-inner-4km, support --smoke for a tiny deterministic subset, preserve/rewrite relative tile payload paths, and write werkschau-freeze-manifest.json with asset ID/source URL/date/side length/bounds/files/bytes/skips/failures. Use installed packages only. Run biome and svelte-check.
 ```
 
 ## Step 3: Batch Bake The Frozen Inner Tiles
@@ -270,7 +270,7 @@ Acceptance:
 Coding agent prompt:
 
 ```text
-Wire the existing _visio-tech-werkschau coneMask batch baker into the frozen inner-city source directory. Document exact input/output paths and runtime-source-base usage. Run it on a tiny frozen subset first, then on the 4km-radius subset. Verify runtime preprocessing accepts baked masks and rejects stale source metadata. Run biome and svelte-check.
+Wire the existing _visio-tech-werkschau coneMask batch baker into the frozen inner-city source directory. Document exact input/output paths and runtime-source-base usage. Run it on a tiny frozen subset first, then on the 4km-square subset. Verify runtime preprocessing accepts baked masks and rejects stale source metadata. Run biome and svelte-check.
 ```
 
 ## Step 4: Add Cone-Origin Visibility Occlusion
@@ -323,8 +323,8 @@ Implementation:
   - current remote Cesium Ion source for everything else.
 - Keep player-position-based streaming.
 - Do not preload the whole frozen tileset if the runtime can stream it.
-- If a requested tile is inside the frozen radius and exists locally, use local.
-- If it is outside the radius, missing locally, or stale, use remote.
+- If a requested tile is inside the frozen square and exists locally, use local.
+- If it is outside the square, missing locally, or stale, use remote.
 
 Potentially simplest implementation:
 
@@ -368,7 +368,7 @@ collision: tracked N; prebaked N; processed 0; vertices 0
 Acceptance:
 
 - Starting area uses local baked tiles.
-- Outside the frozen radius still streams remote tiles.
+- Outside the frozen square still streams remote tiles.
 - The debug overlay shows `prebaked > 0` in the inner area.
 - `verticesTestedLastTick` stays near zero for baked inner tiles.
 - Remote-only areas still behave like today.
@@ -376,7 +376,7 @@ Acceptance:
 Coding agent prompt:
 
 ```text
-Add local-first tile loading for _visio-tech-werkschau: use a baked local tileset inside the 4km frozen radius around WERKSCHAU_PLAYER_SPAWN_POSITION and keep the current remote Cesium Ion stream outside it. Prefer the smallest change, likely two TilesRenderer-backed runtimes updated with the same cameras. Baked local source URLs must match werkschauBakeSource metadata; remote tiles must keep live collision fallback. Run biome and svelte-check.
+Add local-first tile loading for _visio-tech-werkschau: use a baked local tileset inside the 4km frozen square around WERKSCHAU_PLAYER_SPAWN_POSITION and keep the current remote Cesium Ion stream outside it. Prefer the smallest change, likely two TilesRenderer-backed runtimes updated with the same cameras. Baked local source URLs must match werkschauBakeSource metadata; remote tiles must keep live collision fallback. Run biome and svelte-check.
 ```
 
 ## Step 6: Profile The Dual Path
@@ -415,11 +415,11 @@ Profile the _visio-tech-werkschau dual tile path. Compare remote-only live colli
 
 ## Done Criteria
 
-- A frozen 4 km radius inner-city tile subset exists from the current Cesium Ion asset.
+- A frozen 4 km square inner-city tile subset exists from the current Cesium Ion asset.
 - A baked copy of that subset exists with `coneMask` and source metadata.
 - The bake includes cone-origin visibility occlusion.
-- Runtime uses baked local tiles inside the radius.
-- Runtime uses remote streamed tiles outside the radius.
+- Runtime uses baked local tiles inside the square.
+- Runtime uses remote streamed tiles outside the square.
 - Debug output proves prebaked masks are being used.
 - Remote fallback remains intact.
 - No full-Berlin local storage requirement is introduced.

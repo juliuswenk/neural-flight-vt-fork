@@ -12,6 +12,7 @@ export interface WerkschauState extends ExperienceState {
   sceneRoot: THREE.Group;
   scene: THREE.Scene;
   gridHelper: THREE.GridHelper;
+  borderGrid: THREE.LineSegments;
   skybox: THREE.Mesh;
   skyboxVisible: boolean;
   fillLights: {

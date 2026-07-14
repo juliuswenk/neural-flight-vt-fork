@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { WERKSCHAU_COLLISION } from "../collision/config";
 import type { WerkschauConeVolume } from "../collision/types";
-import { WERKSCHAU_TILE_LOOK } from "../constants";
+import { WERKSCHAU_EXHIBITION_BOUNDS, WERKSCHAU_TILE_LOOK } from "../constants";
 
 type ShaderCompileParameters = Parameters<THREE.Material["onBeforeCompile"]>[0];
 
@@ -161,6 +161,14 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.uniforms.uWerkschauNeutralShadeDirectional = {
       value: WERKSCHAU_TILE_LOOK.NEUTRAL_SHADE_DIRECTIONAL,
     };
+    shader.uniforms.uWerkschauExhibitionBounds = {
+      value: new THREE.Vector4(
+        WERKSCHAU_EXHIBITION_BOUNDS.minX,
+        WERKSCHAU_EXHIBITION_BOUNDS.maxX,
+        WERKSCHAU_EXHIBITION_BOUNDS.minZ,
+        WERKSCHAU_EXHIBITION_BOUNDS.maxZ,
+      ),
+    };
     shader.uniforms.uWerkschauFragmentConeCount = fragmentConeUniforms.count;
     shader.uniforms.uWerkschauFragmentConeTipRadius =
       fragmentConeUniforms.tipRadius;
@@ -180,7 +188,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform float uWerkschauFragmentConeCount;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}`,
+        `#include <common>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}`,
       )
       .replace(
         "#include <normal_fragment_begin>",
@@ -188,11 +196,11 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       )
       .replace(
         "#include <map_fragment>",
-        "float werkschauConeMask = 0.0;\n#ifdef USE_MAP\nwerkschauConeMask = max(\n  step(0.5, vWerkschauConeMask),\n  werkschauFragmentConeMask(vWerkschauWorldPosition)\n);\n#endif\nvec3 werkschauFlatColor = uWerkschauNeutralColor;\nvec3 werkschauWorldNormal = normalize(cross(dFdx(vWerkschauWorldPosition), dFdy(vWerkschauWorldPosition)));\nfloat werkschauDirectional = max(dot(werkschauWorldNormal, normalize(uWerkschauNeutralLightDirection)), 0.0);\nfloat werkschauHemisphere = werkschauWorldNormal.y * 0.5 + 0.5;\nfloat werkschauShade = clamp(\n  uWerkschauNeutralShadeAmbient +\n    werkschauHemisphere * uWerkschauNeutralShadeHemisphere +\n    werkschauDirectional * uWerkschauNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 werkschauShadedFlatColor = werkschauFlatColor * werkschauShade;\n#include <map_fragment>\ndiffuseColor.rgb = mix(werkschauShadedFlatColor, diffuseColor.rgb, werkschauConeMask);\ndiffuseColor.a = mix(uWerkschauOutsideOpacity, 1.0, werkschauConeMask);",
+        "float werkschauConeMask = 0.0;\n#ifdef USE_MAP\nwerkschauConeMask = max(\n  step(0.5, vWerkschauConeMask),\n  werkschauFragmentConeMask(vWerkschauWorldPosition)\n);\n#endif\nfloat werkschauInsideBounds = step(uWerkschauExhibitionBounds.x, vWerkschauWorldPosition.x) * step(vWerkschauWorldPosition.x, uWerkschauExhibitionBounds.y) * step(uWerkschauExhibitionBounds.z, vWerkschauWorldPosition.z) * step(vWerkschauWorldPosition.z, uWerkschauExhibitionBounds.w);\nwerkschauConeMask *= werkschauInsideBounds;\nvec3 werkschauFlatColor = uWerkschauNeutralColor;\nvec3 werkschauWorldNormal = normalize(cross(dFdx(vWerkschauWorldPosition), dFdy(vWerkschauWorldPosition)));\nfloat werkschauDirectional = max(dot(werkschauWorldNormal, normalize(uWerkschauNeutralLightDirection)), 0.0);\nfloat werkschauHemisphere = werkschauWorldNormal.y * 0.5 + 0.5;\nfloat werkschauShade = clamp(\n  uWerkschauNeutralShadeAmbient +\n    werkschauHemisphere * uWerkschauNeutralShadeHemisphere +\n    werkschauDirectional * uWerkschauNeutralShadeDirectional,\n  0.0,\n  1.0\n);\nvec3 werkschauShadedFlatColor = werkschauFlatColor * werkschauShade;\n#include <map_fragment>\ndiffuseColor.rgb = mix(werkschauShadedFlatColor, diffuseColor.rgb, werkschauConeMask);\ndiffuseColor.a = mix(uWerkschauOutsideOpacity, 1.0, werkschauConeMask);",
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v4`;
+    `${previousProgramCacheKey?.() ?? material.type}:werkschau-cone-texture-reveal-v5`;
 
   return material;
 }
