@@ -107,6 +107,16 @@ export class WerkschauTextureRevealProjector {
 
     this.activeCount = projectors.length;
     this.activeProjectors = projectors;
+
+    // Depth passes render with a mono projector camera, which requires briefly
+    // disabling renderer.xr so WebGLRenderer doesn't substitute the stereo
+    // ArrayCamera (see WebGLRenderer.render / xr.getCamera). Flipping that flag
+    // once per projector, up to MAX_PROJECTORS times per frame, immediately
+    // ahead of the real stereo render call was found to correlate with tiles
+    // dropping out of the right eye only on some WebXR runtimes, so the whole
+    // batch is now wrapped in a single enable/disable pair instead.
+    const previousXrEnabled = renderer.xr.enabled;
+    renderer.xr.enabled = false;
     for (let index = 0; index < projectors.length; index += 1) {
       const camera = this.cameras[index];
       this.updateCamera(index, projectors[index].cone);
@@ -116,6 +126,7 @@ export class WerkschauTextureRevealProjector {
         this.renderTargets[index],
       );
     }
+    renderer.xr.enabled = previousXrEnabled;
     setWerkschauTileMaterialProjectorReveal({
       cones: projectors.map((projector) => projector.cone),
       count: projectors.length,
@@ -252,6 +263,8 @@ export class WerkschauTextureRevealProjector {
   }
 }
 
+// Callers are responsible for disabling renderer.xr.enabled around (potentially
+// several) calls to this function — see WerkschauTextureRevealProjector.update.
 export function renderDepthScene(
   renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
@@ -259,12 +272,10 @@ export function renderDepthScene(
   target: THREE.WebGLRenderTarget,
 ): void {
   const previousRenderTarget = renderer.getRenderTarget();
-  const previousXrEnabled = renderer.xr.enabled;
   const previousAutoClear = renderer.autoClear;
   const previousClearAlpha = renderer.getClearAlpha();
   renderer.getClearColor(scratchClearColor);
 
-  renderer.xr.enabled = false;
   renderer.autoClear = true;
   renderer.setClearColor(0xffffff, 1);
   renderer.setRenderTarget(target);
@@ -273,7 +284,6 @@ export function renderDepthScene(
   renderer.setRenderTarget(previousRenderTarget);
   renderer.setClearColor(scratchClearColor, previousClearAlpha);
   renderer.autoClear = previousAutoClear;
-  renderer.xr.enabled = previousXrEnabled;
 }
 
 function getNearestConeScores(
