@@ -4,6 +4,7 @@ import {
   createWerkschauTileMaterial,
   disposeClonedMaterial,
   disposeMaterial,
+  syncWerkschauTileMaterialSourceMaps,
 } from "../runtime/tiles-material";
 import { shouldTrackMeshForConeMask } from "./mesh-filter";
 import type { WerkschauTileMesh, TrackedTileMesh } from "./tile-mesh-types";
@@ -121,6 +122,10 @@ function createRegisteredMesh(
   }
 
   initializeConeMaskAttributeForMesh(trackedMesh);
+  syncWerkschauTileMaterialSourceMaps(
+    trackedMesh.originalMaterial,
+    trackedMesh.collisionMaterial,
+  );
   trackedMesh.neutralMaterial = werkschauMaterial;
   applyPrebakedConeIntersectionMaterial(trackedMesh);
   return { originalMaterial, werkschauMaterial, trackedMesh };

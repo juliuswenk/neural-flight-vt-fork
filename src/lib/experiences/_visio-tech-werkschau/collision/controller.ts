@@ -43,7 +43,6 @@ export class WerkschauCollisionController {
     }
 
     this.syncTrackedMeshes(cones, meshes, meshVersion);
-    this.syncSourceMaps(meshes);
     this.processDirtyMeshes(cones);
   }
 
@@ -97,15 +96,6 @@ export class WerkschauCollisionController {
 
     this.dirtyMeshes.add(mesh);
     this.dirtyQueue.push(mesh);
-  }
-
-  private syncSourceMaps(meshes: readonly TrackedTileMesh[]): void {
-    for (const mesh of meshes) {
-      syncWerkschauTileMaterialSourceMaps(
-        mesh.originalMaterial,
-        mesh.collisionMaterial,
-      );
-    }
   }
 
   private processDirtyMeshes(cones: readonly WerkschauConeVolume[]): void {
@@ -164,6 +154,13 @@ export class WerkschauCollisionController {
       writeConeMaskAttributeForMesh(mesh);
     }
     setWerkschauTileMaterialFragmentCones(mesh.collisionMaterial, fragmentCones);
+    if (!mesh.hasSyncedConeActiveSourceMaps) {
+      syncWerkschauTileMaterialSourceMaps(
+        mesh.originalMaterial,
+        mesh.collisionMaterial,
+      );
+      mesh.hasSyncedConeActiveSourceMaps = true;
+    }
     if (!mesh.hasConeMaskMaterial) {
       mesh.mesh.material = mesh.collisionMaterial;
       mesh.hasConeMaskMaterial = true;
