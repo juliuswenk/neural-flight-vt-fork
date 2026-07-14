@@ -43,6 +43,7 @@
     let experienceName = $state("ICAROS VR");
     let hasOutputs = $state(false);
     let blockingError = $state<string | null>(null);
+    let showStartAudioButton = $state(false);
     let isDesktopPreview = false;
     let lastProcessedTimestamp = 0;
     const hostOrigin = PUBLIC_ICAROS_HOST_ORIGIN.trim();
@@ -67,6 +68,10 @@
     let removePreviewKeyboardListeners: (() => void) | null = null;
     let unsubscribeHostOrientation: (() => void) | null = null;
     let removeWindowAudioListeners: (() => void) | null = null;
+    let handleStartAudioClick: () => void = () => {};
+    const hideStartAudioButton = (): void => {
+        showStartAudioButton = false;
+    };
 
     onMount(() => {
         let mounted = true;
@@ -139,6 +144,9 @@
             hasOutputs = (exp.manifest.outputs?.length ?? 0) > 0;
             const renderCamera = exp.state.camera as THREE.PerspectiveCamera;
 
+            // Only resumes the AudioContext. Actual station/ambience playback
+            // is started by each experience's own tick loop once its intro
+            // sequence finishes, so we never trigger playback before that.
             const resumeAudio = () => {
                 const state = exp.state as any;
                 if (state.listener && state.listener.context) {
@@ -147,9 +155,6 @@
                         ctx.resume()
                             .then(() => {
                                 console.log(`[VR] AudioContext resumed via user gesture for ${exp.manifest.id}`);
-                                if (state.radioManager && !state.radioManager.isStarted) {
-                                    state.radioManager.start();
-                                }
                             })
                             .catch((err) => {
                                 console.warn("[VR] AudioContext resume failed:", err);
@@ -162,12 +167,21 @@
             // synchronously and consumes the page's transient user activation.
             // If audio resume ran after that (e.g. via a bubble-phase listener),
             // the activation would already be gone by the time it reached us.
+            // This is a fallback for taps that land on the XR button directly;
+            // the "Start Audio" button below is the primary, explicit path.
             window.addEventListener("click", resumeAudio, { capture: true });
             window.addEventListener("touchend", resumeAudio, { capture: true });
             removeWindowAudioListeners = () => {
                 window.removeEventListener("click", resumeAudio, { capture: true });
                 window.removeEventListener("touchend", resumeAudio, { capture: true });
             };
+
+            showStartAudioButton = Boolean((exp.state as any).listener);
+            handleStartAudioClick = () => {
+                resumeAudio();
+                showStartAudioButton = false;
+            };
+            renderer.xr.addEventListener("sessionstart", hideStartAudioButton);
 
             function onResize(): void {
                 renderCamera.aspect = window.innerWidth / window.innerHeight;
@@ -366,6 +380,7 @@
     onDestroy(() => {
         renderer?.setAnimationLoop(null);
         if (scene) unloadExperience(scene);
+        renderer?.xr.removeEventListener("sessionstart", hideStartAudioButton);
         renderer?.dispose();
         xrButton?.remove();
         removePreviewKeyboardListeners?.();
@@ -395,3 +410,31 @@
         {score}
     </div>
 {/if}
+
+{#if showStartAudioButton}
+    <button
+        type="button"
+        class="start-audio-button"
+        onclick={() => handleStartAudioClick()}
+    >
+        Start Audio
+    </button>
+{/if}
+
+<style>
+    .start-audio-button {
+        position: absolute;
+        bottom: 84px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border: 1px solid #fff;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        font: normal 13px sans-serif;
+        text-align: center;
+        cursor: pointer;
+        z-index: 999;
+    }
+</style>

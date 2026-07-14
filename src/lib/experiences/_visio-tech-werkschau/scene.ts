@@ -224,7 +224,7 @@ export function tick(
     );
   }
   updateWerkschauShutdownRenderDistance(state);
-  state.onboardingAudio.update(state.onboarding.progress);
+  state.onboardingAudio.update(state.onboarding.isComplete, ctx.delta);
   state.radioManager.setMasterVolume(state.onboardingAudio.fullGain);
   updateWerkschauRadioAudio(state);
   state.coneSpatialAudio?.update(
@@ -354,6 +354,7 @@ function attachXrSelectAudioFallback(
 function startWerkschauRadioIfAudioRunning(state: WerkschauState): boolean {
   if (
     state.isDisposed ||
+    !state.onboarding.isComplete ||
     state.radioManager.isStarted ||
     state.listener.context.state !== "running"
   ) {
