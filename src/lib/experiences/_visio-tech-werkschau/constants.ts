@@ -102,7 +102,11 @@ export const WERKSCHAU_TILE_LOOK = {
 export const WERKSCHAU_CONE_DATASET_BASE_URL =
   "/experiences/_visio-tech-werkschau/cone-data/generated";
 export const WERKSCHAU_CONE_MIN_TILT_DEGREES = 10;
-export const WERKSCHAU_CONE_MIN_TIP_HEIGHT = 110;
+// Absolute world-Y floor, not height above the local building/terrain: dataset
+// generation already enforces a relative building-height minimum
+// (MIN_BUILDING_HEIGHT_METERS), so this only needs to guard against literal
+// ground-level artifacts, not cull entire low-rise districts.
+export const WERKSCHAU_CONE_MIN_TIP_HEIGHT = 0;
 export const WERKSCHAU_CONE_GRID = {
   SPACING: 240,
   ORIGIN_HEIGHT: 140,
