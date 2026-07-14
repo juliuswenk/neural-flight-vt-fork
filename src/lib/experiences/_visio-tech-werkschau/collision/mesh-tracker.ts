@@ -38,6 +38,16 @@ export class WerkschauTileMeshRegistry {
     this.version += 1;
   }
 
+  public setTileSceneVisible(root: THREE.Object3D, visible: boolean): void {
+    const registeredMeshes = this.trackedByScene.get(root);
+    if (!registeredMeshes) return;
+
+    for (const registeredMesh of registeredMeshes) {
+      registeredMesh.tileVisible = visible;
+      syncDepthMeshVisibility(registeredMesh);
+    }
+  }
+
   public untrackTileScene(root: THREE.Object3D): void {
     const registeredMeshes = this.trackedByScene.get(root);
     if (!registeredMeshes) return;
@@ -103,6 +113,7 @@ interface RegisteredTileMesh {
   depthMesh: THREE.Mesh<THREE.BufferGeometry, THREE.Material | THREE.Material[]>;
   originalMaterial: THREE.Material | THREE.Material[];
   sourceMesh: WerkschauTileMesh;
+  tileVisible: boolean;
   werkschauMaterial: THREE.Material | THREE.Material[];
   trackedMesh: TrackedTileMesh | null;
 }
@@ -193,17 +204,18 @@ function createRegisteredMesh(
 
   mesh.material = werkschauMaterial;
 
-  if (!trackedMesh) {
-    disposeClonedMaterial(collisionMaterial);
-    return {
-      collisionMaterial: werkschauMaterial,
-      depthMesh,
-      originalMaterial,
-      sourceMesh: mesh,
-      trackedMesh: null,
-      werkschauMaterial,
-    };
-  }
+    if (!trackedMesh) {
+      disposeClonedMaterial(collisionMaterial);
+      return {
+        collisionMaterial: werkschauMaterial,
+        depthMesh,
+        originalMaterial,
+        sourceMesh: mesh,
+        tileVisible: true,
+        trackedMesh: null,
+        werkschauMaterial,
+      };
+    }
 
   initializeConeMaskAttributeForMesh(trackedMesh);
   syncWerkschauTileMaterialSourceMaps(
@@ -220,6 +232,7 @@ function createRegisteredMesh(
       depthMesh,
       originalMaterial,
       sourceMesh: mesh,
+      tileVisible: true,
       trackedMesh: null,
       werkschauMaterial,
     };
@@ -231,6 +244,7 @@ function createRegisteredMesh(
     depthMesh,
     originalMaterial,
     sourceMesh: mesh,
+    tileVisible: true,
     trackedMesh,
     werkschauMaterial,
   };
@@ -288,4 +302,19 @@ function applyPrebakedConeIntersectionMaterial(mesh: TrackedTileMesh): void {
 
   mesh.mesh.material = mesh.collisionMaterial;
   mesh.hasConeMaskMaterial = true;
+}
+
+function syncDepthMeshVisibility(registeredMesh: RegisteredTileMesh): void {
+  registeredMesh.depthMesh.visible =
+    registeredMesh.tileVisible && isObjectTreeVisible(registeredMesh.sourceMesh);
+}
+
+function isObjectTreeVisible(object: THREE.Object3D): boolean {
+  let current: THREE.Object3D | null = object;
+  while (current) {
+    if (!current.visible) return false;
+    current = current.parent;
+  }
+
+  return true;
 }

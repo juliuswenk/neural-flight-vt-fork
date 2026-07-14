@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { Scheduler } from "3d-tiles-renderer";
 import { CAMERA } from "$lib/config/flight";
 import { FlightPlayer } from "$lib/three/player";
-import { createSky } from "$lib/three/sky";
 import type { SetupContext, TickContext } from "../types";
 import { WerkschauRadioManager } from "./audio/radio-manager";
 import { WERKSCHAU_COLLISION } from "./collision/config";
@@ -32,6 +31,8 @@ import type { WerkschauState } from "./types";
 
 const scratchPosition = new THREE.Vector3();
 const WERKSCHAU_SKYBOX_COLOR = 0x87ceeb;
+const WERKSCHAU_SKYBOX_TEXTURE_URL =
+  "/experiences/_visio-tech-werkschau/skybox.jpeg";
 const WERKSCHAU_AR_CLEAR_COLOR = 0x79b8d9;
 const WERKSCHAU_SKYBOX_RADIUS = WERKSCHAU_CAMERA_FAR * 0.85;
 const WERKSCHAU_SHUTDOWN_RENDER_DISTANCE = 0.11;
@@ -80,12 +81,21 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const borderGrid = createExhibitionBorderGrid();
   sceneRoot.add(borderGrid);
 
-  const skybox = createSky({
-    radius: WERKSCHAU_SKYBOX_RADIUS,
-    colorTop: 0x79b8d9,
-    colorHorizon: 0xd9f1ff,
-    colorBottom: WERKSCHAU_SKYBOX_COLOR,
-  });
+  const skyboxTexture = new THREE.TextureLoader().load(WERKSCHAU_SKYBOX_TEXTURE_URL);
+  skyboxTexture.colorSpace = THREE.SRGBColorSpace;
+  skyboxTexture.mapping = THREE.EquirectangularReflectionMapping;
+
+  const skyboxGeometry = new THREE.SphereGeometry(WERKSCHAU_SKYBOX_RADIUS, 64, 32);
+  skyboxGeometry.scale(-1, 1, 1);
+
+  const skybox = new THREE.Mesh(
+    skyboxGeometry,
+    new THREE.MeshBasicMaterial({
+      map: skyboxTexture,
+      fog: false,
+      side: THREE.FrontSide,
+    }),
+  );
   skybox.name = "VisioTechWerkschauSkybox";
   skybox.renderOrder = -1000;
   if (skybox.material instanceof THREE.Material) {
@@ -202,6 +212,7 @@ export function tick(
       state.camera,
       state.tilesRuntime,
       state.renderer,
+      ctx.delta,
     );
     if (WERKSCHAU_COLLISION.ENABLED) {
       state.collisionController.update(
@@ -213,7 +224,7 @@ export function tick(
     }
     updateWerkschauCollisionDiagnostic(state);
   } else {
-    state.textureRevealProjector.update([], state.camera, null, state.renderer);
+    state.textureRevealProjector.update([], state.camera, null, state.renderer, ctx.delta);
     removeWerkschauCollisionDiagnostic(state);
   }
 

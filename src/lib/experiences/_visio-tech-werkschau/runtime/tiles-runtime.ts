@@ -33,6 +33,13 @@ type TileDisposeEvent = {
   type: "dispose-model";
 };
 
+type TileVisibilityEvent = {
+  scene: THREE.Object3D;
+  tile: unknown;
+  type: "tile-visibility-change";
+  visible: boolean;
+};
+
 export class TilesRuntimeAdapter {
   private renderer: TilesRenderer | null = null;
   private activeCameras: Camera[] = [];
@@ -79,6 +86,10 @@ export class TilesRuntimeAdapter {
       if (renderer) {
         renderer.removeEventListener("load-model", this.handleLoadModel);
         renderer.removeEventListener("dispose-model", this.handleDisposeModel);
+        renderer.removeEventListener(
+          "tile-visibility-change",
+          this.handleTileVisibility,
+        );
         renderer.dispose();
       }
 
@@ -110,6 +121,7 @@ export class TilesRuntimeAdapter {
 
     renderer.errorTarget = WERKSCHAU_TILE_RUNTIME.ERROR_TARGET;
     renderer.loadSiblings = WERKSCHAU_TILE_RUNTIME.LOAD_SIBLINGS;
+    renderer.displayActiveTiles = WERKSCHAU_TILE_RUNTIME.DISPLAY_ACTIVE_TILES;
     renderer.downloadQueue.maxJobs = WERKSCHAU_TILE_RUNTIME.DOWNLOAD_JOBS;
     renderer.parseQueue.maxJobs = WERKSCHAU_TILE_RUNTIME.PARSE_JOBS;
     renderer.processNodeQueue.maxJobs =
@@ -126,6 +138,7 @@ export class TilesRuntimeAdapter {
     }
     renderer.addEventListener("load-model", this.handleLoadModel);
     renderer.addEventListener("dispose-model", this.handleDisposeModel);
+    renderer.addEventListener("tile-visibility-change", this.handleTileVisibility);
   }
 
   private registerGoogleTilesPlugin(renderer: TilesRenderer): boolean {
@@ -148,10 +161,15 @@ export class TilesRuntimeAdapter {
 
   private readonly handleLoadModel = (event: TileLoadEvent): void => {
     this.meshRegistry.trackTileScene(event.scene, event.url);
+    this.meshRegistry.setTileSceneVisible(event.scene, event.scene.parent !== null);
   };
 
   private readonly handleDisposeModel = (event: TileDisposeEvent): void => {
     this.meshRegistry.untrackTileScene(event.scene);
+  };
+
+  private readonly handleTileVisibility = (event: TileVisibilityEvent): void => {
+    this.meshRegistry.setTileSceneVisible(event.scene, event.visible);
   };
 
   public update(
@@ -267,6 +285,7 @@ export class TilesRuntimeAdapter {
     }
 
     this.renderer.group.removeFromParent();
+    this.renderer.removeEventListener("tile-visibility-change", this.handleTileVisibility);
     this.renderer.removeEventListener("load-model", this.handleLoadModel);
     this.renderer.removeEventListener("dispose-model", this.handleDisposeModel);
     this.meshRegistry.dispose();

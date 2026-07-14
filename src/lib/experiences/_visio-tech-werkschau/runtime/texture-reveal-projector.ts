@@ -25,12 +25,15 @@ const projectionBias = new THREE.Matrix4().set(
 const localForward = new THREE.Vector3(0, 0, -1);
 const scratchClearColor = new THREE.Color();
 const scratchCameraPosition = new THREE.Vector3();
-const scratchCameraDirection = new THREE.Vector3();
-const scratchConeOffset = new THREE.Vector3();
 
 interface ScoredCone {
   cone: WerkschauConeVolume;
   score: number;
+}
+
+interface ActiveProjector {
+  cone: WerkschauConeVolume;
+  strength: number;
 }
 
 export class WerkschauTextureRevealProjector {
@@ -65,6 +68,7 @@ export class WerkschauTextureRevealProjector {
       ),
   );
   private activeCount = 0;
+  private activeProjectors: readonly ActiveProjector[] = [];
 
   constructor() {
     for (let index = 0; index < this.renderTargets.length; index += 1) {
@@ -73,10 +77,12 @@ export class WerkschauTextureRevealProjector {
       renderTarget.texture.generateMipmaps = false;
     }
     setWerkschauTileMaterialProjectorReveal({
+      cones: [],
       count: 0,
       depthBias: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.DEPTH_BIAS,
       depthMaps: this.getDepthMaps(),
       projectionMatrices: this.projectionMatrices,
+      strengths: [],
     });
   }
 
@@ -85,22 +91,25 @@ export class WerkschauTextureRevealProjector {
     observerCamera: THREE.Camera,
     tilesRuntime: TilesRuntimeAdapter | null,
     renderer: THREE.WebGLRenderer,
+    deltaSeconds: number,
   ): void {
     if (!WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.ENABLED || !tilesRuntime) {
       this.disable();
       return;
     }
 
-    const projectedCones = getProjectedCones(cones, observerCamera);
-    if (projectedCones.length === 0) {
+    const selectedCones = this.selectProjectorCones(cones, observerCamera);
+    const projectors = this.updateProjectorDecay(selectedCones, deltaSeconds);
+    if (projectors.length === 0) {
       this.disable();
       return;
     }
 
-    this.activeCount = projectedCones.length;
-    for (let index = 0; index < projectedCones.length; index += 1) {
+    this.activeCount = projectors.length;
+    this.activeProjectors = projectors;
+    for (let index = 0; index < projectors.length; index += 1) {
       const camera = this.cameras[index];
-      this.updateCamera(index, projectedCones[index]);
+      this.updateCamera(index, projectors[index].cone);
       tilesRuntime.renderTextureRevealDepth(
         renderer,
         camera,
@@ -108,10 +117,12 @@ export class WerkschauTextureRevealProjector {
       );
     }
     setWerkschauTileMaterialProjectorReveal({
-      count: projectedCones.length,
+      cones: projectors.map((projector) => projector.cone),
+      count: projectors.length,
       depthBias: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.DEPTH_BIAS,
       depthMaps: this.getDepthMaps(),
       projectionMatrices: this.projectionMatrices,
+      strengths: projectors.map((projector) => projector.strength),
     });
   }
 
@@ -126,11 +137,14 @@ export class WerkschauTextureRevealProjector {
     if (this.activeCount === 0) return;
 
     this.activeCount = 0;
+    this.activeProjectors = [];
     setWerkschauTileMaterialProjectorReveal({
+      cones: [],
       count: 0,
       depthBias: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.DEPTH_BIAS,
       depthMaps: this.getDepthMaps(),
       projectionMatrices: this.projectionMatrices,
+      strengths: [],
     });
   }
 
@@ -158,6 +172,84 @@ export class WerkschauTextureRevealProjector {
       .multiply(camera.projectionMatrix)
       .multiply(camera.matrixWorldInverse);
   }
+
+  private selectProjectorCones(
+    cones: readonly WerkschauConeVolume[],
+    observerCamera: THREE.Camera,
+  ): readonly WerkschauConeVolume[] {
+    if (cones.length === 0) return [];
+
+    observerCamera.getWorldPosition(scratchCameraPosition);
+    const scoredCones = getNearestConeScores(cones, scratchCameraPosition);
+    if (scoredCones.length === 0) return [];
+
+    const selected: WerkschauConeVolume[] = [];
+    const bestScore = Math.max(scoredCones[0]?.score ?? 0, 1);
+
+    for (const projector of this.activeProjectors) {
+      const cone = projector.cone;
+      const score = getScoredConeScore(scoredCones, cone);
+      if (score === null) continue;
+      if (
+        score >
+        bestScore * WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.KEEP_SCORE_MULTIPLIER
+      ) {
+        continue;
+      }
+      selected.push(cone);
+      if (selected.length >= WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS) {
+        return selected;
+      }
+    }
+
+    for (const entry of scoredCones) {
+      if (selected.some((cone) => isSameCone(cone, entry.cone))) continue;
+      selected.push(entry.cone);
+      if (selected.length >= WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS) {
+        return selected;
+      }
+    }
+
+    return selected;
+  }
+
+  private updateProjectorDecay(
+    selectedCones: readonly WerkschauConeVolume[],
+    deltaSeconds: number,
+  ): readonly ActiveProjector[] {
+    const decayStep =
+      deltaSeconds / WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.DECAY_SECONDS;
+    const fadingProjectors: ActiveProjector[] = [];
+    for (const projector of this.activeProjectors) {
+      if (selectedCones.some((cone) => isSameCone(cone, projector.cone))) continue;
+
+      const strength = Math.max(0, projector.strength - decayStep);
+      if (strength <= 0) continue;
+      fadingProjectors.push({
+        cone: projector.cone,
+        strength,
+      });
+    }
+
+    const maxSelected =
+      fadingProjectors.length > 0
+        ? WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS - 1
+        : WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS;
+    const nextProjectors: ActiveProjector[] = selectedCones
+      .slice(0, maxSelected)
+      .map((cone) => ({
+        cone,
+        strength: 1,
+      }));
+
+    if (fadingProjectors.length > 0) {
+      nextProjectors.push(
+        fadingProjectors.sort((left, right) => right.strength - left.strength)[0],
+      );
+    }
+
+    return nextProjectors;
+  }
 }
 
 export function renderDepthScene(
@@ -184,59 +276,29 @@ export function renderDepthScene(
   renderer.xr.enabled = previousXrEnabled;
 }
 
-function getProjectedCones(
-  cones: readonly WerkschauConeVolume[],
-  observerCamera: THREE.Camera,
-): readonly WerkschauConeVolume[] {
-  if (cones.length === 0) return [];
-
-  observerCamera.getWorldPosition(scratchCameraPosition);
-  observerCamera.getWorldDirection(scratchCameraDirection);
-
-  const visibleCones = getConesNearestViewRay(
-    cones,
-    scratchCameraPosition,
-    scratchCameraDirection,
-  );
-  if (visibleCones.length > 0) return visibleCones;
-
-  return getNearestCones(cones, scratchCameraPosition);
-}
-
-function getConesNearestViewRay(
-  cones: readonly WerkschauConeVolume[],
-  cameraPosition: THREE.Vector3,
-  cameraDirection: THREE.Vector3,
-): readonly WerkschauConeVolume[] {
-  const scoredCones: ScoredCone[] = [];
-
-  for (const cone of cones) {
-    scratchConeOffset.subVectors(cone.tip, cameraPosition);
-    const forwardDistance = scratchConeOffset.dot(cameraDirection);
-    if (forwardDistance <= 0) continue;
-
-    const distance = scratchConeOffset.lengthSq();
-    const rayDistance = Math.max(distance - forwardDistance * forwardDistance, 0);
-    const score = rayDistance + forwardDistance * forwardDistance * 0.02;
-    scoredCones.push({ cone, score });
-  }
-
-  return scoredCones
-    .sort((left, right) => left.score - right.score)
-    .slice(0, WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS)
-    .map((entry) => entry.cone);
-}
-
-function getNearestCones(
+function getNearestConeScores(
   cones: readonly WerkschauConeVolume[],
   position: THREE.Vector3,
-): readonly WerkschauConeVolume[] {
+): readonly ScoredCone[] {
   return cones
     .map((cone) => ({
       cone,
       score: cone.tip.distanceToSquared(position),
     }))
-    .sort((left, right) => left.score - right.score)
-    .slice(0, WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS)
-    .map((entry) => entry.cone);
+    .sort((left, right) => left.score - right.score);
+}
+
+function getScoredConeScore(
+  scoredCones: readonly ScoredCone[],
+  cone: WerkschauConeVolume,
+): number | null {
+  for (const entry of scoredCones) {
+    if (isSameCone(entry.cone, cone)) return entry.score;
+  }
+
+  return null;
+}
+
+function isSameCone(left: WerkschauConeVolume, right: WerkschauConeVolume): boolean {
+  return left.chunkKey === right.chunkKey && left.coneIndex === right.coneIndex;
 }

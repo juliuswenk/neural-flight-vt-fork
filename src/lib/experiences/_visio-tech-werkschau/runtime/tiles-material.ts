@@ -30,17 +30,22 @@ interface FragmentConeUniforms {
 }
 
 interface ProjectorRevealState {
+  cones: readonly WerkschauConeVolume[];
   count: number;
   depthBias: number;
   depthMaps: readonly THREE.Texture[];
   projectionMatrices: readonly THREE.Matrix4[];
+  strengths: readonly number[];
 }
 
 interface ProjectorRevealUniforms {
+  axisHeight: { value: THREE.Vector4[] };
   count: { value: number };
   depthBias: { value: number };
   depthMaps: { value: THREE.Texture[] };
   projectionMatrices: { value: THREE.Matrix4[] };
+  strengths: { value: number[] };
+  tipRadius: { value: THREE.Vector4[] };
 }
 
 const emptyVector4 = new THREE.Vector4();
@@ -60,6 +65,14 @@ const defaultProjectorProjectionMatrices = Array.from(
   { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
   () => new THREE.Matrix4(),
 );
+const defaultProjectorStrengths = Array.from(
+  { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
+  () => 0,
+);
+const defaultProjectorConeVectors = Array.from(
+  { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
+  () => new THREE.Vector4(),
+);
 const shaderNeutralColor = new THREE.Color(WERKSCHAU_TILE_LOOK.NEUTRAL_COLOR);
 const shaderNeutralLightDirection = new THREE.Vector3(
   WERKSCHAU_TILE_LOOK.NEUTRAL_SHADE_LIGHT_DIRECTION.x,
@@ -69,10 +82,17 @@ const shaderNeutralLightDirection = new THREE.Vector3(
 const fragmentConeMaskShader = createFragmentConeMaskShader();
 const projectorRevealMaskShader = createProjectorRevealMaskShader();
 const projectorRevealUniforms: ProjectorRevealUniforms = {
+  axisHeight: {
+    value: defaultProjectorConeVectors.map((vector) => vector.clone()),
+  },
   count: { value: 0 },
   depthBias: { value: 0.000_5 },
   depthMaps: { value: [...defaultProjectorDepthTextures] },
   projectionMatrices: { value: [...defaultProjectorProjectionMatrices] },
+  strengths: { value: [...defaultProjectorStrengths] },
+  tipRadius: {
+    value: defaultProjectorConeVectors.map((vector) => vector.clone()),
+  },
 };
 const fragmentConeUniformsByMaterial = new WeakMap<
   THREE.Material,
@@ -82,9 +102,16 @@ const fragmentConeUniformsByMaterial = new WeakMap<
 export function setWerkschauTileMaterialProjectorReveal(
   state: ProjectorRevealState,
 ): void {
-  const count = Math.min(
+  const count = Math.max(
+    0,
+    Math.min(
+      WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS,
+      state.count,
+    ),
+  );
+  const strengthCount = Math.min(
     WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS,
-    state.count,
+    state.strengths.length,
   );
   projectorRevealUniforms.count.value = count;
   projectorRevealUniforms.depthBias.value = state.depthBias;
@@ -102,6 +129,28 @@ export function setWerkschauTileMaterialProjectorReveal(
       index < count
         ? (state.projectionMatrices[index] ?? emptyProjectorProjectionMatrix)
         : emptyProjectorProjectionMatrix,
+    );
+    projectorRevealUniforms.strengths.value[index] =
+      index < count && index < strengthCount ? state.strengths[index] : 0;
+
+    const cone = state.cones[index];
+    if (index >= count || !cone) {
+      projectorRevealUniforms.tipRadius.value[index].copy(emptyVector4);
+      projectorRevealUniforms.axisHeight.value[index].copy(emptyVector4);
+      continue;
+    }
+
+    projectorRevealUniforms.tipRadius.value[index].set(
+      cone.tip.x,
+      cone.tip.y,
+      cone.tip.z,
+      cone.radius,
+    );
+    projectorRevealUniforms.axisHeight.value[index].set(
+      cone.axisDirection.x,
+      cone.axisDirection.y,
+      cone.axisDirection.z,
+      cone.height,
     );
   }
 }
@@ -249,10 +298,16 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       projectorRevealUniforms.count;
     shader.uniforms.uWerkschauProjectorRevealDepthBias =
       projectorRevealUniforms.depthBias;
+    shader.uniforms.uWerkschauProjectorRevealTipRadius =
+      projectorRevealUniforms.tipRadius;
+    shader.uniforms.uWerkschauProjectorRevealAxisHeight =
+      projectorRevealUniforms.axisHeight;
     shader.uniforms.uWerkschauProjectorRevealDepthMap =
       projectorRevealUniforms.depthMaps;
     shader.uniforms.uWerkschauProjectorRevealProjectionMatrix =
       projectorRevealUniforms.projectionMatrices;
+    shader.uniforms.uWerkschauProjectorRevealStrength =
+      projectorRevealUniforms.strengths;
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -267,7 +322,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
     shader.fragmentShader = shader.fragmentShader
       .replace(
         "#include <common>",
-        `#include <common>\n#include <packing>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform float uWerkschauFragmentConeEdgeFeather;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform float uWerkschauProjectorRevealCount;\nuniform float uWerkschauProjectorRevealDepthBias;\nuniform sampler2D uWerkschauProjectorRevealDepthMap[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform mat4 uWerkschauProjectorRevealProjectionMatrix[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}\n${projectorRevealMaskShader}`,
+        `#include <common>\n#include <packing>\nuniform vec3 uWerkschauNeutralColor;\nuniform float uWerkschauOutsideOpacity;\nuniform vec3 uWerkschauNeutralLightDirection;\nuniform float uWerkschauNeutralShadeAmbient;\nuniform float uWerkschauNeutralShadeHemisphere;\nuniform float uWerkschauNeutralShadeDirectional;\nuniform vec4 uWerkschauExhibitionBounds;\nuniform float uWerkschauFragmentConeCount;\nuniform float uWerkschauFragmentConeEdgeFeather;\nuniform vec4 uWerkschauFragmentConeTipRadius[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform vec4 uWerkschauFragmentConeAxisHeight[${WERKSCHAU_COLLISION.FRAGMENT_MASK_MAX_CONES}];\nuniform float uWerkschauProjectorRevealCount;\nuniform float uWerkschauProjectorRevealDepthBias;\nuniform float uWerkschauProjectorRevealStrength[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform vec4 uWerkschauProjectorRevealTipRadius[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform vec4 uWerkschauProjectorRevealAxisHeight[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform sampler2D uWerkschauProjectorRevealDepthMap[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nuniform mat4 uWerkschauProjectorRevealProjectionMatrix[${WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS}];\nvarying float vWerkschauConeMask;\nvarying vec3 vWerkschauWorldPosition;\n${fragmentConeMaskShader}\n${projectorRevealMaskShader}`,
       )
       .replace(
         "#include <normal_fragment_begin>",
@@ -279,7 +334,7 @@ function cloneConeTileMaterial(sourceMaterial: THREE.Material): THREE.Material {
       );
   };
   material.customProgramCacheKey = () =>
-    `${previousProgramCacheKey?.() ?? material.type}:werkschau-projector-texture-reveal-v10`;
+    `${previousProgramCacheKey?.() ?? material.type}:werkschau-projector-texture-reveal-v11`;
 
   return material;
 }
@@ -292,27 +347,41 @@ function createFragmentConeMaskShader(): string {
     float coneActive = step(${index.toFixed(1)} + 0.5, uWerkschauFragmentConeCount);
     vec4 tipRadius = uWerkschauFragmentConeTipRadius[${index}];
     vec4 axisHeight = uWerkschauFragmentConeAxisHeight[${index}];
-    float height = max(axisHeight.w, 0.0001);
-    vec3 tipToPosition = worldPosition - tipRadius.xyz;
-    float projectedDistance = dot(tipToPosition, axisHeight.xyz);
-    float edgeFeather = max(uWerkschauFragmentConeEdgeFeather, 0.0001);
-    float insideHeight = smoothstep(0.0, edgeFeather, projectedDistance) *
-      (1.0 - smoothstep(height - edgeFeather, height, projectedDistance));
-    vec3 radialVector = axisHeight.xyz * projectedDistance - tipToPosition;
-    float allowedRadius = tipRadius.w * projectedDistance / height;
-    float radialDistance = length(radialVector);
-    float radiusFeatherStart = max(allowedRadius - edgeFeather, 0.0);
-    float radiusFeatherEnd = max(allowedRadius, radiusFeatherStart + 0.0001);
-    float insideRadius = 1.0 - smoothstep(
-      radiusFeatherStart,
-      radiusFeatherEnd,
-      radialDistance
-    );
-    result = max(result, coneActive * insideHeight * insideRadius);
+    result = max(result, coneActive * werkschauSingleConeMask(
+      worldPosition,
+      tipRadius,
+      axisHeight,
+      uWerkschauFragmentConeEdgeFeather
+    ));
   }`,
   ).join("\n");
 
-  return `float werkschauFragmentConeMask(vec3 worldPosition) {
+  return `float werkschauSingleConeMask(
+  vec3 worldPosition,
+  vec4 tipRadius,
+  vec4 axisHeight,
+  float featherMeters
+) {
+  float height = max(axisHeight.w, 0.0001);
+  vec3 tipToPosition = worldPosition - tipRadius.xyz;
+  float projectedDistance = dot(tipToPosition, axisHeight.xyz);
+  float edgeFeather = max(featherMeters, 0.0001);
+  float insideHeight = smoothstep(0.0, edgeFeather, projectedDistance) *
+    (1.0 - smoothstep(height - edgeFeather, height, projectedDistance));
+  vec3 radialVector = axisHeight.xyz * projectedDistance - tipToPosition;
+  float allowedRadius = tipRadius.w * projectedDistance / height;
+  float radialDistance = length(radialVector);
+  float radiusFeatherStart = max(allowedRadius - edgeFeather, 0.0);
+  float radiusFeatherEnd = max(allowedRadius, radiusFeatherStart + 0.0001);
+  float insideRadius = 1.0 - smoothstep(
+    radiusFeatherStart,
+    radiusFeatherEnd,
+    radialDistance
+  );
+  return insideHeight * insideRadius;
+}
+
+float werkschauFragmentConeMask(vec3 worldPosition) {
   float result = 0.0;
 ${body}
   return result;
@@ -320,6 +389,7 @@ ${body}
 }
 
 function createProjectorRevealMaskShader(): string {
+  const uvMargin = WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.UV_MARGIN.toFixed(4);
   const body = Array.from(
     { length: WERKSCHAU_TEXTURE_REVEAL_PROJECTOR.MAX_PROJECTORS },
     (_, index) => `  {
@@ -327,16 +397,24 @@ function createProjectorRevealMaskShader(): string {
     vec4 projected = uWerkschauProjectorRevealProjectionMatrix[${index}] * vec4(worldPosition, 1.0);
     if (projected.w > 0.0 && projectorActive > 0.0) {
       vec3 revealUv = projected.xyz / projected.w;
+      vec4 tipRadius = uWerkschauProjectorRevealTipRadius[${index}];
+      vec4 axisHeight = uWerkschauProjectorRevealAxisHeight[${index}];
       float inside =
-        step(0.0, revealUv.x) *
-        step(revealUv.x, 1.0) *
-        step(0.0, revealUv.y) *
-        step(revealUv.y, 1.0) *
-        step(0.0, revealUv.z) *
-        step(revealUv.z, 1.0);
+        step(-${uvMargin}, revealUv.x) *
+        step(revealUv.x, 1.0 + ${uvMargin}) *
+        step(-${uvMargin}, revealUv.y) *
+        step(revealUv.y, 1.0 + ${uvMargin}) *
+        step(-${uvMargin}, revealUv.z) *
+        step(revealUv.z, 1.0 + ${uvMargin});
+      float coneMask = werkschauSingleConeMask(
+        worldPosition,
+        tipRadius,
+        axisHeight,
+        uWerkschauFragmentConeEdgeFeather
+      );
       float nearestDepth = unpackRGBAToDepth(texture2D(uWerkschauProjectorRevealDepthMap[${index}], revealUv.xy));
       float visible = step(revealUv.z, nearestDepth + uWerkschauProjectorRevealDepthBias);
-      result = max(result, projectorActive * inside * visible);
+      result = max(result, projectorActive * uWerkschauProjectorRevealStrength[${index}] * inside * coneMask * visible);
     }
   }`,
   ).join("\n");
