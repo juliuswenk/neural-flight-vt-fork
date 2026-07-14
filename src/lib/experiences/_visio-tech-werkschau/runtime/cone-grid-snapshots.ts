@@ -2,6 +2,7 @@ import type {
   WerkschauConeChunkSnapshot,
   WerkschauConeVolume,
 } from "../collision/types";
+import { WERKSCHAU_CONE_MIN_TIP_HEIGHT } from "../constants";
 
 export type ActiveWerkschauConeChunkSnapshotSource = {
   key: string;
@@ -15,13 +16,12 @@ export function buildWerkschauConeSnapshotState(
   coneVolumes: readonly WerkschauConeVolume[];
 } {
   const sourceChunks = Array.from(activeChunks);
-  const minimumOriginHeight = getAverageConeOriginHeight(sourceChunks);
   const chunkSnapshots: WerkschauConeChunkSnapshot[] = [];
   const coneVolumes: WerkschauConeVolume[] = [];
 
   for (const chunk of sourceChunks) {
     const cones = chunk.cones.filter(
-      (cone) => cone.tip.y >= minimumOriginHeight,
+      (cone) => cone.tip.y >= WERKSCHAU_CONE_MIN_TIP_HEIGHT,
     );
     chunkSnapshots.push({
       key: chunk.key,
@@ -34,20 +34,4 @@ export function buildWerkschauConeSnapshotState(
     chunkSnapshots,
     coneVolumes,
   };
-}
-
-function getAverageConeOriginHeight(
-  chunks: readonly ActiveWerkschauConeChunkSnapshotSource[],
-): number {
-  let sum = 0;
-  let count = 0;
-
-  for (const chunk of chunks) {
-    for (const cone of chunk.cones) {
-      sum += cone.tip.y;
-      count += 1;
-    }
-  }
-
-  return count > 0 ? sum / count : Number.NEGATIVE_INFINITY;
 }

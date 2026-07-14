@@ -28,9 +28,9 @@ function createBoxTrackedMesh(sourceUrl, position) {
 
 test("buildBerlinConeDataset creates chunked cone output from offline meshes", () => {
   const trackedMeshes = [
-    createBoxTrackedMesh("mesh-a", new THREE.Vector3(0, 20, 0)),
-    createBoxTrackedMesh("mesh-b", new THREE.Vector3(120, 20, 0)),
-    createBoxTrackedMesh("mesh-c", new THREE.Vector3(0, 20, 120)),
+    createBoxTrackedMesh("mesh-a", new THREE.Vector3(0, 120, 0)),
+    createBoxTrackedMesh("mesh-b", new THREE.Vector3(120, 120, 0)),
+    createBoxTrackedMesh("mesh-c", new THREE.Vector3(0, 120, 120)),
   ];
 
   const result = buildBerlinConeDataset({
@@ -58,9 +58,9 @@ test("buildBerlinConeDataset creates chunked cone output from offline meshes", (
 
 test("buildBerlinConeDataset can filter buildings by radius around a center", () => {
   const trackedMeshes = [
-    createBoxTrackedMesh("near-a", new THREE.Vector3(0, 20, 0)),
-    createBoxTrackedMesh("near-b", new THREE.Vector3(900, 20, 0)),
-    createBoxTrackedMesh("far-c", new THREE.Vector3(1300, 20, 0)),
+    createBoxTrackedMesh("near-a", new THREE.Vector3(0, 120, 0)),
+    createBoxTrackedMesh("near-b", new THREE.Vector3(900, 120, 0)),
+    createBoxTrackedMesh("far-c", new THREE.Vector3(1300, 120, 0)),
   ];
 
   const result = buildBerlinConeDataset({
@@ -84,8 +84,8 @@ test("buildBerlinConeDataset can filter buildings by radius around a center", ()
 
 test("buildBerlinConeDataset chunk data round-trips through the runtime loader", () => {
   const trackedMeshes = [
-    createBoxTrackedMesh("mesh-a", new THREE.Vector3(0, 20, 0)),
-    createBoxTrackedMesh("mesh-b", new THREE.Vector3(120, 20, 0)),
+    createBoxTrackedMesh("mesh-a", new THREE.Vector3(0, 120, 0)),
+    createBoxTrackedMesh("mesh-b", new THREE.Vector3(120, 120, 0)),
   ];
 
   const result = buildBerlinConeDataset({

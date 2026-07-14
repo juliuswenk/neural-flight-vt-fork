@@ -117,6 +117,9 @@ export function filterBerlinRoofCornerCandidates(
       cornerIndex: candidate.cornerIndex,
       elevation: candidate.elevation,
       worldPosition: candidate.worldPosition.clone(),
+      roofCenter: candidate.roofCenter?.clone(),
+      roofOutwardDirection: candidate.roofOutwardDirection?.clone(),
+      placementScore: candidate.placementScore,
     });
   }
 
@@ -148,12 +151,18 @@ function compareRoofCornerCandidates(
   left: BerlinRoofCornerCandidate,
   right: BerlinRoofCornerCandidate,
 ): number {
-  if (left.elevation !== right.elevation) {
-    return right.elevation - left.elevation;
+  const leftScore = left.placementScore ?? 0;
+  const rightScore = right.placementScore ?? 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
   }
 
   if (left.buildingId !== right.buildingId) {
     return left.buildingId.localeCompare(right.buildingId);
+  }
+
+  if (left.elevation !== right.elevation) {
+    return right.elevation - left.elevation;
   }
 
   if (left.cornerIndex !== right.cornerIndex) {

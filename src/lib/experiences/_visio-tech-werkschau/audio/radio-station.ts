@@ -1,7 +1,14 @@
 import * as THREE from "three";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import {
+  createWerkschauNeutralTileMaterial,
+  disposeMaterial,
+} from "../runtime/tiles-material";
 import { WERKSCHAU_RADIO, type WerkschauRadioStationDef } from "./radio-config";
 
 const PROXY_BASE = "/api/radio/proxy";
+const RADIO_MARKER_MODEL_URL =
+  "/experiences/_visio-tech-werkschau/inc3d_comm_tower.obj";
 
 export class WerkschauRadioStation {
   readonly id: string;
@@ -15,7 +22,8 @@ export class WerkschauRadioStation {
     | null = null;
   private pannerNode: PannerNode | null = null;
   private gainNode: GainNode | null = null;
-  private marker: THREE.Mesh | null = null;
+  private marker: THREE.Group | null = null;
+  private disposed = false;
   private playing = false;
   private volume: number;
 
@@ -121,11 +129,9 @@ export class WerkschauRadioStation {
 
   dispose(): void {
     this.stop();
+    this.disposed = true;
     this.object3D.removeFromParent();
-    this.marker?.geometry.dispose();
-    if (this.marker?.material instanceof THREE.Material) {
-      this.marker.material.dispose();
-    }
+    disposeObject(this.marker);
     this.marker = null;
   }
 
@@ -171,15 +177,47 @@ export class WerkschauRadioStation {
   }
 
   private addDebugMarker(): void {
-    const geometry = new THREE.SphereGeometry(1.5, 8, 8);
-    const material = new THREE.MeshBasicMaterial({
-      color: 0x00ffaa,
-      transparent: true,
-      opacity: 0.4,
-      depthWrite: false,
+    const marker = new THREE.Group();
+    this.marker = marker;
+    this.object3D.add(marker);
+
+    new OBJLoader().load(RADIO_MARKER_MODEL_URL, (object) => {
+      if (this.disposed) {
+        disposeObject(object);
+        return;
+      }
+
+      const disposedSourceMaterials = new WeakSet<THREE.Material>();
+      object.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          const sourceMaterial = child.material;
+          child.material = createWerkschauNeutralTileMaterial(sourceMaterial);
+          disposeMaterial(sourceMaterial, disposedSourceMaterials);
+        }
+      });
+
+      const bounds = new THREE.Box3().setFromObject(object);
+      object.position.set(
+        -(bounds.min.x + bounds.max.x) / 2,
+        -bounds.min.y,
+        -(bounds.min.z + bounds.max.z) / 2,
+      );
+      object.scale.setScalar(0.25);
+      marker.add(object);
     });
-    this.marker = new THREE.Mesh(geometry, material);
-    this.marker.position.y = 2;
-    this.object3D.add(this.marker);
   }
+}
+
+function disposeObject(object: THREE.Object3D | null): void {
+  object?.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) return;
+    child.geometry.dispose();
+    if (Array.isArray(child.material)) {
+      for (const material of child.material) {
+        material.dispose();
+      }
+    } else {
+      child.material.dispose();
+    }
+  });
 }

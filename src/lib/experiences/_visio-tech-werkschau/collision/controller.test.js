@@ -168,3 +168,28 @@ test("prebaked cone intersection metadata can come from mesh userData", () => {
 
   expect(trackedMesh.prebakedConeIntersection).toBe(true);
 });
+
+test("prebaked cone masks are accepted when bake source matches runtime source", () => {
+  const material = new THREE.MeshBasicMaterial();
+  const geometry = createTestGeometry();
+  geometry.setAttribute("coneMask", new THREE.BufferAttribute(new Float32Array([0, 1, 0]), 1));
+  geometry.userData.werkschauBakeSource = "baked/source.glb";
+  const mesh = new THREE.Mesh(geometry, material);
+
+  const trackedMesh = preprocessTrackedMesh(mesh, material, "baked/source.glb");
+
+  expect(trackedMesh?.hasPrebakedConeMask).toBe(true);
+});
+
+test("prebaked cone masks are rejected when bake source is stale", () => {
+  const material = new THREE.MeshBasicMaterial();
+  const geometry = createTestGeometry();
+  geometry.setAttribute("coneMask", new THREE.BufferAttribute(new Float32Array([0, 1, 0]), 1));
+  geometry.userData.werkschauBakeSource = "old/source.glb";
+  const mesh = new THREE.Mesh(geometry, material);
+
+  const trackedMesh = preprocessTrackedMesh(mesh, material, "baked/source.glb");
+
+  expect(trackedMesh?.hasPrebakedConeMask).toBe(false);
+  expect(trackedMesh?.coneMaskAttribute).toBe(null);
+});

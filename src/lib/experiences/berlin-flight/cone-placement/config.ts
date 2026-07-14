@@ -3,8 +3,8 @@ export const BERLIN_CONE_PLACEMENT = {
    * Tilt is measured from straight down:
    * 0 = straight down, 90 = horizontal.
    */
-  MIN_TILT_DEGREES: 35,
-  MAX_TILT_DEGREES: 80,
+  MIN_TILT_DEGREES: 45,
+  MAX_TILT_DEGREES: 72,
   NEIGHBORHOOD_SEARCH_RADIUS: 64,
   MIN_NEARBY_SAMPLE_COUNT: 1,
   MAX_DIRECTION_SAMPLES: 6,

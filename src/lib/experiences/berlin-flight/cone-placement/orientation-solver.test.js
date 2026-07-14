@@ -53,3 +53,15 @@ test("solveBerlinConeAxisDirection rejects ambiguous mostly vertical neighborhoo
 
   expect(axis).toBeNull();
 });
+
+test("solveBerlinConeAxisDirection uses roof outward direction without mesh samples", () => {
+  const point = {
+    ...createPoint(),
+    roofOutwardDirection: new THREE.Vector3(1, 0, 0),
+  };
+  const axis = solveBerlinConeAxisDirection(point, null);
+
+  expect(axis).not.toBeNull();
+  expect(axis.x).toBeGreaterThan(0);
+  expect(axis.y).toBeLessThan(0);
+});

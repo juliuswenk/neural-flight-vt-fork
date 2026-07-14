@@ -80,14 +80,13 @@ export function buildBerlinConeDataset(input: {
 
   for (const point of filterResult.acceptedPoints) {
     const neighborhood = sampleBerlinMeshNeighborhood(point, filteredMeshes);
-    if (!neighborhood) {
-      skippedMissingNeighborhood += 1;
-      continue;
-    }
-
     const axisDirection = solveBerlinConeAxisDirection(point, neighborhood);
     if (!axisDirection) {
-      skippedAmbiguousDirection += 1;
+      if (neighborhood) {
+        skippedAmbiguousDirection += 1;
+      } else {
+        skippedMissingNeighborhood += 1;
+      }
       continue;
     }
 

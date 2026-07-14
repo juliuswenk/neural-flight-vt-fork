@@ -1,18 +1,22 @@
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import * as THREE from "three";
-import {
-  WERKSCHAU_FROZEN_INNER_CITY_BOUNDS,
-  WERKSCHAU_ION_ASSET_ID,
-} from "../constants";
 import { WERKSCHAU_BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
 import { geoToLocal, getECEFToLocalMatrix } from "../geo/coordinates";
-import { resolveWerkschauTilesSource } from "../runtime/tiles-source";
 
 const MANIFEST_FILE = "werkschau-freeze-manifest.json";
 const ROOT_TILESET_FILE = "tileset.json";
 const SMOKE_CONTENT_LIMIT = 5;
 const RENDER_CONTENT_MARGIN_METERS = 1000;
+const WERKSCHAU_ION_ASSET_ID = Number(process.env.PUBLIC_BERLIN_ION_ASSET_ID);
+const WERKSCHAU_FROZEN_INNER_CITY_BOUNDS = {
+  center: {
+    x: 0,
+    y: 100,
+    z: 0,
+  },
+  radiusMeters: 4000,
+} as const;
 const ecefToLocalMatrix = getECEFToLocalMatrix(WERKSCHAU_BERLIN_MITTE_ORIGIN);
 
 type JsonValue =
@@ -58,6 +62,19 @@ interface ContentRef {
   value: string;
 }
 
+interface FreezeTilesSource {
+  url: string;
+  token: string;
+}
+
+type CesiumIonEndpointResponse = {
+  accessToken?: unknown;
+  options?: {
+    url?: unknown;
+  };
+  url?: unknown;
+};
+
 await main();
 
 async function main(): Promise<void> {
@@ -72,7 +89,7 @@ async function main(): Promise<void> {
   }
 
   const outputDir = path.resolve(outputArg);
-  const source = await resolveWerkschauTilesSource();
+  const source = await resolveFreezeTilesSource();
   const context: FreezeContext = {
     outputDir,
     token: source.token,
@@ -119,6 +136,53 @@ async function main(): Promise<void> {
       2,
     ),
   );
+}
+
+async function resolveFreezeTilesSource(): Promise<FreezeTilesSource> {
+  const directUrl = process.env.PUBLIC_BERLIN_TILES_URL ?? "";
+  const ionToken = process.env.PUBLIC_CESIUM_ION_TOKEN ?? "";
+
+  if (directUrl) {
+    return {
+      url: directUrl,
+      token: ionToken,
+    };
+  }
+
+  if (!ionToken || !WERKSCHAU_ION_ASSET_ID) {
+    throw new Error(
+      "[Werkschau] Missing PUBLIC_BERLIN_TILES_URL or PUBLIC_CESIUM_ION_TOKEN + PUBLIC_BERLIN_ION_ASSET_ID.",
+    );
+  }
+
+  const endpoint = `https://api.cesium.com/v1/assets/${WERKSCHAU_ION_ASSET_ID}/endpoint?access_token=${ionToken}`;
+  const response = await fetch(endpoint);
+  if (!response.ok) {
+    throw new Error(
+      `[Werkschau] Failed to resolve Cesium Ion asset: ${response.status} ${await response.text()}`,
+    );
+  }
+
+  const data = (await response.json()) as CesiumIonEndpointResponse;
+
+  return {
+    url: getCesiumTilesetUrl(data),
+    token: getStringValue(data.accessToken),
+  };
+}
+
+function getCesiumTilesetUrl(data: CesiumIonEndpointResponse): string {
+  const tilesetUrl =
+    getStringValue(data.url) || getStringValue(data.options?.url);
+  if (tilesetUrl) return tilesetUrl;
+
+  throw new Error(
+    `[Werkschau] Cesium Ion response missing tileset URL. Response: ${JSON.stringify(data)}`,
+  );
+}
+
+function getStringValue(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 async function freezeTileset(

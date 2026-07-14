@@ -11,11 +11,11 @@ export function solveBerlinConeAxisDirection(
   point: BerlinAcceptedShadowOriginPoint,
   neighborhood: BerlinConeMeshNeighborhood | null,
 ): THREE.Vector3 | null {
-  void point;
-
-  if (!neighborhood) {
-    return null;
+  if (point.roofOutwardDirection && point.roofOutwardDirection.lengthSq() > 0) {
+    return createAxisFromOutwardDirection(point.roofOutwardDirection, 1);
   }
+
+  if (!neighborhood) return null;
 
   const horizontalLength = neighborhood.horizontalDirectionToGeometry.length();
   const geometryLength = neighborhood.directionToGeometry.length();
@@ -61,6 +61,34 @@ export function solveBerlinConeAxisDirection(
   }
 
   return scratchAxis.clone();
+}
+
+function createAxisFromOutwardDirection(
+  outwardDirection: THREE.Vector3,
+  horizontalStrength: number,
+): THREE.Vector3 | null {
+  scratchOutward.copy(outwardDirection);
+  scratchOutward.y = 0;
+
+  if (scratchOutward.lengthSq() === 0) {
+    return null;
+  }
+
+  scratchOutward.normalize();
+
+  const tiltRadians = getTiltRadians(horizontalStrength);
+  scratchAxis
+    .copy(downAxis)
+    .multiplyScalar(Math.cos(tiltRadians))
+    .addScaledVector(scratchOutward, Math.sin(tiltRadians));
+
+  const axisLengthSq = scratchAxis.lengthSq();
+  if (axisLengthSq === 0 || !Number.isFinite(axisLengthSq)) {
+    return null;
+  }
+
+  scratchAxis.normalize();
+  return scratchAxis.y < 0 ? scratchAxis.clone() : null;
 }
 
 function getTiltRadians(horizontalStrength: number): number {

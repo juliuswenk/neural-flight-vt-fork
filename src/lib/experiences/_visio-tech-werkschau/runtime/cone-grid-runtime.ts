@@ -13,7 +13,6 @@ import {
   getWerkschauConeChunkCoordinate,
   getWerkschauConeChunkKey,
 } from "./cone-grid-coordinates";
-import { buildWerkschauConeSnapshotState } from "./cone-grid-snapshots";
 
 const localDownAxis = new THREE.Vector3(0, -1, 0);
 const scratchCenter = new THREE.Vector3();
@@ -178,12 +177,9 @@ export class WerkschauConeGridRuntime {
   private syncFromChunkStore(): void {
     if (this.snapshotVersion === this.chunkStore.getSnapshotVersion()) return;
 
-    const nextState = buildWerkschauConeSnapshotState(
-      this.chunkStore.getActiveConeChunks(),
-    );
-    this.activeConeChunksSnapshot = nextState.chunkSnapshots;
-    this.activeConeVolumes = nextState.coneVolumes
-      .slice()
+    this.activeConeChunksSnapshot = this.chunkStore.getActiveConeChunks();
+    this.activeConeVolumes = this.activeConeChunksSnapshot
+      .flatMap((chunk) => chunk.cones)
       .sort(compareConeVolumes);
     this.rebuildMesh();
     this.snapshotVersion = this.chunkStore.getSnapshotVersion();

@@ -6,6 +6,7 @@ import type {
 } from "./types";
 
 const scratchPosition = new THREE.Vector3();
+const scratchRoofCenter = new THREE.Vector3();
 
 interface RoofCell {
   cellX: number;
@@ -15,6 +16,11 @@ interface RoofCell {
     vertexIndex: number;
     worldPosition: THREE.Vector3;
   }>;
+}
+
+interface RoofHullPoint {
+  vertexIndex: number;
+  worldPosition: THREE.Vector3;
 }
 
 export function extractBerlinRoofCornerCandidates(
@@ -92,38 +98,136 @@ export function extractBerlinRoofCornerCandidates(
       roofCells.size === 1
         ? source.buildingId
         : `${source.buildingId}:cell:${cell.cellX}:${cell.cellZ}`;
-    const roofElevationThreshold =
-      cell.maxElevation - BERLIN_PLACEMENT.ROOF_ELEVATION_EPSILON;
-    const cellCandidates: BerlinRoofCornerCandidate[] = [];
-
-    for (const vertex of cell.vertices) {
-      if (vertex.worldPosition.y < roofElevationThreshold) {
-        continue;
-      }
-
-      if (
-        hasNearbyCandidate(
-          cellCandidates,
-          vertex.worldPosition,
-          dedupeDistanceSq,
-        )
-      ) {
-        continue;
-      }
-
-      cellCandidates.push({
-        buildingId,
-        sourceKey: source.sourceKey,
-        cornerIndex: vertex.vertexIndex,
-        elevation: vertex.worldPosition.y,
-        worldPosition: vertex.worldPosition.clone(),
-      });
+    if (cell.maxElevation < BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT) {
+      continue;
     }
+
+    const roofPoints = getDedupedRoofPoints(cell);
+    const hull = getConvexHull(roofPoints);
+    if (hull.length < 3) {
+      continue;
+    }
+
+    getRoofCenter(hull, scratchRoofCenter);
+    const cellCandidates = hull
+      .filter(
+        (point) =>
+          !hasNearbyCandidate(candidates, point.worldPosition, dedupeDistanceSq),
+      )
+      .map((point) =>
+        createRoofCornerCandidate(
+          point,
+          buildingId,
+          source.sourceKey,
+          scratchRoofCenter,
+        ),
+      );
 
     candidates.push(...limitCornerCandidates(cellCandidates));
   }
 
   return candidates.sort(compareCornerCandidates);
+}
+
+function getDedupedRoofPoints(cell: RoofCell): RoofHullPoint[] {
+  const roofElevationThreshold =
+    cell.maxElevation - BERLIN_PLACEMENT.ROOF_ELEVATION_EPSILON;
+  const roofPoints = new Map<string, RoofHullPoint>();
+
+  for (const vertex of cell.vertices) {
+    if (vertex.worldPosition.y < roofElevationThreshold) {
+      continue;
+    }
+
+    const key = `${quantize(vertex.worldPosition.x)}:${quantize(vertex.worldPosition.z)}`;
+    const existing = roofPoints.get(key);
+    if (existing && existing.worldPosition.y >= vertex.worldPosition.y) {
+      continue;
+    }
+
+    roofPoints.set(key, {
+      vertexIndex: vertex.vertexIndex,
+      worldPosition: vertex.worldPosition.clone(),
+    });
+  }
+
+  return Array.from(roofPoints.values()).sort(compareHullPoints);
+}
+
+function getConvexHull(points: readonly RoofHullPoint[]): RoofHullPoint[] {
+  if (points.length <= 3) {
+    return [...points];
+  }
+
+  const lower: RoofHullPoint[] = [];
+  for (const point of points) {
+    while (
+      lower.length >= 2 &&
+      getCrossProduct(lower[lower.length - 2], lower[lower.length - 1], point) <=
+        0
+    ) {
+      lower.pop();
+    }
+    lower.push(point);
+  }
+
+  const upper: RoofHullPoint[] = [];
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    const point = points[index];
+    while (
+      upper.length >= 2 &&
+      getCrossProduct(upper[upper.length - 2], upper[upper.length - 1], point) <=
+        0
+    ) {
+      upper.pop();
+    }
+    upper.push(point);
+  }
+
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+}
+
+function getRoofCenter(
+  points: readonly RoofHullPoint[],
+  target: THREE.Vector3,
+): THREE.Vector3 {
+  target.set(0, 0, 0);
+
+  for (const point of points) {
+    target.add(point.worldPosition);
+  }
+
+  return target.multiplyScalar(1 / points.length);
+}
+
+function createRoofCornerCandidate(
+  point: RoofHullPoint,
+  buildingId: string,
+  sourceKey: string,
+  roofCenter: THREE.Vector3,
+): BerlinRoofCornerCandidate {
+  const roofOutwardDirection = point.worldPosition.clone().sub(roofCenter);
+  roofOutwardDirection.y = 0;
+  const placementScore = roofOutwardDirection.length();
+
+  if (roofOutwardDirection.lengthSq() > 0) {
+    roofOutwardDirection.normalize();
+  } else {
+    roofOutwardDirection.set(1, 0, 0);
+  }
+
+  return {
+    buildingId,
+    sourceKey,
+    cornerIndex: point.vertexIndex,
+    elevation: point.worldPosition.y,
+    worldPosition: point.worldPosition.clone(),
+    roofCenter: roofCenter.clone(),
+    roofOutwardDirection,
+    placementScore,
+  };
 }
 
 function limitCornerCandidates(
@@ -159,6 +263,12 @@ function compareCornerCandidates(
   left: BerlinRoofCornerCandidate,
   right: BerlinRoofCornerCandidate,
 ): number {
+  const leftScore = left.placementScore ?? 0;
+  const rightScore = right.placementScore ?? 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
+  }
+
   if (left.elevation !== right.elevation) {
     return right.elevation - left.elevation;
   }
@@ -172,4 +282,33 @@ function compareCornerCandidates(
   }
 
   return left.cornerIndex - right.cornerIndex;
+}
+
+function compareHullPoints(left: RoofHullPoint, right: RoofHullPoint): number {
+  if (left.worldPosition.x !== right.worldPosition.x) {
+    return left.worldPosition.x - right.worldPosition.x;
+  }
+
+  if (left.worldPosition.z !== right.worldPosition.z) {
+    return left.worldPosition.z - right.worldPosition.z;
+  }
+
+  return left.vertexIndex - right.vertexIndex;
+}
+
+function getCrossProduct(
+  origin: RoofHullPoint,
+  left: RoofHullPoint,
+  right: RoofHullPoint,
+): number {
+  const leftX = left.worldPosition.x - origin.worldPosition.x;
+  const leftZ = left.worldPosition.z - origin.worldPosition.z;
+  const rightX = right.worldPosition.x - origin.worldPosition.x;
+  const rightZ = right.worldPosition.z - origin.worldPosition.z;
+
+  return leftX * rightZ - leftZ * rightX;
+}
+
+function quantize(value: number): number {
+  return Math.round(value / BERLIN_PLACEMENT.SAME_BUILDING_DEDUPE_EPSILON);
 }
