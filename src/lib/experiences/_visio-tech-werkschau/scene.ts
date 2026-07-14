@@ -17,6 +17,7 @@ import {
   WERKSCHAU_PLAYER_SPAWN_POSITION,
   WERKSCHAU_TILE_SELECTION_FOV,
 } from "./constants";
+import { createFuturisticSkydome } from "./futuristic-skydome";
 import { createWerkschauOnboardingAudio } from "./onboarding/audio";
 import { createWerkschauOnboardingController } from "./onboarding/controller";
 import { disposeObjectTree } from "./runtime/cleanup";
@@ -30,9 +31,7 @@ import {
 import type { WerkschauState } from "./types";
 
 const scratchPosition = new THREE.Vector3();
-const WERKSCHAU_SKYBOX_COLOR = 0x87ceeb;
-const WERKSCHAU_SKYBOX_TEXTURE_URL =
-  "/experiences/_visio-tech-werkschau/skybox.jpeg";
+const WERKSCHAU_SHUTDOWN_FADE_COLOR = 0x000000;
 const WERKSCHAU_AR_CLEAR_COLOR = 0x79b8d9;
 const WERKSCHAU_SKYBOX_RADIUS = WERKSCHAU_CAMERA_FAR * 0.85;
 const WERKSCHAU_SHUTDOWN_RENDER_DISTANCE = 0.11;
@@ -81,26 +80,8 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   const borderGrid = createExhibitionBorderGrid();
   sceneRoot.add(borderGrid);
 
-  const skyboxTexture = new THREE.TextureLoader().load(WERKSCHAU_SKYBOX_TEXTURE_URL);
-  skyboxTexture.colorSpace = THREE.SRGBColorSpace;
-  skyboxTexture.mapping = THREE.EquirectangularReflectionMapping;
-
-  const skyboxGeometry = new THREE.SphereGeometry(WERKSCHAU_SKYBOX_RADIUS, 64, 32);
-  skyboxGeometry.scale(-1, 1, 1);
-
-  const skybox = new THREE.Mesh(
-    skyboxGeometry,
-    new THREE.MeshBasicMaterial({
-      map: skyboxTexture,
-      fog: false,
-      side: THREE.FrontSide,
-    }),
-  );
+  const skybox = createFuturisticSkydome({ radius: WERKSCHAU_SKYBOX_RADIUS });
   skybox.name = "VisioTechWerkschauSkybox";
-  skybox.renderOrder = -1000;
-  if (skybox.material instanceof THREE.Material) {
-    skybox.material.depthWrite = false;
-  }
   sceneRoot.add(skybox);
 
   const fillLights = createFillLights();
@@ -108,8 +89,18 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   sceneRoot.add(fillLights.directional);
 
   let state: WerkschauState;
+  let removeXrSelectAudioFallback: (() => void) | null = null;
   const onXrSessionStart = (): void => {
-    updateWerkschauRadioAudio(state, true);
+    resumeWerkschauAudioContext(state);
+    removeXrSelectAudioFallback?.();
+    removeXrSelectAudioFallback = attachXrSelectAudioFallback(
+      state,
+      ctx.renderer.xr.getSession(),
+    );
+  };
+  const onXrSessionEnd = (): void => {
+    removeXrSelectAudioFallback?.();
+    removeXrSelectAudioFallback = null;
   };
 
   state = {
@@ -145,9 +136,13 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     abortController: new AbortController(),
     removeAudioResumeListener: () => {
       ctx.renderer.xr.removeEventListener("sessionstart", onXrSessionStart);
+      ctx.renderer.xr.removeEventListener("sessionend", onXrSessionEnd);
+      removeXrSelectAudioFallback?.();
+      removeXrSelectAudioFallback = null;
     },
   };
   ctx.renderer.xr.addEventListener("sessionstart", onXrSessionStart);
+  ctx.renderer.xr.addEventListener("sessionend", onXrSessionEnd);
   if (ctx.previewMode) {
     state.onboarding.progress = 1;
     state.onboarding.isActive = false;
@@ -181,14 +176,29 @@ export function tick(
       : state.onboarding.progress;
   state.renderer.setClearColor(WERKSCHAU_AR_CLEAR_COLOR, virtualAlpha);
   setWerkschauWorldVisualsVisible(state, showVirtualWorld);
-  setWerkschauSkyboxVisible(
-    state,
-    showVirtualWorld && !hasWerkschauShutdownStarted(state),
-  );
+  if (
+    hasWerkschauShutdownStarted(state) &&
+    !state.onboarding.hasEnded
+  ) {
+    state.skybox.visible = true;
+    const fadeProgress = state.onboarding.shutdownProgress;
+    state.renderer.setClearColor(
+      WERKSCHAU_SHUTDOWN_FADE_COLOR,
+      THREE.MathUtils.lerp(virtualAlpha, 1, fadeProgress),
+    );
+    if (state.skyboxVisible) {
+      state.skyboxVisible = false;
+    }
+  } else {
+    setWerkschauSkyboxVisible(
+      state,
+      showVirtualWorld && !state.onboarding.hasEnded,
+    );
+  }
   updateWerkschauShutdownRenderDistance(state);
   state.onboardingAudio.update(state.onboarding.progress);
   state.radioManager.setMasterVolume(state.onboardingAudio.fullGain);
-  updateWerkschauRadioAudio(state, isXrPresenting || state.previewMode);
+  updateWerkschauRadioAudio(state);
 
   state.player.baseSpeed =
     getAltitudeScaledSpeed(state.targetSpeed, state.player.rig.position.y) *
@@ -203,6 +213,9 @@ export function tick(
   state.coneRuntime.update(state.player.rig.position);
   updateWerkschauConeDiagnostic(state);
   state.camera.getWorldPosition(state.skybox.position);
+  if (state.skybox.material instanceof THREE.ShaderMaterial) {
+    state.skybox.material.uniforms.uOrigin.value.copy(state.skybox.position);
+  }
   if (state.tilesRuntime) {
     Scheduler.setXRSession(state.renderer.xr.getSession() as XRSession);
     syncTileSelectionCameras(state);
@@ -255,16 +268,16 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   state.sceneRoot.clear();
 }
 
-function updateWerkschauRadioAudio(
-  state: WerkschauState,
-  shouldRun: boolean,
-): void {
+function updateWerkschauRadioAudio(state: WerkschauState): void {
+  startWerkschauRadioIfAudioRunning(state);
+}
+
+function resumeWerkschauAudioContext(state: WerkschauState): void {
   const audioContext = state.listener.context;
   if (startWerkschauRadioIfAudioRunning(state)) return;
 
   if (
-    !shouldRun ||
-    audioContext.state !== "suspended" ||
+    audioContext.state === "running" ||
     werkschauAudioResumeByContext.has(audioContext)
   ) {
     return;
@@ -282,6 +295,25 @@ function updateWerkschauRadioAudio(
   void resume.then(() => {
     startWerkschauRadioIfAudioRunning(state);
   });
+}
+
+// Some WebXR browsers (notably Quest Browser) don't grant "sticky" user
+// activation on the `sessionstart` event, so an AudioContext.resume() call
+// made from that handler can silently fail to unlock audio in the headset.
+// The session's native `select` event (controller trigger) always carries a
+// real user gesture, so it's used as a guaranteed fallback to unlock audio.
+function attachXrSelectAudioFallback(
+  state: WerkschauState,
+  session: XRSession | null,
+): (() => void) | null {
+  if (!session) return null;
+
+  const onSelect = (): void => {
+    resumeWerkschauAudioContext(state);
+    if (state.radioManager.isStarted) session.removeEventListener("select", onSelect);
+  };
+  session.addEventListener("select", onSelect);
+  return () => session.removeEventListener("select", onSelect);
 }
 
 function startWerkschauRadioIfAudioRunning(state: WerkschauState): boolean {
@@ -443,9 +475,6 @@ function setWerkschauSkyboxVisible(
 
   state.skyboxVisible = visible;
   state.skybox.visible = visible;
-  state.scene.background = visible
-    ? new THREE.Color(WERKSCHAU_SKYBOX_COLOR)
-    : null;
 }
 
 function updateWerkschauShutdownRenderDistance(state: WerkschauState): void {

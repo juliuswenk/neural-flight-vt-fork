@@ -66,6 +66,7 @@
     let removeResizeListener: (() => void) | null = null;
     let removePreviewKeyboardListeners: (() => void) | null = null;
     let unsubscribeHostOrientation: (() => void) | null = null;
+    let removeWindowAudioListeners: (() => void) | null = null;
 
     onMount(() => {
         let mounted = true;
@@ -138,11 +139,37 @@
             hasOutputs = (exp.manifest.outputs?.length ?? 0) > 0;
             const renderCamera = exp.state.camera as THREE.PerspectiveCamera;
 
+            const resumeAudio = () => {
+                const state = exp.state as any;
+                if (state.listener && state.listener.context) {
+                    const ctx = state.listener.context as AudioContext;
+                    if (ctx.state && ctx.state !== "running") {
+                        ctx.resume()
+                            .then(() => {
+                                console.log(`[VR] AudioContext resumed via user gesture for ${exp.manifest.id}`);
+                                if (state.radioManager && !state.radioManager.isStarted) {
+                                    state.radioManager.start();
+                                }
+                            })
+                            .catch((err) => {
+                                console.warn("[VR] AudioContext resume failed:", err);
+                            });
+                    }
+                }
+            };
+            window.addEventListener("click", resumeAudio);
+            window.addEventListener("touchend", resumeAudio);
+            removeWindowAudioListeners = () => {
+                window.removeEventListener("click", resumeAudio);
+                window.removeEventListener("touchend", resumeAudio);
+            };
+
             function onResize(): void {
                 renderCamera.aspect = window.innerWidth / window.innerHeight;
                 renderCamera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
+            onResize();
             window.addEventListener("resize", onResize);
             removeResizeListener = () =>
                 window.removeEventListener("resize", onResize);
@@ -338,6 +365,7 @@
         xrButton?.remove();
         removePreviewKeyboardListeners?.();
         unsubscribeHostOrientation?.();
+        removeWindowAudioListeners?.();
         hostControl?.disconnect();
         hostRuntime?.disconnect();
         ws?.disconnect();

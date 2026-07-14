@@ -37,7 +37,8 @@ export class RadioStation {
     this.def = def;
     this.id = def.id;
     this.name = def.name;
-    this.streamUrl = def.url.startsWith("/")
+    const isCorsFriendly = def.url.includes("dispatcher.rndfnk.com");
+    this.streamUrl = def.url.startsWith("/") || isCorsFriendly
       ? def.url
       : `${PROXY_BASE}?url=${encodeURIComponent(def.url)}`;
     this.baseVolume = def.volume;
