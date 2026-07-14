@@ -122,6 +122,12 @@ export class TilesRuntimeAdapter {
     renderer.errorTarget = WERKSCHAU_TILE_RUNTIME.ERROR_TARGET;
     renderer.loadSiblings = WERKSCHAU_TILE_RUNTIME.LOAD_SIBLINGS;
     renderer.displayActiveTiles = WERKSCHAU_TILE_RUNTIME.DISPLAY_ACTIVE_TILES;
+    // displayActiveTiles keeps off-screen/overlapping LOD tiles resident, and this
+    // runtime registers multiple selection cameras (see tileSelectionCameras) — the
+    // library's docs call out both as cases where its own forced frustumCulled=false
+    // must be disabled, so real per-object culling (driven by the actual render
+    // camera) can drop tiles that would otherwise sit resident and z-fight.
+    renderer.autoDisableRendererCulling = false;
     renderer.downloadQueue.maxJobs = WERKSCHAU_TILE_RUNTIME.DOWNLOAD_JOBS;
     renderer.parseQueue.maxJobs = WERKSCHAU_TILE_RUNTIME.PARSE_JOBS;
     renderer.processNodeQueue.maxJobs =

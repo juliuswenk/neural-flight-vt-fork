@@ -4,8 +4,10 @@ import { CAMERA } from "$lib/config/flight";
 import { FlightPlayer } from "$lib/three/player";
 import type { SetupContext, TickContext } from "../types";
 import { WerkschauRadioManager } from "./audio/radio-manager";
+import { WerkschauConeSpatialAudio } from "./audio/cone-spatial-audio";
 import { WERKSCHAU_COLLISION } from "./collision/config";
 import { WerkschauCollisionController } from "./collision/controller";
+import { WerkschauDroneBoidSystem } from "./drones/boid-system";
 import {
   WERKSCHAU_ALTITUDE_SPEED,
   WERKSCHAU_CAMERA_FAR,
@@ -57,6 +59,8 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   sceneRoot.add(coneRuntime.root);
   const collisionController = new WerkschauCollisionController();
   const textureRevealProjector = new WerkschauTextureRevealProjector();
+  const droneBoids = new WerkschauDroneBoidSystem();
+  sceneRoot.add(droneBoids.group);
 
   const player = new FlightPlayer({
     fov: CAMERA.FOV,
@@ -124,6 +128,8 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     camera: player.camera,
     listener,
     radioManager,
+    coneSpatialAudio: null,
+    droneBoids,
     tileSelectionCameras: createTileSelectionCameras(player.camera),
     player,
     onboarding: createWerkschauOnboardingController(player.camera),
@@ -151,6 +157,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
   setWerkschauWorldVisualsVisible(state, false);
   setWerkschauSkyboxVisible(state, false);
   void loadTilesWhenConfigured(state);
+  void loadConeSpatialAudio(state);
 
   return state;
 }
@@ -220,6 +227,10 @@ export function tick(
   state.onboardingAudio.update(state.onboarding.progress);
   state.radioManager.setMasterVolume(state.onboardingAudio.fullGain);
   updateWerkschauRadioAudio(state);
+  state.coneSpatialAudio?.update(
+    state.coneRuntime.getActiveCones(),
+    state.player.rig.position,
+  );
 
   state.player.baseSpeed =
     getAltitudeScaledSpeed(state.targetSpeed, state.player.rig.position.y) *
@@ -232,6 +243,7 @@ export function tick(
   state.player.rig.updateMatrixWorld(true);
   updateExhibitionBorderGridVisibility(state);
   state.coneRuntime.update(state.player.rig.position);
+  state.droneBoids.update(ctx.delta);
   updateWerkschauConeDiagnostic(state);
   state.camera.getWorldPosition(state.skybox.position);
   if (state.skybox.material instanceof THREE.ShaderMaterial) {
@@ -275,11 +287,13 @@ export function dispose(state: WerkschauState, _scene: THREE.Scene): void {
   state.onboardingAudio.dispose();
   state.removeAudioResumeListener();
   state.radioManager.dispose();
+  state.coneSpatialAudio?.dispose();
   state.camera.remove(state.listener);
   state.tilesRuntime?.dispose();
   state.tilesRuntime = null;
   state.textureRevealProjector.dispose();
   state.coneRuntime.dispose();
+  state.droneBoids.dispose();
   removeWerkschauConeDiagnostic(state);
   removeWerkschauCollisionDiagnostic(state);
   state.fillLights.hemisphere.removeFromParent();
@@ -347,6 +361,7 @@ function startWerkschauRadioIfAudioRunning(state: WerkschauState): boolean {
   }
 
   state.radioManager.start();
+  state.coneSpatialAudio?.start();
   return true;
 }
 
@@ -481,6 +496,7 @@ function setWerkschauWorldVisualsVisible(
   state.worldVisualsVisible = visible;
   state.tilesGroup.visible = visible;
   state.coneRuntime.setVisible(visible);
+  state.droneBoids.group.visible = visible;
   if (state.fallbackPlane) state.fallbackPlane.visible = visible;
   state.gridHelper.visible = visible;
   updateExhibitionBorderGridVisibility(state);
@@ -537,6 +553,24 @@ function getAltitudeScaledSpeed(baseSpeed: number, altitude: number): number {
   );
 
   return baseSpeed * multiplier;
+}
+
+async function loadConeSpatialAudio(state: WerkschauState): Promise<void> {
+  if (state.isDisposed) return;
+
+  try {
+    const spatialAudio = await WerkschauConeSpatialAudio.create(
+      state.listener.context,
+    );
+    if (state.isDisposed) {
+      spatialAudio.dispose();
+      return;
+    }
+    state.coneSpatialAudio = spatialAudio;
+  } catch (error) {
+    if (state.isDisposed) return;
+    console.warn("[Werkschau] Failed to load cone spatial audio:", error);
+  }
 }
 
 async function loadTilesWhenConfigured(state: WerkschauState): Promise<void> {

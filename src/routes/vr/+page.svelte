@@ -157,11 +157,16 @@
                     }
                 }
             };
-            window.addEventListener("click", resumeAudio);
-            window.addEventListener("touchend", resumeAudio);
+            // Captured on `window` so this fires *before* the ARButton/VRButton's
+            // own click handler, which calls `navigator.xr.requestSession()`
+            // synchronously and consumes the page's transient user activation.
+            // If audio resume ran after that (e.g. via a bubble-phase listener),
+            // the activation would already be gone by the time it reached us.
+            window.addEventListener("click", resumeAudio, { capture: true });
+            window.addEventListener("touchend", resumeAudio, { capture: true });
             removeWindowAudioListeners = () => {
-                window.removeEventListener("click", resumeAudio);
-                window.removeEventListener("touchend", resumeAudio);
+                window.removeEventListener("click", resumeAudio, { capture: true });
+                window.removeEventListener("touchend", resumeAudio, { capture: true });
             };
 
             function onResize(): void {

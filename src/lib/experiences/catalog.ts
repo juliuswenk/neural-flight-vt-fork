@@ -19,7 +19,7 @@ const CATALOG: Record<string, ExperienceManifest> = {
   "visio-technologica-city-test": visioTechnologicaCityTest,
 };
 
-export const DEFAULT_EXPERIENCE_ID = "berlin-flight";
+export const DEFAULT_EXPERIENCE_ID = "_visio-tech-werkschau";
 
 /** Get experience by ID — throws with available IDs if not found */
 export function getExperience(id: string): ExperienceManifest {

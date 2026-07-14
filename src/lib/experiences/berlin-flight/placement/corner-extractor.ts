@@ -11,6 +11,7 @@ const scratchRoofCenter = new THREE.Vector3();
 interface RoofCell {
   cellX: number;
   cellZ: number;
+  minElevation: number;
   maxElevation: number;
   vertices: Array<{
     vertexIndex: number;
@@ -59,6 +60,7 @@ export function extractBerlinRoofCornerCandidates(
     const cell = roofCells.get(cellKey);
 
     if (cell) {
+      cell.minElevation = Math.min(cell.minElevation, scratchPosition.y);
       cell.maxElevation = Math.max(cell.maxElevation, scratchPosition.y);
       cell.vertices.push({
         vertexIndex,
@@ -70,6 +72,7 @@ export function extractBerlinRoofCornerCandidates(
     roofCells.set(cellKey, {
       cellX,
       cellZ,
+      minElevation: scratchPosition.y,
       maxElevation: scratchPosition.y,
       vertices: [
         {
@@ -98,7 +101,8 @@ export function extractBerlinRoofCornerCandidates(
       roofCells.size === 1
         ? source.buildingId
         : `${source.buildingId}:cell:${cell.cellX}:${cell.cellZ}`;
-    if (cell.maxElevation < BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT) {
+    const buildingHeight = cell.maxElevation - cell.minElevation;
+    if (buildingHeight < BERLIN_PLACEMENT.MIN_BUILDING_HEIGHT_METERS) {
       continue;
     }
 

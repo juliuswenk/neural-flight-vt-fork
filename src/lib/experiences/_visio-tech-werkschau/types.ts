@@ -1,7 +1,9 @@
 import type { FlightPlayer } from "$lib/three/player";
 import type { ExperienceState } from "../types";
+import type { WerkschauConeSpatialAudio } from "./audio/cone-spatial-audio";
 import type { WerkschauRadioManager } from "./audio/radio-manager";
 import type { WerkschauCollisionController } from "./collision/controller";
+import type { WerkschauDroneBoidSystem } from "./drones/boid-system";
 import type { WerkschauOnboardingAudio } from "./onboarding/audio";
 import type { WerkschauOnboardingController } from "./onboarding/controller";
 import type { WerkschauConeGridRuntime } from "./runtime/cone-grid-runtime";
@@ -33,6 +35,8 @@ export interface WerkschauState extends ExperienceState {
   camera: THREE.PerspectiveCamera;
   listener: THREE.AudioListener;
   radioManager: WerkschauRadioManager;
+  coneSpatialAudio: WerkschauConeSpatialAudio | null;
+  droneBoids: WerkschauDroneBoidSystem;
   tileSelectionCameras: readonly THREE.PerspectiveCamera[];
   player: FlightPlayer;
   onboarding: WerkschauOnboardingController;

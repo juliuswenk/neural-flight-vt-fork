@@ -8,7 +8,7 @@ export const CYBER = {
   // ── Visuals ─────────────────────────────────────────────────────
   color: "#ff44aa", // Colour of the border lines and the text (hex, rgb, or named)
   glowPercent: 50, // Glow intensity 0–100 (0 = no glow, 100 = max glow)
-  fontSize: 36, // Text size in canvas pixels
+  fontSize: 24, // Text size in canvas pixels
   fontWeight: "bold", // Text thickness: "normal", "bold", or "100"–"900"
   lineThickness: 2.5, // Thickness of the rectangle border lines (canvas px)
   fontFamily: "monospace", // Font family
@@ -22,8 +22,8 @@ export const CYBER = {
   gridRows: 4, // Number of rows
   gridColumns: 4, // Number of columns
   gridGapFraction: 0.1, // Gap between rectangles (fraction of smaller cell dimension)
-  gridCoverageWidth: 0.6, // Fraction of viewport width the grid fills (0–1)
-  gridCoverageHeight: 0.6, // Fraction of viewport height the grid fills (0–1)
+  gridCoverageWidth: 0.4, // Fraction of viewport width the grid fills (0–1)
+  gridCoverageHeight: 0.4, // Fraction of viewport height the grid fills (0–1)
   gridDistance: 1.8, // Distance from camera in world units (higher = smaller on screen)
 
   // ── Message & Languages ─────────────────────────────────────────

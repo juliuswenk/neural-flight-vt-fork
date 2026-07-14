@@ -1,0 +1,2169 @@
+## User
+
+I want to do some work on the pregenerated cone placement of [@_visio-tech-werkschau](file:///Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/) . There are areas in the city that do not get any cones placed in them. These are mostly parts that are flat. They should still get some cones. Might this have to do with the height filtering? is there a more dynamic solution that holds a balance between cones not being not too close to the ground but still being present in areas with overall lower buildings?
+
+**Tool Call: grep -rli "cone" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/ | head -50**
+Status: Completed
+
+Terminal:
+```
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scene.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/constants.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-coordinates.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-config.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-snapshots.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-snapshots.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/texture-reveal-projector.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/tiles-material.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-runtime.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/docs/hide image texture fixes.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/vertex-mask.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/config.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/docs/cherry-picking.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/docs/collision-bake-integration-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/docs/inner-city-baked-tiles-integration-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/audio/radio-config.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/audio/radio-station.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/cone-data/runtime-store.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/cone-data/contracts.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/mesh-filter.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/cone-data/asset-loader.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/mesh-preprocess.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/vertex-cone-test.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/cone-query.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/cone-mesh-bounds.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/mesh-tracker.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/vertex-color-writer.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/tile-mesh-types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/controller.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/controller.ts
+```
+
+
+**Tool Call: grep -rln "height" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/ --include="*.ts" | grep -v test**
+Status: Completed
+
+Terminal:
+```
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scene.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/texture-reveal-projector.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/geo/types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/cone-grid-runtime.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/runtime/tiles-material.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/geo/berlin-mitte-origin.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/geo/coordinates.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/lennard/scripts/cyber-overlay.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/lennard/scripts/battery-overlay.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/lennard/scripts/sonar-overlay.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scripts/freeze-inner-city-tiles.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/cone-data/asset-loader.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/collision/cone-mesh-bounds.ts
+```
+
+
+**Tool Call: Read src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts**
+Status: Completed
+
+```
+1	import { Buffer } from "node:buffer";
+2	import {
+3	  copyFile,
+4	  mkdir,
+5	  readFile,
+6	  readdir,
+7	  stat,
+8	  writeFile,
+9	} from "node:fs/promises";
+10	import path from "node:path";
+11	import { pathToFileURL } from "node:url";
+12	import * as THREE from "three";
+13	import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+14	import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+15	import { WERKSCHAU_COLLISION } from "../collision/config";
+16	import type { WerkschauConeVolume } from "../collision/types";
+17	import { isVertexInsideCone } from "../collision/vertex-cone-test";
+18	
+19	const DEFAULT_CONE_DATA_DIR =
+20	  "static/experiences/_visio-tech-werkschau/cone-data/generated";
+21	const BAKE_VERSION = 1;
+22	const bakeDate = new Date().toISOString();
+23	const scratchPosition = new THREE.Vector3();
+24	const scratchTriangleCenter = new THREE.Vector3();
+25	const scratchTriangleSample = new THREE.Vector3();
+26	const scratchTriangleVertexA = new THREE.Vector3();
+27	const scratchTriangleVertexB = new THREE.Vector3();
+28	const scratchTriangleVertexC = new THREE.Vector3();
+29	const scratchSphere = new THREE.Sphere();
+30	const scratchConeBoundsCenter = new THREE.Vector3();
+31	let worldPositions = new Float32Array(0);
+32	
+33	interface BakeStats {
+34	  meshesProcessed: number;
+35	  meshesWithIntersections: number;
+36	  meshesWithoutIntersections: number;
+37	  verticesProcessed: number;
+38	  verticesMasked: number;
+39	  conesLoaded: number;
+40	}
+41	
+42	interface BatchBakeReport extends BakeStats {
+43	  filesProcessed: number;
+44	  filesCopied: number;
+45	  filesFailed: number;
+46	  skippedFiles: string[];
+47	  failedFiles: { path: string; error: string }[];
+48	}
+49	
+50	interface ConeChunkJson {
+51	  chunkKey: string;
+52	  positions: readonly number[];
+53	  scalars: readonly number[];
+54	  coneIndex: readonly number[];
+55	}
+56	
+57	class NodeFileReader {
+58	  public result: string | ArrayBuffer | null = null;
+59	  public onloadend: ((this: FileReader, event: ProgressEvent<FileReader>) => void) | null =
+60	    null;
+61	
+62	  public readAsArrayBuffer(blob: Blob): void {
+63	    blob.arrayBuffer().then((buffer) => {
+64	      this.result = buffer;
+65	      this.emitLoadEnd();
+66	    });
+67	  }
+68	
+69	  public readAsDataURL(blob: Blob): void {
+70	    blob.arrayBuffer().then((buffer) => {
+71	      const mimeType = blob.type || "application/octet-stream";
+72	      this.result = `data:${mimeType};base64,${Buffer.from(buffer).toString("base64")}`;
+73	      this.emitLoadEnd();
+74	    });
+75	  }
+76	
+77	  private emitLoadEnd(): void {
+78	    this.onloadend?.call(
+79	      this as unknown as FileReader,
+80	      new Event("loadend") as ProgressEvent<FileReader>,
+81	    );
+82	  }
+83	}
+84	
+85	installFileReaderPolyfill();
+86	await main();
+87	
+88	async function main(): Promise<void> {
+89	  const inputPath = process.argv[2];
+90	  const outputPath = process.argv[3];
+91	  const coneDataDir = process.argv[4] ?? DEFAULT_CONE_DATA_DIR;
+92	  const bakeSource = process.argv[5] ?? outputPath;
+93	
+94	  if (!inputPath || !outputPath) {
+95	    throw new Error(
+96	      "Usage: bun run src/lib/experiences/_visio-tech-werkschau/scripts/bake-cone-mask.ts <input.glb|input.gltf> <output.glb|output.gltf> [cone-data-dir] [runtime-source-url]",
+97	    );
+98	  }
+99	
+100	  const input = path.resolve(inputPath);
+101	  const output = path.resolve(outputPath);
+102	  const cones = await loadCones(path.resolve(coneDataDir));
+103	  const inputStats = await stat(input);
+104	
+105	  if (inputStats.isDirectory()) {
+106	    const report = await bakeDirectory(input, output, cones, bakeSource);
+107	    await writeFile(
+108	      path.join(output, "cone-mask-bake-report.json"),
+109	      JSON.stringify(report, null, 2),
+110	    );
+111	    console.log(JSON.stringify({ input, output, report }, null, 2));
+112	    return;
+113	  }
+114	
+115	  const stats = await bakeFile(input, output, cones, bakeSource);
+116	  console.log(JSON.stringify({ input, output, ...stats }, null, 2));
+117	}
+118	
+119	async function bakeDirectory(
+120	  inputDir: string,
+121	  outputDir: string,
+122	  cones: readonly WerkschauConeVolume[],
+123	  bakeSourceBase: string,
+124	): Promise<BatchBakeReport> {
+125	  if (isPathInside(outputDir, inputDir)) {
+126	    throw new Error("Output directory must not be inside the input directory.");
+127	  }
+128	
+129	  const report = createBatchBakeReport(cones.length);
+130	  const files = await collectFiles(inputDir);
+131	
+132	  for (const inputFile of files) {
+133	    const relativePath = path.relative(inputDir, inputFile);
+134	    const outputFile = path.join(outputDir, relativePath);
+135	    await mkdir(path.dirname(outputFile), { recursive: true });
+136	
+137	    if (!isSupportedMeshFile(inputFile)) {
+138	      await copyFile(inputFile, outputFile);
+139	      report.filesCopied += 1;
+140	      report.skippedFiles.push(relativePath);
+141	      continue;
+142	    }
+143	
+144	    try {
+145	      const fileStats = await bakeFile(
+146	        inputFile,
+147	        outputFile,
+148	        cones,
+149	        getRuntimeBakeSource(bakeSourceBase, relativePath),
+150	      );
+151	      report.filesProcessed += 1;
+152	      report.meshesProcessed += fileStats.meshesProcessed;
+153	      report.meshesWithIntersections += fileStats.meshesWithIntersections;
+154	      report.meshesWithoutIntersections += fileStats.meshesWithoutIntersections;
+155	      report.verticesProcessed += fileStats.verticesProcessed;
+156	      report.verticesMasked += fileStats.verticesMasked;
+157	    } catch (error: unknown) {
+158	      await copyFile(inputFile, outputFile);
+159	      report.filesFailed += 1;
+160	      report.failedFiles.push({
+161	        path: relativePath,
+162	        error: error instanceof Error ? error.message : String(error),
+163	      });
+164	    }
+165	  }
+166	
+167	  return report;
+168	}
+169	
+170	async function bakeFile(
+171	  input: string,
+172	  output: string,
+173	  cones: readonly WerkschauConeVolume[],
+174	  bakeSource: string,
+175	): Promise<BakeStats> {
+176	  const scene = await loadGltfScene(input);
+177	  const stats = bakeScene(scene, cones, bakeSource);
+178	
+179	  await mkdir(path.dirname(output), { recursive: true });
+180	  await writeGltf(scene, output);
+181	  return stats;
+182	}
+183	
+184	function bakeScene(
+185	  scene: THREE.Object3D,
+186	  cones: readonly WerkschauConeVolume[],
+187	  bakeSource: string,
+188	): BakeStats {
+189	  const stats: BakeStats = {
+190	    meshesProcessed: 0,
+191	    meshesWithIntersections: 0,
+192	    meshesWithoutIntersections: 0,
+193	    verticesProcessed: 0,
+194	    verticesMasked: 0,
+195	    conesLoaded: cones.length,
+196	  };
+197	
+198	  scene.updateMatrixWorld(true);
+199	  scene.traverse((object) => {
+200	    if (!(object instanceof THREE.Mesh)) return;
+201	    if (!(object.geometry instanceof THREE.BufferGeometry)) return;
+202	
+203	    const result = bakeMesh(object, cones, bakeSource);
+204	    if (!result) return;
+205	
+206	    stats.meshesProcessed += 1;
+207	    stats.verticesProcessed += result.vertexCount;
+208	    stats.verticesMasked += result.maskedVertices;
+209	    if (result.maskedVertices > 0) {
+210	      stats.meshesWithIntersections += 1;
+211	    } else {
+212	      stats.meshesWithoutIntersections += 1;
+213	    }
+214	  });
+215	
+216	  return stats;
+217	}
+218	
+219	function bakeMesh(
+220	  mesh: THREE.Mesh,
+221	  cones: readonly WerkschauConeVolume[],
+222	  bakeSource: string,
+223	): { vertexCount: number; maskedVertices: number } | null {
+224	  const geometry = mesh.geometry;
+225	  const position = geometry.getAttribute("position");
+226	  if (!(position instanceof THREE.BufferAttribute) || position.itemSize < 3) {
+227	    return null;
+228	  }
+229	
+230	  const nearbyCones = getNearbyCones(mesh, cones);
+231	  const vertexCount = position.count;
+232	  const mask = new Float32Array(vertexCount);
+233	
+234	  if (nearbyCones.length > 0) {
+235	    maskVertices(mesh, position, nearbyCones, mask);
+236	    maskTriangles(geometry, nearbyCones, mask);
+237	  }
+238	
+239	  const maskedVertices = countMaskedVertices(mask);
+240	  geometry.setAttribute("coneMask", new THREE.BufferAttribute(mask, 1));
+241	  geometry.userData.werkschauConeMaskVersion = BAKE_VERSION;
+242	  geometry.userData.werkschauHasConeIntersection = maskedVertices > 0;
+243	  geometry.userData.werkschauBakeDate = bakeDate;
+244	  geometry.userData.werkschauBakeSource = bakeSource;
+245	  mesh.userData.werkschauConeMaskVersion = BAKE_VERSION;
+246	  mesh.userData.werkschauHasConeIntersection = maskedVertices > 0;
+247	  mesh.userData.werkschauBakeDate = bakeDate;
+248	  mesh.userData.werkschauBakeSource = bakeSource;
+249	
+250	  return { vertexCount, maskedVertices };
+251	}
+252	
+253	function maskVertices(
+254	  mesh: THREE.Mesh,
+255	  position: THREE.BufferAttribute,
+256	  cones: readonly WerkschauConeVolume[],
+257	  mask: Float32Array,
+258	): void {
+259	  worldPositions = new Float32Array(position.count * 3);
+260	
+261	  for (let vertexIndex = 0; vertexIndex < position.count; vertexIndex += 1) {
+262	    scratchPosition.fromBufferAttribute(position, vertexIndex);
+263	    mesh.localToWorld(scratchPosition);
+264	    scratchPosition.toArray(worldPositions, vertexIndex * 3);
+265	
+266	    for (const cone of cones) {
+267	      if (!isVertexInsideCone(scratchPosition, cone)) continue;
+268	
+269	      mask[vertexIndex] = 1;
+270	      break;
+271	    }
+272	  }
+273	}
+274	
+275	function maskTriangles(
+276	  geometry: THREE.BufferGeometry,
+277	  cones: readonly WerkschauConeVolume[],
+278	  mask: Float32Array,
+279	): void {
+280	  const index = geometry.index;
+281	  const triangleCount = index ? index.count / 3 : mask.length / 3;
+282	
+283	  for (let triangleIndex = 0; triangleIndex < triangleCount; triangleIndex += 1) {
+284	    const vertexA = index ? index.getX(triangleIndex * 3) : triangleIndex * 3;
+285	    const vertexB = index ? index.getX(triangleIndex * 3 + 1) : vertexA + 1;
+286	    const vertexC = index ? index.getX(triangleIndex * 3 + 2) : vertexA + 2;
+287	
+288	    if (mask[vertexA] === 1 && mask[vertexB] === 1 && mask[vertexC] === 1) {
+289	      continue;
+290	    }
+291	
+292	    if (isTriangleInsideAnyCone(vertexA, vertexB, vertexC, cones)) {
+293	      mask[vertexA] = 1;
+294	      mask[vertexB] = 1;
+295	      mask[vertexC] = 1;
+296	    }
+297	  }
+298	}
+299	
+300	function isTriangleInsideAnyCone(
+301	  vertexA: number,
+302	  vertexB: number,
+303	  vertexC: number,
+304	  cones: readonly WerkschauConeVolume[],
+305	): boolean {
+306	  scratchTriangleVertexA.fromArray(worldPositions, vertexA * 3);
+307	  scratchTriangleVertexB.fromArray(worldPositions, vertexB * 3);
+308	  scratchTriangleVertexC.fromArray(worldPositions, vertexC * 3);
+309	  scratchTriangleCenter
+310	    .copy(scratchTriangleVertexA)
+311	    .add(scratchTriangleVertexB)
+312	    .add(scratchTriangleVertexC)
+313	    .multiplyScalar(1 / 3);
+314	
+315	  for (const cone of cones) {
+316	    if (isVertexInsideCone(scratchTriangleCenter, cone)) return true;
+317	    if (isSampledTriangleInsideCone(cone)) return true;
+318	  }
+319	
+320	  return false;
+321	}
+322	
+323	function isSampledTriangleInsideCone(cone: WerkschauConeVolume): boolean {
+324	  const steps = getTriangleSampleSubdivisions();
+325	  if (steps <= 1) return false;
+326	
+327	  for (let aStep = 0; aStep <= steps; aStep += 1) {
+328	    for (let bStep = 0; bStep <= steps - aStep; bStep += 1) {
+329	      const cStep = steps - aStep - bStep;
+330	      if (aStep === steps || bStep === steps || cStep === steps) continue;
+331	
+332	      scratchTriangleSample
+333	        .copy(scratchTriangleVertexA)
+334	        .multiplyScalar(aStep / steps)
+335	        .addScaledVector(scratchTriangleVertexB, bStep / steps)
+336	        .addScaledVector(scratchTriangleVertexC, cStep / steps);
+337	
+338	      if (isVertexInsideCone(scratchTriangleSample, cone)) return true;
+339	    }
+340	  }
+341	
+342	  return false;
+343	}
+344	
+345	function getTriangleSampleSubdivisions(): number {
+346	  const longestEdge = Math.max(
+347	    scratchTriangleVertexA.distanceTo(scratchTriangleVertexB),
+348	    scratchTriangleVertexB.distanceTo(scratchTriangleVertexC),
+349	    scratchTriangleVertexC.distanceTo(scratchTriangleVertexA),
+350	  );
+351	
+352	  return Math.min(
+353	    WERKSCHAU_COLLISION.MAX_TRIANGLE_MASK_SUBDIVISIONS,
+354	    Math.ceil(longestEdge / WERKSCHAU_COLLISION.TRIANGLE_MASK_SAMPLE_SPACING_METERS),
+355	  );
+356	}
+357	
+358	function getNearbyCones(
+359	  mesh: THREE.Mesh,
+360	  cones: readonly WerkschauConeVolume[],
+361	): readonly WerkschauConeVolume[] {
+362	  mesh.geometry.computeBoundingSphere();
+363	  const localSphere = mesh.geometry.boundingSphere;
+364	  if (!localSphere) return [];
+365	
+366	  scratchSphere.copy(localSphere).applyMatrix4(mesh.matrixWorld);
+367	
+368	  return cones.filter((cone) => {
+369	    scratchConeBoundsCenter
+370	      .copy(cone.tip)
+371	      .addScaledVector(cone.axisDirection, cone.height * 0.5);
+372	
+373	    const coneBoundsRadius = Math.hypot(cone.height * 0.5, cone.radius);
+374	    const radiusSum = scratchSphere.radius + coneBoundsRadius;
+375	    return (
+376	      scratchSphere.center.distanceToSquared(scratchConeBoundsCenter) <=
+377	      radiusSum * radiusSum
+378	    );
+379	  });
+380	}
+381	
+382	function countMaskedVertices(mask: Float32Array): number {
+383	  let count = 0;
+384	  for (const value of mask) {
+385	    if (value > 0) count += 1;
+386	  }
+387	  return count;
+388	}
+389	
+390	async function loadCones(coneDataDir: string): Promise<WerkschauConeVolume[]> {
+391	  const chunksDir = path.join(coneDataDir, "chunks");
+392	  const fileNames = (await readdir(chunksDir)).filter((fileName) =>
+393	    fileName.endsWith(".json"),
+394	  );
+395	  const cones: WerkschauConeVolume[] = [];
+396	
+397	  for (const fileName of fileNames) {
+398	    const chunk = parseConeChunkJson(
+399	      JSON.parse(await readText(path.join(chunksDir, fileName))),
+400	    );
+401	
+402	    for (let index = 0; index < chunk.coneIndex.length; index += 1) {
+403	      const positionOffset = index * 6;
+404	      const scalarOffset = index * 2;
+405	      const tip = new THREE.Vector3(
+406	        chunk.positions[positionOffset],
+407	        chunk.positions[positionOffset + 1],
+408	        chunk.positions[positionOffset + 2],
+409	      );
+410	      const axisDirection = new THREE.Vector3(
+411	        chunk.positions[positionOffset + 3],
+412	        chunk.positions[positionOffset + 4],
+413	        chunk.positions[positionOffset + 5],
+414	      ).normalize();
+415	      const height = chunk.scalars[scalarOffset + 1];
+416	
+417	      cones.push({
+418	        tip,
+419	        axisDirection,
+420	        radius: chunk.scalars[scalarOffset],
+421	        height,
+422	        baseCenter: tip.clone().addScaledVector(axisDirection, height),
+423	        placementPointId: `${chunk.chunkKey}:${chunk.coneIndex[index]}`,
+424	        sourceBuildingId: chunk.chunkKey,
+425	        chunkKey: chunk.chunkKey,
+426	        coneIndex: chunk.coneIndex[index],
+427	      });
+428	    }
+429	  }
+430	
+431	  return cones;
+432	}
+433	
+434	function parseConeChunkJson(value: unknown): ConeChunkJson {
+435	  if (!isRecord(value) || typeof value.chunkKey !== "string") {
+436	    throw new Error("Malformed cone chunk.");
+437	  }
+438	
+439	  return {
+440	    chunkKey: value.chunkKey,
+441	    positions: getFiniteNumberArray(value.positions, "positions"),
+442	    scalars: getFiniteNumberArray(value.scalars, "scalars"),
+443	    coneIndex: getFiniteNumberArray(value.coneIndex, "coneIndex"),
+444	  };
+445	}
+446	
+447	function getFiniteNumberArray(value: unknown, label: string): number[] {
+448	  if (!Array.isArray(value)) {
+449	    throw new Error(`Expected numeric array for ${label}.`);
+450	  }
+451	
+452	  return value.map((entry, index) => {
+453	    if (typeof entry !== "number" || !Number.isFinite(entry)) {
+454	      throw new Error(`Expected finite number for ${label}[${index}].`);
+455	    }
+456	    return entry;
+457	  });
+458	}
+459	
+460	async function loadGltfScene(inputPath: string): Promise<THREE.Group> {
+461	  const loader = new GLTFLoader();
+462	  const input = await readFile(inputPath);
+463	  const data = inputPath.endsWith(".gltf")
+464	    ? input.toString("utf8")
+465	    : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+466	  const gltf = await loader.parseAsync(
+467	    data,
+468	    pathToFileURL(`${path.dirname(inputPath)}/`).href,
+469	  );
+470	
+471	  return gltf.scene;
+472	}
+473	
+474	async function writeGltf(scene: THREE.Object3D, outputPath: string): Promise<void> {
+475	  const exporter = new GLTFExporter();
+476	  const result = await exporter.parseAsync(scene, {
+477	    binary: outputPath.endsWith(".glb"),
+478	  });
+479	
+480	  if (result instanceof ArrayBuffer) {
+481	    await writeFile(outputPath, Buffer.from(result));
+482	    return;
+483	  }
+484	
+485	  await writeFile(outputPath, JSON.stringify(result, null, 2));
+486	}
+487	
+488	async function readText(filePath: string): Promise<string> {
+489	  return await readFile(filePath, "utf8");
+490	}
+491	
+492	async function collectFiles(dir: string): Promise<string[]> {
+493	  const entries = await readdir(dir, { withFileTypes: true });
+494	  const files: string[] = [];
+495	
+496	  for (const entry of entries) {
+497	    const entryPath = path.join(dir, entry.name);
+498	    if (entry.isDirectory()) {
+499	      files.push(...(await collectFiles(entryPath)));
+500	      continue;
+501	    }
+502	
+503	    if (entry.isFile()) {
+504	      files.push(entryPath);
+505	    }
+506	  }
+507	
+508	  return files;
+509	}
+510	
+511	function createBatchBakeReport(conesLoaded: number): BatchBakeReport {
+512	  return {
+513	    filesProcessed: 0,
+514	    filesCopied: 0,
+515	    filesFailed: 0,
+516	    meshesProcessed: 0,
+517	    meshesWithIntersections: 0,
+518	    meshesWithoutIntersections: 0,
+519	    verticesProcessed: 0,
+520	    verticesMasked: 0,
+521	    conesLoaded,
+522	    skippedFiles: [],
+523	    failedFiles: [],
+524	  };
+525	}
+526	
+527	function isSupportedMeshFile(filePath: string): boolean {
+528	  return filePath.endsWith(".glb") || filePath.endsWith(".gltf");
+529	}
+530	
+531	function getRuntimeBakeSource(base: string, relativePath: string): string {
+532	  if (!base) return relativePath;
+533	
+534	  const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
+535	  return `${normalizedBase}/${relativePath.split(path.sep).join("/")}`;
+536	}
+537	
+538	function isPathInside(child: string, parent: string): boolean {
+539	  const relativePath = path.relative(parent, child);
+540	  return relativePath !== "" && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
+541	}
+542	
+543	function installFileReaderPolyfill(): void {
+544	  const target = globalThis as typeof globalThis & { FileReader: typeof FileReader };
+545	  if (typeof target.FileReader === "function") return;
+546	
+547	  target.FileReader = NodeFileReader as unknown as typeof FileReader;
+548	}
+549	
+550	function isRecord(value: unknown): value is Record<string, unknown> {
+551	  return typeof value === "object" && value !== null;
+552	}
+```
+
+**Tool Call: find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau -iname "*placement*" -o -iname "*generate*"**
+Status: Completed
+
+Terminal:
+```
+
+
+
+
+
+```
+
+
+**Tool Call: ls /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/scripts/
+echo ---
+ls /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/cone-data/
+echo ---
+cat /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/docs/cherry-picking.md 2>/dev/null | head -50**
+Status: Completed
+
+Terminal:
+```
+bake-cone-mask.ts
+freeze-inner-city-tiles.ts
+---
+asset-loader.ts
+contracts.ts
+runtime-store.ts
+---
+# Visio Tech Werkschau Berlin Flight Rebuild Manifest
+
+This manifest defines what to cherry-pick from `src/lib/experiences/berlin-flight` into `src/lib/experiences/_visio-tech-werkschau`.
+
+Goal: build a stable exhibition version of the Berlin flight concept for Pico 4 Business Edition + ICAROS + M5 gyro controller. Prefer boring, proven code from `berlin-flight`; skip experiments unless they directly improve stability. Do not just copy the code. Use it as a reference and make changes where you deem them to improve stability or performance after asking the user for approval.
+
+## Non-Negotiables
+
+- Location-based rendering only. Tile loading, cone visibility, collision updates, fallback rendering, and any other runtime visual selection must follow player/rig location, not headset gaze direction.
+- Berlin-only flight bounds. The player may fly across all of Berlin, but not outside it.
+- Use the same Cesium credentials/env path as `berlin-flight`.
+- Interpret the ICAROS host gyro message shape and use it to control player heading.
+- Keep neutral solid-color tile material as the default visual style.
+- Inside cone/mesh intersections, reveal the original image texture streamed from Cesium.
+- Visitors should see the cones themselves, not only their mesh-intersection effect.
+- Stream only nearby Berlin tiles. The player is bounded to Berlin, but the runtime must not preload all of Berlin.
+- Prefer visual stability over tile-loading performance for position-based tile selection.
+- Public flight duration is 3 minutes, then the experience fades back to AR.
+- The 3-minute timer starts when the player first moves.
+- Keep audio components in the migration; refine them later.
+- Include the Berlin Flight radio component.
+- Include a browser-based preview mode for desktop testing without a headset.
+- If Cesium tiles fail, render only a fallback plane at height `0`.
+- Keep the experience reliable before adding richer visuals.
+
+## Rendering Rule
+
+The rebuilt experience must not make rendering decisions from headset gaze direction. This was a major instability source in `berlin-flight`.
+
+Use player/rig location for:
+
+- Cesium tile loading and tile priority cameras. Use stable fixed-direction loader cameras around the player, not gaze direction.
+- Cone chunk loading and cone visibility. Visible cones must be capped to nearby cones around the player.
+- Cone/mesh collision updates.
+- Fallback plane placement.
+- Any future visual culling or level-of-detail decisions.
+
+Headset/camera orientation may still affect normal viewing, but must not decide what content exists, loads, unloads, or updates.
+
+## ICAROS Host Input
+
+Reuse the existing host control path instead of adding a second protocol.
+
+Source files:
+
+- `src/lib/ws/icaros-host-control-client.ts`
+- `src/routes/vr/+page.svelte`
+- `src/lib/experiences/berlin-flight/player.ts`
+
+Expected host message:
+```
+
+
+**Tool Call: find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template -iname "*cone*" -path "*berlin-flight*" 2>/dev/null
+echo ---
+find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template -iname "*.py" 2>/dev/null | xargs grep -l -i cone 2>/dev/null
+echo ---
+find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template -iname "*.md" | xargs grep -li "cone.*height\|height.*filter\|flat" 2>/dev/null**
+Status: Failed
+
+Terminal:
+```
+Exit code 1
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/scripts/berlin-flight/build-cone-dataset.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/static/experiences/berlin-flight/cone-data
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-placement
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/.svelte-kit/output/client/experiences/berlin-flight/cone-data
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-coordinates.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-config.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-coordinates.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-runtime.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-snapshots.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/runtime/cone-grid-runtime.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/heatmap-cone-density-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/precomputed-cones-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/roof-cone-integration-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/cone-tile-collision-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/debug-cones-visual-fix-prompts.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-placement/cone-volume.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/cone-query.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/vertex-cone-test.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/vertex-cone-test.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/cone-mesh-bounds.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/collision/cone-mesh-bounds.ts
+---
+---
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/docs/ARCHITECTURE.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/docs/CUSTOMIZATION.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/pngjs/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/svelte-dnd-action/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/meshoptimizer/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/resolve-protobuf-schema/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/d3-selection/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/tabbable/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/qrcode/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/protocol-buffers-schema/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/bits-ui/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/yargs-parser/CHANGELOG.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/yargs-parser/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/three-mesh-bvh/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/devalue/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/fflate/CHANGELOG.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/fflate/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/ws/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/3d-tiles-renderer/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/@dimforge/rapier3d-compat/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/@types/three/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/runed/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/svelte-toolbelt/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/three/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/shader-playground/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/.agents/skills/new-level/EXAMPLES.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/three/terrain/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/visio-technologica/chunk-loading-adoption-guide.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/routes/lab/gradient-prism/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/3d-tiles-renderer/src/r3f/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/.agents/skills/fallow/references/cli-reference.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/@types/three/node_modules/meshoptimizer/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/3d-tiles-renderer/src/core/renderer/API.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/3d-tiles-renderer/src/three/plugins/API.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/performance-improvement-prompts.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/precomputed-cones-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/roof-cone-integration-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/cone-tile-collision-plan.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/pkg-prebuilds/node_modules/yargs/node_modules/yargs-parser/README.md
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/node_modules/3d-tiles-renderer/src/three/plugins/mvt/ANNOTATION_LOD_PLAN.md
+```
+
+
+## Assistant
+
+Found it: `scripts/berlin-flight/build-cone-dataset.ts` is the actual pregeneration script. Let's inspect it for height filtering logic.
+
+**Tool Call: Read scripts/berlin-flight/build-cone-dataset.ts**
+Status: Completed
+
+```
+1	import path from "node:path";
+2	import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+3	import {
+4	  buildBerlinConeDataset,
+5	  createTrackedMeshFromOfflineGeometry,
+6	} from "../../src/lib/experiences/berlin-flight/cone-data/build";
+7	import { getBerlinConeChunkFileName } from "../../src/lib/experiences/berlin-flight/runtime/cone-grid-coordinates";
+8	import type {
+9	  BerlinConeSourceManifest,
+10	  BerlinConeSourceMeshFile,
+11	} from "../../src/lib/experiences/berlin-flight/cone-data/source-contracts";
+12	
+13	const DEFAULT_SOURCE_MANIFEST =
+14	  "src/lib/experiences/berlin-flight/cone-data/source-manifest.json";
+15	const DEFAULT_OUTPUT_DIR =
+16	  "static/experiences/berlin-flight/cone-data/generated";
+17	
+18	async function main(): Promise<void> {
+19	  const sourceManifestPath = path.resolve(process.argv[2] ?? DEFAULT_SOURCE_MANIFEST);
+20	  const sourceManifest = parseSourceManifest(
+21	    JSON.parse(await readTextFile(sourceManifestPath, "cone source manifest")),
+22	    sourceManifestPath,
+23	  );
+24	  if (sourceManifest.sources.length === 0) {
+25	    throw new Error(
+26	      `[BerlinFlight] Cone source manifest has no sources: ${sourceManifestPath}`,
+27	    );
+28	  }
+29	
+30	  const trackedMeshes = [];
+31	
+32	  for (const source of sourceManifest.sources) {
+33	    const sourcePath = path.resolve(path.dirname(sourceManifestPath), source.path);
+34	    const sourceFile = parseSourceMeshFile(
+35	      JSON.parse(await readTextFile(sourcePath, "cone source mesh file")),
+36	      sourcePath,
+37	    );
+38	
+39	    for (const [index, mesh] of sourceFile.meshes.entries()) {
+40	      trackedMeshes.push(
+41	        createTrackedMeshFromOfflineGeometry({
+42	          positions: mesh.positions,
+43	          matrixWorld: mesh.matrixWorld,
+44	          sourceUrl:
+45	            mesh.sourceUrl ??
+46	            source.sourceUrl ??
+47	            `${path.basename(sourcePath)}#${index}`,
+48	        }),
+49	      );
+50	    }
+51	  }
+52	
+53	  if (trackedMeshes.length === 0) {
+54	    throw new Error(
+55	      `[BerlinFlight] No offline meshes were loaded from ${sourceManifestPath}`,
+56	    );
+57	  }
+58	
+59	  const outputDir = path.resolve(sourceManifest.outputDir ?? DEFAULT_OUTPUT_DIR);
+60	  const chunksDir = path.join(outputDir, "chunks");
+61	  const result = buildBerlinConeDataset({
+62	    trackedMeshes,
+63	    radiusFilter:
+64	      typeof sourceManifest.radiusMeters === "number"
+65	        ? {
+66	            center: sourceManifest.center ?? { x: 0, z: 0 },
+67	            radiusMeters: sourceManifest.radiusMeters,
+68	          }
+69	        : undefined,
+70	    boundsFilter: sourceManifest.bounds,
+71	  });
+72	
+73	  await rm(outputDir, { force: true, recursive: true });
+74	  await mkdir(chunksDir, { recursive: true });
+75	  await writeFile(
+76	    path.join(outputDir, "manifest.json"),
+77	    JSON.stringify(result.manifest, null, 2),
+78	  );
+79	
+80	  for (const chunk of result.chunks.values()) {
+81	    await writeFile(
+82	      path.join(chunksDir, getBerlinConeChunkFileName(chunk.chunkKey)),
+83	      JSON.stringify(
+84	        {
+85	          chunkKey: chunk.chunkKey,
+86	          chunkWorldMinX: chunk.chunkWorldMinX,
+87	          chunkWorldMinZ: chunk.chunkWorldMinZ,
+88	          chunkSizeMeters: chunk.chunkSizeMeters,
+89	          positions: Array.from(chunk.positions),
+90	          scalars: Array.from(chunk.scalars),
+91	          coneIndex: Array.from(chunk.coneIndex),
+92	        },
+93	        null,
+94	        2,
+95	      ),
+96	    );
+97	  }
+98	
+99	  console.log(
+100	    JSON.stringify(
+101	      {
+102	        outputDir,
+103	        chunkCount: result.manifest.chunkCount,
+104	        ...result.stats,
+105	      },
+106	      null,
+107	      2,
+108	    ),
+109	  );
+110	}
+111	
+112	function parseSourceManifest(
+113	  value: unknown,
+114	  filePath: string,
+115	): BerlinConeSourceManifest {
+116	  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.sources)) {
+117	    throw new Error(
+118	      `[BerlinFlight] Invalid cone source manifest at ${filePath}. Expected { version: 1, sources: [...] }.`,
+119	    );
+120	  }
+121	
+122	  return {
+123	    version: 1,
+124	    sources: value.sources.map((source, index) => {
+125	      if (!isRecord(source) || typeof source.path !== "string") {
+126	        throw new Error(
+127	          `[BerlinFlight] Invalid source entry ${index} in ${filePath}. Expected { path: string }.`,
+128	        );
+129	      }
+130	
+131	      return {
+132	        path: source.path,
+133	        sourceUrl:
+134	          typeof source.sourceUrl === "string" ? source.sourceUrl : undefined,
+135	      };
+136	    }),
+137	    center:
+138	      isRecord(value.center) &&
+139	      typeof value.center.x === "number" &&
+140	      typeof value.center.z === "number"
+141	        ? {
+142	            x: value.center.x,
+143	            z: value.center.z,
+144	          }
+145	        : undefined,
+146	    radiusMeters:
+147	      typeof value.radiusMeters === "number" && Number.isFinite(value.radiusMeters)
+148	        ? value.radiusMeters
+149	        : undefined,
+150	    bounds: parseOptionalBounds(value.bounds, filePath),
+151	    outputDir: typeof value.outputDir === "string" ? value.outputDir : undefined,
+152	  };
+153	}
+154	
+155	function parseOptionalBounds(
+156	  value: unknown,
+157	  filePath: string,
+158	): BerlinConeSourceManifest["bounds"] {
+159	  if (value === undefined) return undefined;
+160	  if (!isRecord(value)) {
+161	    throw new Error(
+162	      `[BerlinFlight] Invalid bounds in ${filePath}. Expected { minX, maxX, minZ, maxZ }.`,
+163	    );
+164	  }
+165	
+166	  const bounds = {
+167	    minX: getFiniteNumber(value.minX, `${filePath} bounds.minX`),
+168	    maxX: getFiniteNumber(value.maxX, `${filePath} bounds.maxX`),
+169	    minZ: getFiniteNumber(value.minZ, `${filePath} bounds.minZ`),
+170	    maxZ: getFiniteNumber(value.maxZ, `${filePath} bounds.maxZ`),
+171	  };
+172	
+173	  if (bounds.minX > bounds.maxX || bounds.minZ > bounds.maxZ) {
+174	    throw new Error(
+175	      `[BerlinFlight] Invalid bounds in ${filePath}. Minimum values must be <= maximum values.`,
+176	    );
+177	  }
+178	
+179	  return bounds;
+180	}
+181	
+182	function parseSourceMeshFile(
+183	  value: unknown,
+184	  filePath: string,
+185	): BerlinConeSourceMeshFile {
+186	  if (!isRecord(value) || value.version !== 1 || !Array.isArray(value.meshes)) {
+187	    throw new Error(
+188	      `[BerlinFlight] Invalid cone source mesh file at ${filePath}. Expected { version: 1, meshes: [...] }.`,
+189	    );
+190	  }
+191	
+192	  return {
+193	    version: 1,
+194	    meshes: value.meshes.map((mesh, index) => {
+195	      if (!isRecord(mesh) || !Array.isArray(mesh.positions)) {
+196	        throw new Error(
+197	          `[BerlinFlight] Invalid mesh ${index} in ${filePath}. Expected numeric positions.`,
+198	        );
+199	      }
+200	
+201	      return {
+202	        positions: mesh.positions.map((entry, positionIndex) =>
+203	          getFiniteNumber(entry, `${filePath} mesh ${index} positions[${positionIndex}]`),
+204	        ),
+205	        matrixWorld: Array.isArray(mesh.matrixWorld)
+206	          ? mesh.matrixWorld.map((entry, matrixIndex) =>
+207	              getFiniteNumber(
+208	                entry,
+209	                `${filePath} mesh ${index} matrixWorld[${matrixIndex}]`,
+210	              ),
+211	            )
+212	          : undefined,
+213	        sourceUrl:
+214	          typeof mesh.sourceUrl === "string" ? mesh.sourceUrl : undefined,
+215	      };
+216	    }),
+217	  };
+218	}
+219	
+220	function getFiniteNumber(value: unknown, label: string): number {
+221	  if (typeof value !== "number" || !Number.isFinite(value)) {
+222	    throw new Error(`[BerlinFlight] Expected finite number for ${label}.`);
+223	  }
+224	
+225	  return value;
+226	}
+227	
+228	function isRecord(value: unknown): value is Record<string, unknown> {
+229	  return typeof value === "object" && value !== null;
+230	}
+231	
+232	async function readTextFile(filePath: string, label: string): Promise<string> {
+233	  try {
+234	    return await readFile(filePath, "utf8");
+235	  } catch (error) {
+236	    throw new Error(
+237	      `[BerlinFlight] Missing ${label} at ${filePath}. Point the builder at a local source manifest or create one from source-manifest.example.json.`,
+238	      { cause: error },
+239	    );
+240	  }
+241	}
+242	
+243	void main();
+```
+
+**Tool Call: find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data -type f**
+Status: Completed
+
+Terminal:
+```
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-manifest.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/contracts.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-export.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-manifest.full-berlin.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-contracts.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/full-city-manifest.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/asset-loader.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-manifest.example.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/full-city-export.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/runtime-store.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/asset-loader.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/full-city-manifest.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/build.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/runtime-store.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/build.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-export.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/example.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/center-1km.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zSIXeq9RHj5ce_G_sYQJR-gVcl9mLgiNnieF7h03nB-3d72f0dfdec8.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xQgcowzIlY_MIkjJkK2UzmHi4WppAlDX1eUAL_DsJd-b51b9d94c859.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w6Wj-kmjgY6cbQZdxjf8g0lT-tCY-cy7PkUrU8DwHi-5b4ef51e423f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xZxi5LICtyUCVn6HsQiSyYIMJQaxJxw5nr8wj2XGSo-f8cd51f6437a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yv9fOnGFf8U9Ot6ZGb2Gl2So7cWr6tmkbUIgVzDxlJ-1032b4e2ac3f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w-83oP1GGchsZrznfNpPG21ZKyWoN2qSycZYx_K15M-7532c986d1de.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wcIDtgcqMEHR6Fn0_gMrDwMgc3ioXN_5YLr5vNQ9FC-af46d3f2d7f4.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yrSaVMgYLCQz2TELG4TI6CEeq2J2f8eDzySMqL2hFy-a9598ccdd370.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xnrxfxwm5P1RJ597WoQUl9QWzoQNTux1X8yUKL9-XY-7d2520025a05.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zg-0MJzuDKBYXDgIBoby3hHL-ODucn4kVtFsjbCspr-ff3961dbc97e.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xNcWM6pGjhnppMf2XN8B9fxoO7qvLZck8eDR0AUyBQ-a7d238126632.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y4HGUW_Uj0Xv2eVZZYmDYtOm878ai_Ns1o-CEPuBX0-ddf8a32ee385.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wXjSTdel37aGiUGkujuUmQZfXBQ3o--jVj08-CqH0E-91519d23d27f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ydxlwlL2tzXzVldK1fsoBt9x9yp6BqKW4_W6SAp1B5-15d85b90de50.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zQmUssX1pBZYnRCKe0aeDe0E-Z663WIk9ePJvtiGAJ-f2da0dcf6419.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2x4IQuhcmcefIIXc_42NhjMn9jOgKQwbyDu_SoSC_U3-7c9b180c19ad.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yrCsUelRilz0zHuMq3qv3NyrM01xFGW_smH0LiLrHg-2825f559bac8.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xGBhjTxOLVU-8mlO5dEYRa0QpZvUzVIFLj8ofEIhe2-6d11e312781b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xEx1yczNBma-zcaZXCy-huFC0ZHV9vyTbGbX9Baw2k-fe70a00062d8.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yFuFfGFbp_az7PiqLEd3HStG_26vVDyYgmXzGFfeSU-efc7408d3ee5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yh2bGXioRGFc7LQsNV3OcHGuoSuW1F5SkO0CSIbUTB-e977b964ddb3.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wfC5rBdiKfbcI8mz4lrL93h0oBHz9WTGg5dJDrajTv-3baece2e4057.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xZTdh2K5Kic2kvvw0WL0L0qIHIDMu1XU-s5wsQ-EQs-8bbad90014b9.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2z7sUZaM1LV34XnIotfbIIDZVqTRCgeu1VW5MYdm4er-725b527ec7ac.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zUOi6eYJhb7RXLcFIVmlXOdtTdT-BgME1rXedJUut--936bd04b5417.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xBNyxNejWx7qT5P2QDGebABh8JSuk6ZEg5nsydqIgk-b44dc9204c7f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wbFYLzWktakVgLfEt_liX5UWq__YBtjdXOE_dwUoMA-db3072e106e8.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zg4upsjc688Fm2W_udxWpGeUFNtJQG8M7Dk1jN68JW-f0d5afeca9ef.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zWAoVwh381QUpN8Ij6Cosk56yixntswnM4bDSycc14-ba194985b68e.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yUDRKMuA429w4tmdZmENwvwzYwKpKoAP5-F-p8lTl3-dd86abe9d917.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xuJ7tnRkjMd-FQqyOIkq5CiXRUINArLhmG8Jjlro1--7f0bfba7dafe.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xrYRUw5iVvgt117pcmi8KOFhf33-JZSm3rawUF3zFT-7f5bda8e1cea.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xDVRE2y3gyNwk3t502pVhqvJjo0zUht20-dTNNQc4s-8f489e3bc4fe.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y1DOJMTpTjWm1a6duYu_JjvXCIF81uOGOZAHMPJP-L-fab39624ced7.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xVSdE30Ao3ieFh4PsgebkViLrLvC2WIvCCfjle1-3y-d68d146a9961.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wIdw9nzcN85qYD_IXpr_F2Klo2xkmx-exBpankJ9kx-54d1436b9a5c.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wMq0bfR2aUU33ZFkFR8t2iFti6YNEWR0vp4HIlv_wk-ed2f04b63244.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zV7ZgD0SKyjS2rPX2mszKefqsdN0_caJRPwG3U2q6h-f67e4ade7557.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xOiV_FpcT0Vaiu8w8MYHNzlZf5ZqqoNbg_FVrLq5aO-855b654e4c00.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xtsDUimcfM23N2sFvTcf_I-c5Cyq96wDbLOdCSgAvc-eda664d84f79.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xjH_FCeGb1ifLv3Cw5WbDLmXEk9rUtRcaqgZfzJa8j-59239f063be5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w79D526j9cVTYvpDmW7_NiE1a4H3cKf7vv_tpE9YXX-cdd701048561.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yB61_qBIeIqQTsU2amQCgKLe99vteghmUacFo8Kx0l-c0092c0d0ab6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wXCyZoDrO5RoDMOBXU1Av4MIXsHesrWFRuaOleXo1_-efcfe8230140.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wQafOl1uzexWUCRXscxINBZLdd_6EAca-7On2gDKs6-b763bf329a8b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zQ2rHlQ6adI8vGjo6SZo9vUz4BHXn2t4SR1PSDYISD-89ebd309b9fd.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y4HNO65WMrugzUM09xefTGA0VUq9EjCWwBan48VkVZ-8b5812fad3d3.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ycetxwbpbxe9hRRr9NanYtn-Vk5jHkg0Di30Mfvevu-2e17f8979973.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wm0OMM_C3PTsI9uiJvRqKU7gbf8_fVTZWd2ZbiY0x6-bea2434324a6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yLOaRsW9Trjg4shZnbDlQfF5fZOhCUveGgKW6C99e--6944cc8147ac.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w_TJaRwL4y7xk2toAJNB08z0sMljIXOWMV7bZjd037-0a8fc676ced6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zIPub5Pqn25eAdwsDTwzNEtA3OCLeVIf9YTA5zCorM-bafdf238160d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wlGWCU4M_w603fSZBDPd69n5gsJtEVIZZ1t5_K4j-j-f66400db69c2.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yaMHYcIK0Q_cXpPWnTN1YzyEltlw23nhtKxsdxm8w--19419518dcdb.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wg9Tcm63B2KW-sU0Lmrk6rTvztrevir7UnE_fInfRb-ba3483cba96e.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y8B1WF9_rcsxs4VUHn6yZ5TRV4T8_b9JVascPoWD2w-51c9fcf2e23d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y4V-FmWzw5qPnB_idmjY7Zdk9DrIlrKahDo4sV0sgQ-a453a7685a7f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zuXTgoEtvFMwNPeHTnSorgzzWFQ_ptyJ1UYjzo-wgf-1355810e9b46.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w_TSMsszaJnaNH6C0TOPmSCIvqvfTXLIybv-U1QcSa-7ab0a66ecc04.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wzH2sbqsZrXuyKAlm1RbzNJrTO_O3-cKS6UFvJuRcy-0cadac7d6dca.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ykmBeDs3AcOOPQ3gQelwxztbwb9uLpnMECIAPeHnzp-033fa1703032.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2z2ri6SP7xyJgXuMJbyiFxhhca1uWFHNVPRU8T5dPIB-cd4f7cd43be8.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wrysNzw0kKpca6L9YtQ-jKrZm7sv5i3aNGD982_RDp-d57323f80b90.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wocMTHZnkyCIWxNOje0xxoG1-WMDHa-H7Ra-3fbt_8-65d860500f4f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wpVoJyo25PcosFDqMsZPQhzMUyaAI6erDWHN36dSf4-7a2828e61372.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2z4jhTZudABXdiXMvaort5Pp8uNDnfIO26P3qjYjUsD-aad5691a510d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xErnxbzZpWBMdJpvlZxBpRNPMxew-m9atGH2VNZ2iJ-92ee2b344ffb.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yBQV9eeOUESSLl_jm3y8TpltkiVVM1fsboShZQHjAR-1daa994735cc.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2znI5PWpQs-uLBCiPc-HMxBZn2mILn-TS32Skpyf4JN-1c47aa3cb814.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y83S2fC5yfmHL4GgrHOt_f2_h1QPdvN9byT9t0UVVU-6aa648e022da.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w3m-8e5JMU4t6ACgI1cB8_xGM4n6keISAxn6BnNgy1-2a2854277b9a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xrUYpfDysmeNcgg0VXhMXZU5ks8hfyMJGktyER9Yr7-837eb8c3dddd.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wgyO39qpWhCneLQ9ZtLek8tu1rR_fXIH_ysuFDx44K-fb9b2ca2020f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w6MAtoU85PxsXuYwK9JIirEJK4-kTArV0jWq9xfI8C-e420516b5f08.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zzWwAhakp8SGlWEdor5TL4SGDGEvil594tgxZNHwXd-2d00f6e3ae5c.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2x6ALAQBRLHaX6RLmA2kIqzQVV-eWPskzJltuBz1efw-efad4a39591f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yicmoOUWn2Toef6PmgXT_eC2lab938lgkBQlgaJVOR-1265896c1c30.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xQNk5KQ-z5sObD8-UE9UhyKY0OUj6uxgpa4klXDeqE-6ac21565088a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zepHPxQiV9ZiG-YDaJ8mhpqa3mzZzJRgJsX4I9R02w-5814c042ee8c.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2x2-fwIwzpm1kQVn-8lztYzwyCCg-DigjtaXKbdKbuG-f87ae6dcb57d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xqSK0Ts93Wz91VBAKXaHaLBMHXFcmZn8pyphuEbBaV-988ebcea807a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wVS7hwGlEmW5S3_QZyq76ocUadw3r-PBcXO6v2wwpi-a520cc76b10b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wQbJd68vatAI-YiR6uIf00WYmp23_EnV1g2Sk1meE7-0aae0b5115e7.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xZpowF5_lGXLFEZtrpRDhfhoM_NcCIJP8iHUmY_ZhY-ea73b5408e90.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xj-16oM0_fJBaLdR2WyyVWh52kUP2RJUyECpYcfJB0-acc93301d9de.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yXxUltu3MM34QYA8HvNfVREbtAtT6uXStSMfEIiS3b-0ff4e32d9b58.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xuK-Gxl6dKUxzijNaozYqjJel4wNnWkFU8mEPy--u6-5905f2e6943c.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yRsPm_T6ZFMrhXRccp-J8oJkUrCF7I_aaI0qJUEWVP-463b6624593a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wa9e5NJpPbbgkm7572_kLK44ChGzlog2Pbyr6aoE0F-089b16b557b5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xXxyvyT3zYNw95_J7MXdDdt_arQOwl0c2Q-C2VvjjM-c69c1611ab08.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y3e9ASUFceQp4Q9TNYJnAGWdKnzTfKOeLMmYe0XfCt-f51e29f69be6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yNaiYs4sWAotHHHAvsJe1sxMUTKZPlmApwh6hR8kZ2-ca3b10804709.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wza0HtzZUqmFo6orpnzhXLuxH9R0g0Gu4FlHvmLh3h-6b8bed45269b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zrCgI-271lNTwPaHFqEf7Dzr_SzJGkyMaNhN339EQ0-60db82805a0f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w1cL3jV52RiFfLi8xvDB7ilHZ-nTcg5xdBRp8yoB2v-a6a77c1f83e1.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y2ubww0-QSvZqyyk9RSgk9VeEimSR3LWY50DEINTGr-218dca15bbb5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ybKA8SfHtg5-QiHpz-5wr8whO8gp5qZ80GkHcIIpSZ-8d434f757d12.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yVpGU1eVxGE5Ah_unWaspqXxr46txbTn3E4iy5jQY2-36681d551a7a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yPCYQT6tPFEzbIUw1_PFctGWiZ1ex--DLyCavqnjcX-8d6edef4a811.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w0jBUxTA_RuJ6wAGkFkiZBo7uENPH4SL9VMs-vV-Nk-0a9f7f219b02.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wFsAC_bRNpMJAoAAipNMoAc8T-J5ilemOiz43xpAe_-65b877de980c.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yrzxCwW5JKCvZ8ydcu3rzOQ9-AxH3Vlj0s7rElSBKY-5a6df3ed40b9.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wdGGh1MOfFvn3TSB7klDOOsZeVyd9S7ATPPnUFlsUv-faeae9e9ff6b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2x3haRGu5zhD3zBM_U0OAwyAJbYZim3Ck_1ag60YxVj-4c7d4fc0414d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yCmQbzwq85_IFD64xKKecK2_iJEj4zraHI2-Dec37x-900e554e5159.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zyPLF7QS3Ek8IY0MVLAQRX7DF5_n2xhZWINEBCij80-d6631f94442e.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zVWG97nR7YfNL-U0J13PiwP8aWK8OWza4kJPVjg8Da-0b917a32b478.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w02nRDLplHxbC2S1dak1wvWVqFBDq4BnV0s8f5zNDy-422cf7dfc1aa.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wAMG4sNesaYLtRI-wDDNI9sED2yoIDTvsaMJkDrwGf-42448a2a72c0.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xomi5MC_uKFDhQQOm9fChXpfmNv86Vo1IU2342Gos9-a53311534a10.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y9cdSxB_mS0F4w_nklFpSlyvVgOHJNhUMd2HzaS7KS-de95e9763e9a.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ych4k-Qb9h4IXmxNdB-mMqtdUSZfBLnr8Z8vpD5nCl-e78e891d588e.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y-xSflTevtoZTak05ZfKt0LGPgC5CLJ3GPa8gAEuWz-9aca44541fe0.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zJV5hxkhkyLSa-ikkN_ocb3nPgqdgJPnp9RBJBQ-rr-3b2b9dfccb3d.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2z4EWJz6VE12krm_R0ndDFf1j7m2U0wZpaduRXEo67L-4c1992b13e36.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w5WbhDPHeornr_x2f2wbVIOqeaOCnOeX2OQVvJ-CWp-f66af63736e2.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wfmt-5etM2ucmTJ5V57VRF6FAuTi_WR1Wdakfl5x---e2cb69b432d2.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xKs0Mr4Q4K5hsoUMVcfsuwu670PBlwouf2iOBWg1md-37f23c87f2c6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ycJepa5GFGIeKeP44Rcgw1WHwS5DNSSFVOI3cNU4j4-ec07b3a4c1d3.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wjinwj_P4gQUu-6hI0WOw5tfmzO8P17a1rsXsQe4vb-bc1551eb74d1.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wfC8cylOR7irQnihJJzWCa_epRAwnCBFqoBWOXFMBP-cd8e97e16d3b.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2ymEndVEgbggGetUuPvnJYKReyDMFLoJYssxS-cSHBp-c1601cd04f55.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wUWUguAII_wwGvEB1M6XhHTS9PCJQv_7dOqBZLSZys-8a55d1141413.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2xCwCLHY-J4_ufoztWgo42SAPR_h7hSvvO08P67ZrRP-a3c14e466ce5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2y74zPZ_88nlfEPXWYR-izDT6jRA5BtQjneeclSXQwm-96052d1e75c2.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zZVjPRR7ybgR4MKitVjCbXaepmCt5ZmXNhZn-t9nV7-8da873185ae6.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2w_o4L_pTe4465YqknhDV3Hs_D-CMF4-95AT0iRy5yB-33fb2335b7c5.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zGvVogbEnN2xBQ3bYcoJ1yWcJ71lx061-eSiWvXEzs-5bb3ee165311.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wd1VLeroEfGiA9DSxIKW3CD9Rsoqd_wMzr0a-tQz6S-113371cefa5f.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yzweDuW-d8fXPiuJU_JMBJuxo0cD4dojdg3X16QwC4-0f5a5f689a61.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2yld8863vPfJfpeFHMQnvFQpKwAvDusogKPUJ4x4D-k-798be70cf617.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zRuTLjIipM6GzzvKywdPJRpJN58-V74QazDLSSh6Rs-763f5f7e2cd7.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2zC6dbn4WzvT9g18V1dHVaL_xnNhhlCtXpsPxjLeROA-c1949a9d57fb.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-berlin/AJVsH2wXGSx38Gn4EG62OXMoaHzXbZ6_0i5NpRwK13rURBYD-d898ded00609.json
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/cone-data/source-meshes/full-ber
+[Output truncated (387945 bytes total): full output saved to /Users/juliuswenk/.claude/projects/-Users-juliuswenk-Desktop-KD-borrowed-senses-neural-flight-template/38929cef-a5f4-4b30-b2fa-ed4f43239b98/tool-results/bpm79nvmu.txt]
+```
+
+
+**Tool Call: Read src/lib/experiences/berlin-flight/cone-data/build.ts**
+Status: Completed
+
+```
+1	import * as THREE from "three";
+2	import { preprocessTrackedMesh } from "../collision/mesh-preprocess";
+3	import type { TrackedTileMesh } from "../collision/tile-mesh-types";
+4	import { createBerlinConeVolume } from "../cone-placement/cone-volume";
+5	import { sampleBerlinMeshNeighborhood } from "../cone-placement/mesh-neighborhood";
+6	import { solveBerlinConeAxisDirection } from "../cone-placement/orientation-solver";
+7	import { extractBerlinRoofCornerCandidates } from "../placement/corner-extractor";
+8	import { filterBerlinRoofCornerCandidates } from "../placement/corner-filter";
+9	import type { BerlinPlacementBuildingSource } from "../placement/types";
+10	import type {
+11	  BerlinConeChunkData,
+12	  BerlinConeDatasetManifest,
+13	} from "./contracts";
+14	import {
+15	  BERLIN_CONE_CHUNK_SIZE_METERS,
+16	  getConeChunkCoordinate,
+17	  getConeChunkKey,
+18	  parseConeChunkKey,
+19	  type BerlinConeChunkKey,
+20	} from "../runtime/cone-grid-coordinates";
+21	
+22	type MutableChunkBuffers = {
+23	  chunkKey: BerlinConeChunkKey;
+24	  chunkWorldMinX: number;
+25	  chunkWorldMinZ: number;
+26	  positions: number[];
+27	  scalars: number[];
+28	  coneIndex: number[];
+29	};
+30	
+31	export interface BerlinConeDatasetBuildStats {
+32	  sourceMeshes: number;
+33	  scannedBuildings: number;
+34	  rawCandidates: number;
+35	  stagedCandidates: number;
+36	  rejectedBySpacing: number;
+37	  acceptedPoints: number;
+38	  generatedCones: number;
+39	  skippedMissingNeighborhood: number;
+40	  skippedAmbiguousDirection: number;
+41	}
+42	
+43	export interface BerlinConeDatasetBuildResult {
+44	  manifest: BerlinConeDatasetManifest;
+45	  chunks: ReadonlyMap<BerlinConeChunkKey, BerlinConeChunkData>;
+46	  stats: BerlinConeDatasetBuildStats;
+47	}
+48	
+49	export function buildBerlinConeDataset(input: {
+50	  trackedMeshes: readonly TrackedTileMesh[];
+51	  radiusFilter?: {
+52	    center: {
+53	      x: number;
+54	      z: number;
+55	    };
+56	    radiusMeters: number;
+57	  };
+58	  boundsFilter?: {
+59	    minX: number;
+60	    maxX: number;
+61	    minZ: number;
+62	    maxZ: number;
+63	  };
+64	}): BerlinConeDatasetBuildResult {
+65	  const filteredMeshes = filterTrackedMeshes(
+66	    input.trackedMeshes,
+67	    input.radiusFilter,
+68	    input.boundsFilter,
+69	  );
+70	  const buildingSources = filteredMeshes.map(createOfflineBuildingSource);
+71	  const candidates = buildingSources.flatMap((source) =>
+72	    extractBerlinRoofCornerCandidates(source),
+73	  );
+74	  const filterResult = filterBerlinRoofCornerCandidates(candidates);
+75	  const chunkBuffers = new Map<BerlinConeChunkKey, MutableChunkBuffers>();
+76	  let generatedCones = 0;
+77	  let skippedMissingNeighborhood = 0;
+78	  let skippedAmbiguousDirection = 0;
+79	
+80	  for (const point of filterResult.acceptedPoints) {
+81	    const neighborhood = sampleBerlinMeshNeighborhood(point, filteredMeshes);
+82	    const axisDirection = solveBerlinConeAxisDirection(point, neighborhood);
+83	    if (!axisDirection) {
+84	      if (neighborhood) {
+85	        skippedAmbiguousDirection += 1;
+86	      } else {
+87	        skippedMissingNeighborhood += 1;
+88	      }
+89	      continue;
+90	    }
+91	
+92	    const chunkCoordinate = getConeChunkCoordinate(point.worldPosition);
+93	    const chunkKey = getConeChunkKey(chunkCoordinate);
+94	    const cone = createBerlinConeVolume(
+95	      point,
+96	      axisDirection,
+97	      chunkKey,
+98	      generatedCones,
+99	    );
+100	    const chunk = getOrCreateChunkBuffer(chunkBuffers, chunkKey);
+101	    chunk.positions.push(
+102	      cone.tip.x,
+103	      cone.tip.y,
+104	      cone.tip.z,
+105	      cone.axisDirection.x,
+106	      cone.axisDirection.y,
+107	      cone.axisDirection.z,
+108	    );
+109	    chunk.scalars.push(cone.radius, cone.height);
+110	    chunk.coneIndex.push(cone.coneIndex);
+111	    generatedCones += 1;
+112	  }
+113	
+114	  const chunks = new Map<BerlinConeChunkKey, BerlinConeChunkData>();
+115	
+116	  for (const [chunkKey, chunk] of chunkBuffers) {
+117	    chunks.set(chunkKey, {
+118	      chunkKey,
+119	      chunkWorldMinX: chunk.chunkWorldMinX,
+120	      chunkWorldMinZ: chunk.chunkWorldMinZ,
+121	      chunkSizeMeters: BERLIN_CONE_CHUNK_SIZE_METERS,
+122	      positions: Float32Array.from(chunk.positions),
+123	      scalars: Float32Array.from(chunk.scalars),
+124	      coneIndex: Int32Array.from(chunk.coneIndex),
+125	    });
+126	  }
+127	
+128	  return {
+129	    manifest: createManifest(chunks.keys()),
+130	    chunks,
+131	    stats: {
+132	      sourceMeshes: filteredMeshes.length,
+133	      scannedBuildings: buildingSources.length,
+134	      rawCandidates: candidates.length,
+135	      stagedCandidates: filterResult.stagedCandidates,
+136	      rejectedBySpacing: filterResult.rejectedBySpacing,
+137	      acceptedPoints: filterResult.acceptedPoints.length,
+138	      generatedCones,
+139	      skippedMissingNeighborhood,
+140	      skippedAmbiguousDirection,
+141	    },
+142	  };
+143	}
+144	
+145	export function createTrackedMeshFromOfflineGeometry(input: {
+146	  positions: readonly number[];
+147	  matrixWorld?: readonly number[];
+148	  sourceUrl: string;
+149	}): TrackedTileMesh {
+150	  const geometry = new THREE.BufferGeometry();
+151	  geometry.setAttribute(
+152	    "position",
+153	    new THREE.Float32BufferAttribute(input.positions, 3),
+154	  );
+155	  const material = new THREE.MeshBasicMaterial();
+156	  const mesh = new THREE.Mesh(geometry, material);
+157	
+158	  if (input.matrixWorld && input.matrixWorld.length === 16) {
+159	    mesh.matrixAutoUpdate = false;
+160	    mesh.matrix.fromArray(input.matrixWorld);
+161	    mesh.matrixWorld.copy(mesh.matrix);
+162	  } else {
+163	    mesh.updateMatrixWorld(true);
+164	  }
+165	
+166	  const trackedMesh = preprocessTrackedMesh(mesh, material);
+167	  if (!trackedMesh) {
+168	    throw new Error(
+169	      `[BerlinFlight] Could not preprocess offline cone source mesh: ${input.sourceUrl}`,
+170	    );
+171	  }
+172	
+173	  trackedMesh.sourceUrl = input.sourceUrl;
+174	  return trackedMesh;
+175	}
+176	
+177	function filterTrackedMeshes(
+178	  trackedMeshes: readonly TrackedTileMesh[],
+179	  radiusFilter:
+180	    | {
+181	        center: {
+182	          x: number;
+183	          z: number;
+184	        };
+185	        radiusMeters: number;
+186	      }
+187	    | undefined,
+188	  boundsFilter:
+189	    | {
+190	        minX: number;
+191	        maxX: number;
+192	        minZ: number;
+193	        maxZ: number;
+194	      }
+195	    | undefined,
+196	): readonly TrackedTileMesh[] {
+197	  if (!radiusFilter && !boundsFilter) {
+198	    return trackedMeshes;
+199	  }
+200	
+201	  const radiusSq =
+202	    radiusFilter !== undefined
+203	      ? radiusFilter.radiusMeters * radiusFilter.radiusMeters
+204	      : 0;
+205	
+206	  return trackedMeshes.filter((trackedMesh) => {
+207	    if (radiusFilter) {
+208	      const deltaX = trackedMesh.worldSphere.center.x - radiusFilter.center.x;
+209	      const deltaZ = trackedMesh.worldSphere.center.z - radiusFilter.center.z;
+210	      if (deltaX * deltaX + deltaZ * deltaZ > radiusSq) return false;
+211	    }
+212	
+213	    if (boundsFilter) {
+214	      const sphere = trackedMesh.worldSphere;
+215	      return (
+216	        sphere.center.x + sphere.radius >= boundsFilter.minX &&
+217	        sphere.center.x - sphere.radius <= boundsFilter.maxX &&
+218	        sphere.center.z + sphere.radius >= boundsFilter.minZ &&
+219	        sphere.center.z - sphere.radius <= boundsFilter.maxZ
+220	      );
+221	    }
+222	
+223	    return true;
+224	  });
+225	}
+226	
+227	function createOfflineBuildingSource(
+228	  trackedMesh: TrackedTileMesh,
+229	  index: number,
+230	): BerlinPlacementBuildingSource {
+231	  const buildingId = `${trackedMesh.sourceUrl}#${index}`;
+232	  return {
+233	    buildingId,
+234	    sourceKey: buildingId,
+235	    mesh: trackedMesh.mesh,
+236	    geometry: trackedMesh.geometry,
+237	    metadata: {
+238	      osmId: null,
+239	      featureId: null,
+240	      sourceLayer: null,
+241	    },
+242	  };
+243	}
+244	
+245	function getOrCreateChunkBuffer(
+246	  chunks: Map<BerlinConeChunkKey, MutableChunkBuffers>,
+247	  chunkKey: BerlinConeChunkKey,
+248	): MutableChunkBuffers {
+249	  const existing = chunks.get(chunkKey);
+250	  if (existing) {
+251	    return existing;
+252	  }
+253	
+254	  const coordinate = parseConeChunkKey(chunkKey);
+255	  const created: MutableChunkBuffers = {
+256	    chunkKey,
+257	    chunkWorldMinX: coordinate.x * BERLIN_CONE_CHUNK_SIZE_METERS,
+258	    chunkWorldMinZ: coordinate.z * BERLIN_CONE_CHUNK_SIZE_METERS,
+259	    positions: [],
+260	    scalars: [],
+261	    coneIndex: [],
+262	  };
+263	  chunks.set(chunkKey, created);
+264	  return created;
+265	}
+266	
+267	function createManifest(
+268	  chunkKeys: Iterable<BerlinConeChunkKey>,
+269	): BerlinConeDatasetManifest {
+270	  let minChunkX = Number.POSITIVE_INFINITY;
+271	  let maxChunkX = Number.NEGATIVE_INFINITY;
+272	  let minChunkZ = Number.POSITIVE_INFINITY;
+273	  let maxChunkZ = Number.NEGATIVE_INFINITY;
+274	  let chunkCount = 0;
+275	
+276	  for (const chunkKey of chunkKeys) {
+277	    const coordinate = parseConeChunkKey(chunkKey);
+278	    minChunkX = Math.min(minChunkX, coordinate.x);
+279	    maxChunkX = Math.max(maxChunkX, coordinate.x);
+280	    minChunkZ = Math.min(minChunkZ, coordinate.z);
+281	    maxChunkZ = Math.max(maxChunkZ, coordinate.z);
+282	    chunkCount += 1;
+283	  }
+284	
+285	  return {
+286	    version: 1,
+287	    origin: {
+288	      x: 0,
+289	      z: 0,
+290	    },
+291	    chunkSizeMeters: BERLIN_CONE_CHUNK_SIZE_METERS,
+292	    bounds:
+293	      chunkCount === 0
+294	        ? {
+295	            minChunkX: 0,
+296	            maxChunkX: -1,
+297	            minChunkZ: 0,
+298	            maxChunkZ: -1,
+299	          }
+300	        : {
+301	            minChunkX,
+302	            maxChunkX,
+303	            minChunkZ,
+304	            maxChunkZ,
+305	          },
+306	    chunkCount,
+307	  };
+308	}
+```
+
+**Tool Call: find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement -type f
+echo ---CORNER-EXTRACTOR---
+cat /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-extractor.ts
+echo ---CORNER-FILTER---
+cat /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-filter.ts**
+Status: Completed
+
+Terminal:
+```
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-registry.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-filter.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-extractor.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/debug-markers.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-extractor.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/types.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/osm-corner-source.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/config.ts
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-registry.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/controller.test.js
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/controller.ts
+---CORNER-EXTRACTOR---
+import * as THREE from "three";
+import { BERLIN_PLACEMENT } from "./config";
+import type {
+  BerlinPlacementBuildingSource,
+  BerlinRoofCornerCandidate,
+} from "./types";
+
+const scratchPosition = new THREE.Vector3();
+const scratchRoofCenter = new THREE.Vector3();
+
+interface RoofCell {
+  cellX: number;
+  cellZ: number;
+  maxElevation: number;
+  vertices: Array<{
+    vertexIndex: number;
+    worldPosition: THREE.Vector3;
+  }>;
+}
+
+interface RoofHullPoint {
+  vertexIndex: number;
+  worldPosition: THREE.Vector3;
+}
+
+export function extractBerlinRoofCornerCandidates(
+  source: BerlinPlacementBuildingSource,
+): readonly BerlinRoofCornerCandidate[] {
+  const positionAttribute = source.geometry.getAttribute("position");
+  if (!(positionAttribute instanceof THREE.BufferAttribute)) {
+    return [];
+  }
+
+  if (positionAttribute.itemSize < 3) {
+    return [];
+  }
+
+  const vertexCount = positionAttribute.count;
+  if (vertexCount === 0) {
+    return [];
+  }
+
+  source.mesh.updateMatrixWorld(true);
+
+  const roofCells = new Map<string, RoofCell>();
+
+  for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex += 1) {
+    scratchPosition
+      .fromBufferAttribute(positionAttribute, vertexIndex)
+      .applyMatrix4(source.mesh.matrixWorld);
+
+    const cellX = Math.floor(
+      scratchPosition.x / BERLIN_PLACEMENT.TILE_BUILDING_CELL_SIZE,
+    );
+    const cellZ = Math.floor(
+      scratchPosition.z / BERLIN_PLACEMENT.TILE_BUILDING_CELL_SIZE,
+    );
+    const cellKey = `${cellX}:${cellZ}`;
+    const cell = roofCells.get(cellKey);
+
+    if (cell) {
+      cell.maxElevation = Math.max(cell.maxElevation, scratchPosition.y);
+      cell.vertices.push({
+        vertexIndex,
+        worldPosition: scratchPosition.clone(),
+      });
+      continue;
+    }
+
+    roofCells.set(cellKey, {
+      cellX,
+      cellZ,
+      maxElevation: scratchPosition.y,
+      vertices: [
+        {
+          vertexIndex,
+          worldPosition: scratchPosition.clone(),
+        },
+      ],
+    });
+  }
+
+  if (roofCells.size === 0) {
+    return [];
+  }
+
+  const dedupeDistanceSq =
+    BERLIN_PLACEMENT.SAME_BUILDING_DEDUPE_EPSILON *
+    BERLIN_PLACEMENT.SAME_BUILDING_DEDUPE_EPSILON;
+  const candidates: BerlinRoofCornerCandidate[] = [];
+
+  for (const cell of roofCells.values()) {
+    if (!Number.isFinite(cell.maxElevation)) {
+      continue;
+    }
+
+    const buildingId =
+      roofCells.size === 1
+        ? source.buildingId
+        : `${source.buildingId}:cell:${cell.cellX}:${cell.cellZ}`;
+    if (cell.maxElevation < BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT) {
+      continue;
+    }
+
+    const roofPoints = getDedupedRoofPoints(cell);
+    const hull = getConvexHull(roofPoints);
+    if (hull.length < 3) {
+      continue;
+    }
+
+    getRoofCenter(hull, scratchRoofCenter);
+    const cellCandidates = hull
+      .filter(
+        (point) =>
+          !hasNearbyCandidate(candidates, point.worldPosition, dedupeDistanceSq),
+      )
+      .map((point) =>
+        createRoofCornerCandidate(
+          point,
+          buildingId,
+          source.sourceKey,
+          scratchRoofCenter,
+        ),
+      );
+
+    candidates.push(...limitCornerCandidates(cellCandidates));
+  }
+
+  return candidates.sort(compareCornerCandidates);
+}
+
+function getDedupedRoofPoints(cell: RoofCell): RoofHullPoint[] {
+  const roofElevationThreshold =
+    cell.maxElevation - BERLIN_PLACEMENT.ROOF_ELEVATION_EPSILON;
+  const roofPoints = new Map<string, RoofHullPoint>();
+
+  for (const vertex of cell.vertices) {
+    if (vertex.worldPosition.y < roofElevationThreshold) {
+      continue;
+    }
+
+    const key = `${quantize(vertex.worldPosition.x)}:${quantize(vertex.worldPosition.z)}`;
+    const existing = roofPoints.get(key);
+    if (existing && existing.worldPosition.y >= vertex.worldPosition.y) {
+      continue;
+    }
+
+    roofPoints.set(key, {
+      vertexIndex: vertex.vertexIndex,
+      worldPosition: vertex.worldPosition.clone(),
+    });
+  }
+
+  return Array.from(roofPoints.values()).sort(compareHullPoints);
+}
+
+function getConvexHull(points: readonly RoofHullPoint[]): RoofHullPoint[] {
+  if (points.length <= 3) {
+    return [...points];
+  }
+
+  const lower: RoofHullPoint[] = [];
+  for (const point of points) {
+    while (
+      lower.length >= 2 &&
+      getCrossProduct(lower[lower.length - 2], lower[lower.length - 1], point) <=
+        0
+    ) {
+      lower.pop();
+    }
+    lower.push(point);
+  }
+
+  const upper: RoofHullPoint[] = [];
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    const point = points[index];
+    while (
+      upper.length >= 2 &&
+      getCrossProduct(upper[upper.length - 2], upper[upper.length - 1], point) <=
+        0
+    ) {
+      upper.pop();
+    }
+    upper.push(point);
+  }
+
+  lower.pop();
+  upper.pop();
+  return lower.concat(upper);
+}
+
+function getRoofCenter(
+  points: readonly RoofHullPoint[],
+  target: THREE.Vector3,
+): THREE.Vector3 {
+  target.set(0, 0, 0);
+
+  for (const point of points) {
+    target.add(point.worldPosition);
+  }
+
+  return target.multiplyScalar(1 / points.length);
+}
+
+function createRoofCornerCandidate(
+  point: RoofHullPoint,
+  buildingId: string,
+  sourceKey: string,
+  roofCenter: THREE.Vector3,
+): BerlinRoofCornerCandidate {
+  const roofOutwardDirection = point.worldPosition.clone().sub(roofCenter);
+  roofOutwardDirection.y = 0;
+  const placementScore = roofOutwardDirection.length();
+
+  if (roofOutwardDirection.lengthSq() > 0) {
+    roofOutwardDirection.normalize();
+  } else {
+    roofOutwardDirection.set(1, 0, 0);
+  }
+
+  return {
+    buildingId,
+    sourceKey,
+    cornerIndex: point.vertexIndex,
+    elevation: point.worldPosition.y,
+    worldPosition: point.worldPosition.clone(),
+    roofCenter: roofCenter.clone(),
+    roofOutwardDirection,
+    placementScore,
+  };
+}
+
+function limitCornerCandidates(
+  candidates: readonly BerlinRoofCornerCandidate[],
+): readonly BerlinRoofCornerCandidate[] {
+  if (candidates.length <= 1) {
+    return candidates;
+  }
+
+  const sortedCandidates = [...candidates].sort(compareCornerCandidates);
+  if (sortedCandidates.length <= BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING) {
+    return sortedCandidates;
+  }
+
+  return sortedCandidates.slice(0, BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING);
+}
+
+function hasNearbyCandidate(
+  candidates: readonly BerlinRoofCornerCandidate[],
+  position: THREE.Vector3,
+  maxDistanceSq: number,
+): boolean {
+  for (const candidate of candidates) {
+    if (candidate.worldPosition.distanceToSquared(position) <= maxDistanceSq) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function compareCornerCandidates(
+  left: BerlinRoofCornerCandidate,
+  right: BerlinRoofCornerCandidate,
+): number {
+  const leftScore = left.placementScore ?? 0;
+  const rightScore = right.placementScore ?? 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
+  }
+
+  if (left.elevation !== right.elevation) {
+    return right.elevation - left.elevation;
+  }
+
+  if (left.worldPosition.x !== right.worldPosition.x) {
+    return left.worldPosition.x - right.worldPosition.x;
+  }
+
+  if (left.worldPosition.z !== right.worldPosition.z) {
+    return left.worldPosition.z - right.worldPosition.z;
+  }
+
+  return left.cornerIndex - right.cornerIndex;
+}
+
+function compareHullPoints(left: RoofHullPoint, right: RoofHullPoint): number {
+  if (left.worldPosition.x !== right.worldPosition.x) {
+    return left.worldPosition.x - right.worldPosition.x;
+  }
+
+  if (left.worldPosition.z !== right.worldPosition.z) {
+    return left.worldPosition.z - right.worldPosition.z;
+  }
+
+  return left.vertexIndex - right.vertexIndex;
+}
+
+function getCrossProduct(
+  origin: RoofHullPoint,
+  left: RoofHullPoint,
+  right: RoofHullPoint,
+): number {
+  const leftX = left.worldPosition.x - origin.worldPosition.x;
+  const leftZ = left.worldPosition.z - origin.worldPosition.z;
+  const rightX = right.worldPosition.x - origin.worldPosition.x;
+  const rightZ = right.worldPosition.z - origin.worldPosition.z;
+
+  return leftX * rightZ - leftZ * rightX;
+}
+
+function quantize(value: number): number {
+  return Math.round(value / BERLIN_PLACEMENT.SAME_BUILDING_DEDUPE_EPSILON);
+}
+---CORNER-FILTER---
+import { BERLIN_PLACEMENT } from "./config";
+import type {
+  BerlinAcceptedShadowOriginPoint,
+  BerlinRoofCornerCandidate,
+} from "./types";
+
+export interface BerlinCornerFilterResult {
+  stagedCandidates: number;
+  acceptedPoints: readonly BerlinAcceptedShadowOriginPoint[];
+  rejectedBySpacing: number;
+}
+
+export function applyBerlinCornerCandidateStage(
+  candidates: readonly BerlinRoofCornerCandidate[],
+): readonly BerlinRoofCornerCandidate[] {
+  return candidates;
+}
+
+export function filterBerlinRoofCornerCandidates(
+  candidates: readonly BerlinRoofCornerCandidate[],
+): BerlinCornerFilterResult {
+  if (candidates.length === 0) {
+    return {
+      stagedCandidates: 0,
+      acceptedPoints: [],
+      rejectedBySpacing: 0,
+    };
+  }
+
+  const stagedCandidates = applyBerlinCornerCandidateStage(candidates);
+  if (stagedCandidates.length === 0) {
+    return {
+      stagedCandidates: 0,
+      acceptedPoints: [],
+      rejectedBySpacing: 0,
+    };
+  }
+
+  const sortedCandidates = [...stagedCandidates].sort(
+    compareRoofCornerCandidates,
+  );
+  const acceptedPoints: BerlinAcceptedShadowOriginPoint[] = [];
+  const minDistanceSq =
+    BERLIN_PLACEMENT.MIN_REQUIRED_DISTANCE *
+    BERLIN_PLACEMENT.MIN_REQUIRED_DISTANCE;
+  let rejectedBySpacing = 0;
+
+  for (const candidate of sortedCandidates) {
+    if (hasNearbyAcceptedPoint(acceptedPoints, candidate, minDistanceSq)) {
+      rejectedBySpacing += 1;
+      continue;
+    }
+
+    acceptedPoints.push({
+      pointId: createShadowOriginPointId(candidate),
+      buildingId: candidate.buildingId,
+      sourceKey: candidate.sourceKey,
+      cornerIndex: candidate.cornerIndex,
+      elevation: candidate.elevation,
+      worldPosition: candidate.worldPosition.clone(),
+      roofCenter: candidate.roofCenter?.clone(),
+      roofOutwardDirection: candidate.roofOutwardDirection?.clone(),
+      placementScore: candidate.placementScore,
+    });
+  }
+
+  return {
+    stagedCandidates: stagedCandidates.length,
+    acceptedPoints,
+    rejectedBySpacing,
+  };
+}
+
+function hasNearbyAcceptedPoint(
+  acceptedPoints: readonly BerlinAcceptedShadowOriginPoint[],
+  candidate: BerlinRoofCornerCandidate,
+  minDistanceSq: number,
+): boolean {
+  for (const acceptedPoint of acceptedPoints) {
+    if (
+      acceptedPoint.worldPosition.distanceToSquared(candidate.worldPosition) <=
+      minDistanceSq
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function compareRoofCornerCandidates(
+  left: BerlinRoofCornerCandidate,
+  right: BerlinRoofCornerCandidate,
+): number {
+  const leftScore = left.placementScore ?? 0;
+  const rightScore = right.placementScore ?? 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
+  }
+
+  if (left.buildingId !== right.buildingId) {
+    return left.buildingId.localeCompare(right.buildingId);
+  }
+
+  if (left.elevation !== right.elevation) {
+    return right.elevation - left.elevation;
+  }
+
+  if (left.cornerIndex !== right.cornerIndex) {
+    return left.cornerIndex - right.cornerIndex;
+  }
+
+  if (left.worldPosition.x !== right.worldPosition.x) {
+    return left.worldPosition.x - right.worldPosition.x;
+  }
+
+  if (left.worldPosition.z !== right.worldPosition.z) {
+    return left.worldPosition.z - right.worldPosition.z;
+  }
+
+  return left.sourceKey.localeCompare(right.sourceKey);
+}
+
+function createShadowOriginPointId(
+  candidate: BerlinRoofCornerCandidate,
+): string {
+  return `${candidate.buildingId}:${candidate.cornerIndex}`;
+}
+```
+
+
+**Tool Call: Read src/lib/experiences/berlin-flight/placement/config.ts**
+Status: Completed
+
+```
+1	export const BERLIN_PLACEMENT = {
+2	  SCAN_RADIUS: 240,
+3	  RECOMPUTE_MOVEMENT_THRESHOLD: 30,
+4	  MAX_CORNERS_PER_BUILDING: 4,
+5	  TILE_BUILDING_CELL_SIZE: 96,
+6	  MIN_CAMERA_HEIGHT: 103,
+7	  MIN_REQUIRED_DISTANCE: 11,
+8	  ROOF_ELEVATION_EPSILON: 2,
+9	  MAX_BUILDINGS_PER_TICK: 12,
+10	  MAX_CANDIDATES_PER_TICK: 48,
+11	  SAME_BUILDING_DEDUPE_EPSILON: 0.75,
+12	  DEBUG_CAMERA_HEIGHT: 1200,
+13	  DEBUG_MARKERS: {
+14	    ENABLED_BY_DEFAULT: false,
+15	    MAX_MARKERS: 512,
+16	    SIZE: 2.4,
+17	    OPACITY: 0.85,
+18	    ACCEPTED_COLOR: 0x6df7c1,
+19	    REJECTED_COLOR: 0xff6f91,
+20	  },
+21	} as const;
+```
+
+**Tool Call: grep -rn "MIN_CAMERA_HEIGHT" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/ /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/ 2>/dev/null
+echo ---
+grep -n "MIN_CAMERA_HEIGHT\|elevation\|ground\|terrain" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/docs/roof-cone-integration-plan.md | head -40**
+Status: Completed
+
+Terminal:
+```
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/corner-extractor.ts:101:    if (cell.maxElevation < BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT) {
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/placement/config.ts:6:  MIN_CAMERA_HEIGHT: 103,
+---
+```
+
+
+**Tool Call: cat /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/geo/berlin-mitte-origin.ts 2>/dev/null
+echo ---
+sed -n '1,60p' /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/geo/coordinates.ts 2>/dev/null**
+Status: Completed
+
+Terminal:
+```
+import type { GeoPoint } from "./types";
+
+export const WERKSCHAU_BERLIN_MITTE_ORIGIN: GeoPoint = {
+  lat: 52.52,
+  lon: 13.405,
+  height: 0,
+};
+---
+import * as THREE from "three";
+import type { GeoPoint, WorldPoint } from "./types";
+
+const WGS84_SEMI_MAJOR_AXIS = 6378137.0;
+const WGS84_FLATTENING = 1 / 298.257223563;
+const WGS84_ECCENTRICITY_SQUARED =
+  2 * WGS84_FLATTENING - WGS84_FLATTENING * WGS84_FLATTENING;
+const WGS84_SEMI_MINOR_AXIS =
+  WGS84_SEMI_MAJOR_AXIS * (1 - WGS84_FLATTENING);
+const WGS84_SECOND_ECCENTRICITY_SQUARED =
+  (WGS84_SEMI_MAJOR_AXIS * WGS84_SEMI_MAJOR_AXIS -
+    WGS84_SEMI_MINOR_AXIS * WGS84_SEMI_MINOR_AXIS) /
+  (WGS84_SEMI_MINOR_AXIS * WGS84_SEMI_MINOR_AXIS);
+
+export function getECEFToLocalMatrix(origin: GeoPoint): THREE.Matrix4 {
+  const originECEF = geoToECEF(origin);
+  const up = new THREE.Vector3(
+    originECEF.x,
+    originECEF.y,
+    originECEF.z,
+  ).normalize();
+  const east = new THREE.Vector3(-originECEF.y, originECEF.x, 0).normalize();
+  const north = new THREE.Vector3().crossVectors(up, east).normalize();
+  const south = new THREE.Vector3().copy(north).negate();
+
+  const matrix = new THREE.Matrix4();
+  matrix.set(
+    east.x,
+    up.x,
+    south.x,
+    originECEF.x,
+    east.y,
+    up.y,
+    south.y,
+    originECEF.y,
+    east.z,
+    up.z,
+    south.z,
+    originECEF.z,
+    0,
+    0,
+    0,
+    1,
+  );
+
+  return matrix.invert();
+}
+
+export function localToGeo(origin: GeoPoint, point: WorldPoint): GeoPoint {
+  const localToECEF = getECEFToLocalMatrix(origin).invert();
+  const ecefPoint = new THREE.Vector3(point.x, point.y, point.z).applyMatrix4(
+    localToECEF,
+  );
+
+  return ecefToGeo({
+    x: ecefPoint.x,
+    y: ecefPoint.y,
+    z: ecefPoint.z,
+  });
+}
+```
+
+
+**Tool Call: grep -rn "MIN_CAMERA_HEIGHT\|flightAltitude\|FLIGHT_ALTITUDE\|cameraHeight\|CAMERA_HEIGHT" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/player.ts /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/_visio-tech-werkschau/*.ts 2>/dev/null | head -30**
+Status: Completed
+
+Terminal:
+```
+
+
+
+
+
+```
+
+
+**Tool Call: grep -rn "altitude\|startHeight\|initialHeight\|spawnHeight\|Y_OFFSET\|height:" /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/player.ts 2>/dev/null | head -30
+echo ---
+find /Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight -iname "player*"**
+Status: Completed
+
+Terminal:
+```
+---
+/Users/juliuswenk/Desktop/KD/borrowed-senses/neural-flight-template/src/lib/experiences/berlin-flight/player.ts
+
+```
+
+
+## Assistant
+
+I have enough to give a clear diagnostic and recommendation now.
+
+## What's causing it
+
+The cone pregeneration pipeline (`scripts/berlin-flight/build-cone-dataset.ts` → `buildBerlinConeDataset`) places cones on rooftop corners extracted per building footprint. The relevant filter is in `corner-extractor.ts:101`:
+
+```ts
+if (cell.maxElevation < BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT) {
+  continue;
+}
+```
+
+`BERLIN_PLACEMENT.MIN_CAMERA_HEIGHT` is `103` (`config.ts:6`) and `cell.maxElevation` is the **absolute world-space Y** of the roof vertices (`corner-extractor.ts:57`, `scratchPosition.y`, not building height above ground). World Y=0 is anchored to the Berlin-Mitte origin's WGS84 ellipsoid height (`berlin-mitte-origin.ts`, `coordinates.ts`), so this is essentially "absolute elevation above the reference ellipsoid," which conflates two independent things:
+
+- **terrain elevation** at that spot in the city
+- **building height** at that spot
+
+Any building whose roof (terrain height + building height) doesn't clear 103m absolute gets **zero** cones — the whole cell is skipped before corner/spacing filtering even runs. That's exactly the "flat areas get no cones" symptom: it's not really filtering by building flatness, it's filtering by absolute elevation, which happens to correlate with low-rise/flat neighborhoods, especially ones sitting at a lower terrain base elevation.
+
+## Why it exists
+
+The name `MIN_CAMERA_HEIGHT` suggests the original intent was a safety margin — don't place cone tips low enough that they interfere with the flight camera. But it's implemented as a global absolute cutoff rather than something relative to the local ground/terrain, so it overshoots and wipes out cones in entire low/flat districts rather than just short buildings.
+
+## A more dynamic alternative
+
+Replace the absolute threshold with a **relative building-height** check computed per cell:
+
+1. Track each roof cell's own base elevation too (currently only `maxElevation` is tracked in `RoofCell`) — e.g. `minElevation` from the same vertex loop.
+2. Filter on `(maxElevation - minElevation) >= MIN_BUILDING_HEIGHT_METERS` (something small, like 6–10m) instead of `maxElevation < MIN_CAMERA_HEIGHT`.
+3. If the actual goal is camera-safety (not building height), that should instead be a runtime constraint on the flight path/altitude, not a placement-time content filter — cones for low buildings can still exist, the flight camera just needs to stay above them dynamically.
+
+This keeps a floor to avoid gluing cones onto curbs/ground clutter, but doesn't depend on the district's absolute terrain elevation, so flat/low-rise areas get proportionate cone coverage instead of none.
+
+Want me to implement the `minElevation` tracking + relative-height filter in `corner-extractor.ts` and pick a sensible `MIN_BUILDING_HEIGHT_METERS` default, then rerun the dataset build to check the distribution?
+
+## User
+
+implement the suggested change and tell me the command to run the regeneration of the cones.
+
+## Assistant
+
+You've hit your session limit · resets 9:10pm (Europe/Berlin)
