@@ -9,14 +9,13 @@ const ROOT_TILESET_FILE = "tileset.json";
 const SMOKE_CONTENT_LIMIT = 5;
 const RENDER_CONTENT_MARGIN_METERS = 1000;
 const WERKSCHAU_ION_ASSET_ID = Number(process.env.PUBLIC_BERLIN_ION_ASSET_ID);
-const WERKSCHAU_FROZEN_INNER_CITY_BOUNDS = {
+const WERKSCHAU_EXHIBITION_BOUNDS = {
   center: {
     x: 0,
     y: 100,
     z: 0,
   },
   sideLengthMeters: 4000,
-  halfSideMeters: 2000,
   minX: -2000,
   maxX: 2000,
   minZ: -2000,
@@ -38,7 +37,7 @@ interface FreezeManifest {
   resolvedTilesetUrl: string;
   extractionDate: string;
   sideLengthMeters: number;
-  centerLocalPosition: typeof WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center;
+  centerLocalPosition: typeof WERKSCHAU_EXHIBITION_BOUNDS.center;
   squareBounds: {
     minX: number;
     maxX: number;
@@ -479,13 +478,13 @@ async function writeManifest(
       : null,
     resolvedTilesetUrl: redactUrl(sourceUrl),
     extractionDate: new Date().toISOString(),
-    sideLengthMeters: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.sideLengthMeters,
-    centerLocalPosition: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.center,
+    sideLengthMeters: WERKSCHAU_EXHIBITION_BOUNDS.sideLengthMeters,
+    centerLocalPosition: WERKSCHAU_EXHIBITION_BOUNDS.center,
     squareBounds: {
-      minX: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX,
-      maxX: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX,
-      minZ: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ,
-      maxZ: WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ,
+      minX: WERKSCHAU_EXHIBITION_BOUNDS.minX,
+      maxX: WERKSCHAU_EXHIBITION_BOUNDS.maxX,
+      minZ: WERKSCHAU_EXHIBITION_BOUNDS.minZ,
+      maxZ: WERKSCHAU_EXHIBITION_BOUNDS.maxZ,
     },
     smoke,
     filesSaved: [...context.savedFiles].sort(),
@@ -629,10 +628,10 @@ function getBoundingVolumeCenter(
 
 function isInsideSquare(x: number, z: number, extraRadius: number): boolean {
   return (
-    x >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX - extraRadius &&
-    x <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX + extraRadius &&
-    z >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ - extraRadius &&
-    z <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ + extraRadius
+    x >= WERKSCHAU_EXHIBITION_BOUNDS.minX - extraRadius &&
+    x <= WERKSCHAU_EXHIBITION_BOUNDS.maxX + extraRadius &&
+    z >= WERKSCHAU_EXHIBITION_BOUNDS.minZ - extraRadius &&
+    z <= WERKSCHAU_EXHIBITION_BOUNDS.maxZ + extraRadius
   );
 }
 
@@ -644,10 +643,10 @@ function squareIntersectsSquare(
   extraRadius: number,
 ): boolean {
   return (
-    maxX >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minX - extraRadius &&
-    minX <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxX + extraRadius &&
-    maxZ >= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.minZ - extraRadius &&
-    minZ <= WERKSCHAU_FROZEN_INNER_CITY_BOUNDS.maxZ + extraRadius
+    maxX >= WERKSCHAU_EXHIBITION_BOUNDS.minX - extraRadius &&
+    minX <= WERKSCHAU_EXHIBITION_BOUNDS.maxX + extraRadius &&
+    maxZ >= WERKSCHAU_EXHIBITION_BOUNDS.minZ - extraRadius &&
+    minZ <= WERKSCHAU_EXHIBITION_BOUNDS.maxZ + extraRadius
   );
 }
 

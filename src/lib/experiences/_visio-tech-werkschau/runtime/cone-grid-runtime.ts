@@ -8,13 +8,11 @@ import {
   WerkschauConeChunkRuntimeStore,
   type WerkschauConeChunkRuntimeDiagnostics,
 } from "../cone-data/runtime-store";
-import { WERKSCHAU_EXHIBITION_BOUNDS } from "../constants";
 import { WERKSCHAU_CONE_RUNTIME_GRID } from "./cone-grid-config";
 import {
   getWerkschauConeChunkCoordinate,
   getWerkschauConeChunkKey,
 } from "./cone-grid-coordinates";
-import { buildWerkschauConeSnapshotState } from "./cone-grid-snapshots";
 
 const localDownAxis = new THREE.Vector3(0, -1, 0);
 const scratchCenter = new THREE.Vector3();
@@ -179,14 +177,9 @@ export class WerkschauConeGridRuntime {
   private syncFromChunkStore(): void {
     if (this.snapshotVersion === this.chunkStore.getSnapshotVersion()) return;
 
-    const nextState = buildWerkschauConeSnapshotState(
-      this.chunkStore.getActiveConeChunks().map((chunk) => ({
-        key: chunk.key,
-        cones: chunk.cones.filter(isConeInsideExhibitionBounds),
-      })),
-    );
-    this.activeConeChunksSnapshot = nextState.chunkSnapshots;
-    this.activeConeVolumes = nextState.coneVolumes
+    this.activeConeChunksSnapshot = this.chunkStore.getActiveConeChunks();
+    this.activeConeVolumes = this.activeConeChunksSnapshot
+      .flatMap((chunk) => chunk.cones)
       .slice()
       .sort(compareConeVolumes);
     this.rebuildMesh();
@@ -226,36 +219,6 @@ export class WerkschauConeGridRuntime {
     this.mesh = mesh;
     this.root.add(mesh);
   }
-}
-
-function isConeInsideExhibitionBounds(cone: WerkschauConeVolume): boolean {
-  const minX = WERKSCHAU_EXHIBITION_BOUNDS.minX + cone.radius;
-  const maxX = WERKSCHAU_EXHIBITION_BOUNDS.maxX - cone.radius;
-  const minZ = WERKSCHAU_EXHIBITION_BOUNDS.minZ + cone.radius;
-  const maxZ = WERKSCHAU_EXHIBITION_BOUNDS.maxZ - cone.radius;
-
-  return (
-    isPointInsideBounds(cone.tip.x, cone.tip.z, minX, maxX, minZ, maxZ) &&
-    isPointInsideBounds(
-      cone.baseCenter.x,
-      cone.baseCenter.z,
-      minX,
-      maxX,
-      minZ,
-      maxZ,
-    )
-  );
-}
-
-function isPointInsideBounds(
-  x: number,
-  z: number,
-  minX: number,
-  maxX: number,
-  minZ: number,
-  maxZ: number,
-): boolean {
-  return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }
 
 function buildConeMatrix(

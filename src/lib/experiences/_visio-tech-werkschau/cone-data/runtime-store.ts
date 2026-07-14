@@ -4,12 +4,14 @@ import type {
   WerkschauConeVolume,
 } from "../collision/types";
 import {
+  WERKSCHAU_CONE_CHUNK_SIZE_METERS,
   collectWerkschauConeChunkKeys,
   getWerkschauConeChunkCoordinate,
   parseWerkschauConeChunkKey,
 } from "../runtime/cone-grid-coordinates";
 import { WERKSCHAU_CONE_RUNTIME_GRID } from "../runtime/cone-grid-config";
 import { buildWerkschauConeSnapshotState } from "../runtime/cone-grid-snapshots";
+import { WERKSCHAU_EXHIBITION_BOUNDS } from "../constants";
 import type { WerkschauConeDatasetManifest } from "./contracts";
 import {
   WerkschauConeDatasetLoadError,
@@ -55,7 +57,7 @@ export class WerkschauConeChunkRuntimeStore {
     const desiredChunkKeys = collectWerkschauConeChunkKeys(
       center,
       WERKSCHAU_CONE_RUNTIME_GRID.LOAD_RADIUS_CHUNKS,
-    );
+    ).filter(isConeChunkInsideExhibitionBounds);
     let inBoundsChunkKeys: readonly string[] = [];
     this.diagnostics.playerChunkKey = `${center.x}:${center.z}`;
     this.diagnostics.desiredChunkCount = desiredChunkKeys.length;
@@ -143,7 +145,8 @@ export class WerkschauConeChunkRuntimeStore {
         Math.abs(coordinate.x - center.x) <=
           WERKSCHAU_CONE_RUNTIME_GRID.UNLOAD_RADIUS_CHUNKS &&
         Math.abs(coordinate.z - center.z) <=
-          WERKSCHAU_CONE_RUNTIME_GRID.UNLOAD_RADIUS_CHUNKS
+          WERKSCHAU_CONE_RUNTIME_GRID.UNLOAD_RADIUS_CHUNKS &&
+        isConeChunkInsideExhibitionBounds(chunkKey)
       ) {
         continue;
       }
@@ -158,7 +161,7 @@ export class WerkschauConeChunkRuntimeStore {
       .filter((chunk): chunk is WerkschauConeChunkSnapshot => chunk !== undefined)
       .map((chunk) => ({
         key: chunk.key,
-        cones: chunk.cones,
+        cones: chunk.cones.filter(isConeInsideExhibitionBounds),
       }));
     const nextState = buildWerkschauConeSnapshotState(nextChunks);
     const nextSignature = createSnapshotSignature(nextState.chunkSnapshots);
@@ -243,6 +246,51 @@ export function createEmptyWerkschauConeRuntimeDiagnostics(): WerkschauConeChunk
     errorChunkKey: null,
     errorMessage: null,
   };
+}
+
+function isConeChunkInsideExhibitionBounds(chunkKey: string): boolean {
+  const coordinate = parseWerkschauConeChunkKey(chunkKey);
+  const minX = coordinate.x * WERKSCHAU_CONE_CHUNK_SIZE_METERS;
+  const minZ = coordinate.z * WERKSCHAU_CONE_CHUNK_SIZE_METERS;
+  const maxX = minX + WERKSCHAU_CONE_CHUNK_SIZE_METERS;
+  const maxZ = minZ + WERKSCHAU_CONE_CHUNK_SIZE_METERS;
+
+  return (
+    maxX >= WERKSCHAU_EXHIBITION_BOUNDS.minX &&
+    minX <= WERKSCHAU_EXHIBITION_BOUNDS.maxX &&
+    maxZ >= WERKSCHAU_EXHIBITION_BOUNDS.minZ &&
+    minZ <= WERKSCHAU_EXHIBITION_BOUNDS.maxZ
+  );
+}
+
+function isConeInsideExhibitionBounds(cone: WerkschauConeVolume): boolean {
+  const minX = WERKSCHAU_EXHIBITION_BOUNDS.minX + cone.radius;
+  const maxX = WERKSCHAU_EXHIBITION_BOUNDS.maxX - cone.radius;
+  const minZ = WERKSCHAU_EXHIBITION_BOUNDS.minZ + cone.radius;
+  const maxZ = WERKSCHAU_EXHIBITION_BOUNDS.maxZ - cone.radius;
+
+  return (
+    isPointInsideBounds(cone.tip.x, cone.tip.z, minX, maxX, minZ, maxZ) &&
+    isPointInsideBounds(
+      cone.baseCenter.x,
+      cone.baseCenter.z,
+      minX,
+      maxX,
+      minZ,
+      maxZ,
+    )
+  );
+}
+
+function isPointInsideBounds(
+  x: number,
+  z: number,
+  minX: number,
+  maxX: number,
+  minZ: number,
+  maxZ: number,
+): boolean {
+  return x >= minX && x <= maxX && z >= minZ && z <= maxZ;
 }
 
 function createSnapshotSignature(
