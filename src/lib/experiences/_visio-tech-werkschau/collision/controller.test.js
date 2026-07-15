@@ -59,7 +59,7 @@ function createCone() {
   };
 }
 
-test("WerkschauCollisionController invalidates when cone positions change in the same active chunks", () => {
+test("WerkschauCollisionController keeps revealed vertices when cones move to other positions", () => {
   const controller = new WerkschauCollisionController();
   const trackedMesh = createTrackedMesh();
   const cones = [createCone()];
@@ -81,10 +81,10 @@ test("WerkschauCollisionController invalidates when cone positions change in the
     1,
   );
 
-  expect(Array.from(trackedMesh.vertexMask)).toEqual([0, 0, 0]);
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
 });
 
-test("WerkschauCollisionController invalidates tracked meshes when cone stream changes", () => {
+test("WerkschauCollisionController keeps revealed vertices when the revealing cones stream out", () => {
   const controller = new WerkschauCollisionController();
   const trackedMesh = createTrackedMesh();
   const cones = [createCone()];
@@ -94,6 +94,40 @@ test("WerkschauCollisionController invalidates tracked meshes when cone stream c
   expect(Array.from(trackedMesh.vertexMask)).toContain(1);
 
   controller.update([], 2, [trackedMesh], 1);
+
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
+  expect(Array.from(trackedMesh.coneMaskAttribute.array)).toEqual([1, 1, 1]);
+
+  controller.update(cones, 3, [trackedMesh], 1);
+
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
+  expect(Array.from(trackedMesh.coneMaskAttribute.array)).toEqual([1, 1, 1]);
+});
+
+test("WerkschauCollisionController drops accumulated reveal when the mesh transform changes", () => {
+  const controller = new WerkschauCollisionController();
+  const trackedMesh = createTrackedMesh();
+
+  controller.update([createCone()], 1, [trackedMesh], 1);
+
+  expect(Array.from(trackedMesh.vertexMask)).toEqual([1, 1, 1]);
+
+  trackedMesh.mesh.position.set(1000, 0, 0);
+  trackedMesh.mesh.updateMatrixWorld(true);
+
+  controller.update(
+    [
+      {
+        ...createCone(),
+        tip: new THREE.Vector3(1010, 10, 0),
+        baseCenter: new THREE.Vector3(1010, -10, 0),
+        radius: 2,
+      },
+    ],
+    2,
+    [trackedMesh],
+    1,
+  );
 
   expect(Array.from(trackedMesh.vertexMask)).toEqual([0, 0, 0]);
 });

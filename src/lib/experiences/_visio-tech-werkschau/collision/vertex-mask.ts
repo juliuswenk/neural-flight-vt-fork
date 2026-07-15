@@ -11,16 +11,21 @@ const scratchTriangleVertexA = new THREE.Vector3();
 const scratchTriangleVertexB = new THREE.Vector3();
 const scratchTriangleVertexC = new THREE.Vector3();
 
+// Reveal state is cumulative for the whole session, mirroring prebaked cone
+// masks: bits are only ever added, so already-revealed areas survive cone
+// chunks streaming out. The mask holds world-space results, so the only valid
+// invalidation is a mesh transform change (handled below).
 export function updateVertexMask(
   mesh: TrackedTileMesh,
   cones: readonly WerkschauConeVolume[],
 ): void {
-  mesh.vertexMask.fill(0);
   if (cones.length === 0) return;
 
   updateTrackedMeshWorldPositions(mesh);
 
   for (let vertexIndex = 0; vertexIndex < mesh.vertexCount; vertexIndex += 1) {
+    if (mesh.vertexMask[vertexIndex] === 1) continue;
+
     const offset = vertexIndex * 3;
     scratchPosition.fromArray(mesh.worldPositions, offset);
 
@@ -41,6 +46,12 @@ function updateTrackedMeshWorldPositions(mesh: TrackedTileMesh): void {
     mesh.cachedVertexWorldMatrix.equals(mesh.mesh.matrixWorld)
   ) {
     return;
+  }
+
+  // Accumulated mask bits describe world-space cone hits; a transform change
+  // invalidates them along with the cached world positions.
+  if (mesh.worldPositionsInitialized) {
+    mesh.vertexMask.fill(0);
   }
 
   mesh.cachedVertexWorldMatrix.copy(mesh.mesh.matrixWorld);

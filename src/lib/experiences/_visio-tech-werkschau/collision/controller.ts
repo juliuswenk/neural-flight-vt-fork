@@ -136,10 +136,8 @@ export class WerkschauCollisionController {
 
     const overlappingCones = collectOverlappingConesForMesh(cones, mesh);
     if (overlappingCones.length === 0) {
-      if (!mesh.hasPrebakedConeMask) {
-        updateVertexMask(mesh, overlappingCones);
-        writeConeMaskAttributeForMesh(mesh);
-      }
+      // No cones to add; the accumulated reveal mask stays untouched so
+      // already-revealed areas persist while their cones are streamed out.
       syncWerkschauTileMaterialSourceMaps(
         mesh.originalMaterial,
         mesh.collisionMaterial,
@@ -149,7 +147,7 @@ export class WerkschauCollisionController {
         mesh.mesh.material = mesh.collisionMaterial;
         mesh.hasConeMaskMaterial = true;
       }
-      return !mesh.hasPrebakedConeMask;
+      return false;
     }
 
     const fragmentCones = getNearestFragmentCones(mesh, overlappingCones);
