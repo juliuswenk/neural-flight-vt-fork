@@ -8,8 +8,8 @@
   "bounds": {
     "minChunkX": -2,
     "maxChunkX": 2,
-    "minChunkZ": -2,
+    "minChunkZ": -3,
     "maxChunkZ": 1
   },
-  "chunkCount": 16
+  "chunkCount": 18
 }
