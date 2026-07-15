@@ -1,16 +1,8 @@
-import * as THREE from "three";
-import { BERLIN_MITTE_ORIGIN } from "../geo/berlin-mitte-origin";
-import { localToGeo } from "../geo/coordinates";
-import { getBerlinCameraDensitySampler } from "../heatmaps/camera-density-loader";
 import { BERLIN_PLACEMENT } from "./config";
 import type {
   BerlinAcceptedShadowOriginPoint,
   BerlinRoofCornerCandidate,
 } from "./types";
-
-export interface BerlinDensitySampler {
-  sampleDensity(lat: number, lon: number): number;
-}
 
 export interface BerlinCornerFilterResult {
   stagedCandidates: number;
@@ -18,65 +10,14 @@ export interface BerlinCornerFilterResult {
   rejectedBySpacing: number;
 }
 
-const scratchRepresentativePosition = new THREE.Vector3();
-
-/**
- * Candidate-stage seam for future heatmap density integration.
- *
- * @see heatmap-cone-density-plan.md Phase 3
- */
 export function applyBerlinCornerCandidateStage(
   candidates: readonly BerlinRoofCornerCandidate[],
-  sampler: BerlinDensitySampler | null = getBerlinCameraDensitySampler(),
 ): readonly BerlinRoofCornerCandidate[] {
-  if (candidates.length <= 1) {
-    return candidates;
-  }
-
-  if (!sampler) {
-    return candidates;
-  }
-
-  const candidatesByBuilding = new Map<string, BerlinRoofCornerCandidate[]>();
-
-  for (const candidate of candidates) {
-    const buildingCandidates = candidatesByBuilding.get(candidate.buildingId);
-    if (buildingCandidates) {
-      buildingCandidates.push(candidate);
-      continue;
-    }
-
-    candidatesByBuilding.set(candidate.buildingId, [candidate]);
-  }
-
-  const trimmedCandidates: BerlinRoofCornerCandidate[] = [];
-
-  for (const buildingCandidates of candidatesByBuilding.values()) {
-    const allowedCandidateCount = getAllowedCandidateCount(
-      sampleBuildingDensity(sampler, buildingCandidates),
-    );
-    if (allowedCandidateCount === 0) {
-      continue;
-    }
-
-    if (buildingCandidates.length <= allowedCandidateCount) {
-      trimmedCandidates.push(...buildingCandidates);
-      continue;
-    }
-
-    trimmedCandidates.push(
-      ...[...buildingCandidates]
-        .sort(compareRoofCornerCandidates)
-        .slice(0, allowedCandidateCount),
-    );
-  }
-
-  return trimmedCandidates;
+  return candidates;
 }
 
 export function filterBerlinRoofCornerCandidates(
   candidates: readonly BerlinRoofCornerCandidate[],
-  sampler: BerlinDensitySampler | null = getBerlinCameraDensitySampler(),
 ): BerlinCornerFilterResult {
   if (candidates.length === 0) {
     return {
@@ -86,7 +27,7 @@ export function filterBerlinRoofCornerCandidates(
     };
   }
 
-  const stagedCandidates = applyBerlinCornerCandidateStage(candidates, sampler);
+  const stagedCandidates = applyBerlinCornerCandidateStage(candidates);
   if (stagedCandidates.length === 0) {
     return {
       stagedCandidates: 0,
@@ -117,6 +58,9 @@ export function filterBerlinRoofCornerCandidates(
       cornerIndex: candidate.cornerIndex,
       elevation: candidate.elevation,
       worldPosition: candidate.worldPosition.clone(),
+      roofCenter: candidate.roofCenter?.clone(),
+      roofOutwardDirection: candidate.roofOutwardDirection?.clone(),
+      placementScore: candidate.placementScore,
     });
   }
 
@@ -148,12 +92,18 @@ function compareRoofCornerCandidates(
   left: BerlinRoofCornerCandidate,
   right: BerlinRoofCornerCandidate,
 ): number {
-  if (left.elevation !== right.elevation) {
-    return right.elevation - left.elevation;
+  const leftScore = left.placementScore ?? 0;
+  const rightScore = right.placementScore ?? 0;
+  if (leftScore !== rightScore) {
+    return rightScore - leftScore;
   }
 
   if (left.buildingId !== right.buildingId) {
     return left.buildingId.localeCompare(right.buildingId);
+  }
+
+  if (left.elevation !== right.elevation) {
+    return right.elevation - left.elevation;
   }
 
   if (left.cornerIndex !== right.cornerIndex) {
@@ -169,48 +119,6 @@ function compareRoofCornerCandidates(
   }
 
   return left.sourceKey.localeCompare(right.sourceKey);
-}
-
-function sampleBuildingDensity(
-  sampler: {
-    sampleDensity(lat: number, lon: number): number;
-  },
-  candidates: readonly BerlinRoofCornerCandidate[],
-): number {
-  getRepresentativePosition(candidates, scratchRepresentativePosition);
-  const representativeGeoPoint = localToGeo(BERLIN_MITTE_ORIGIN, {
-    x: scratchRepresentativePosition.x,
-    y: scratchRepresentativePosition.y,
-    z: scratchRepresentativePosition.z,
-  });
-
-  return sampler.sampleDensity(representativeGeoPoint.lat, representativeGeoPoint.lon);
-}
-
-function getRepresentativePosition(
-  candidates: readonly BerlinRoofCornerCandidate[],
-  target: THREE.Vector3,
-): THREE.Vector3 {
-  target.set(0, 0, 0);
-
-  for (const candidate of candidates) {
-    target.add(candidate.worldPosition);
-  }
-
-  return target.multiplyScalar(1 / candidates.length);
-}
-
-export function getAllowedCandidateCount(density: number): number {
-  const clampedDensity = THREE.MathUtils.clamp(density, 0, 1);
-  if (clampedDensity < 0.34) {
-    return 0;
-  }
-
-  if (clampedDensity < 0.67) {
-    return Math.min(1, BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING);
-  }
-
-  return Math.min(2, BERLIN_PLACEMENT.MAX_CORNERS_PER_BUILDING);
 }
 
 function createShadowOriginPointId(

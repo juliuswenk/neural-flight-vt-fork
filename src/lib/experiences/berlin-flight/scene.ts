@@ -113,8 +113,18 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
   sceneRoot.add(coneRuntime.root);
   const collisionController = new BerlinCollisionController();
   let state: BerlinState;
+  let removeXrSelectAudioFallback: (() => void) | null = null;
   const resumeAudioFromXr = (): void => {
-    updateBerlinRadioAudio(state, true);
+    resumeBerlinAudioContext(state);
+    removeXrSelectAudioFallback?.();
+    removeXrSelectAudioFallback = attachXrSelectAudioFallback(
+      state,
+      ctx.renderer.xr.getSession(),
+    );
+  };
+  const onXrSessionEnd = (): void => {
+    removeXrSelectAudioFallback?.();
+    removeXrSelectAudioFallback = null;
   };
   const tileSelectionCameras = createTileSelectionCameras(player.camera);
 
@@ -151,9 +161,13 @@ export async function setup(ctx: SetupContext): Promise<BerlinState> {
     abortController: new AbortController(),
     removeAudioResumeListener: () => {
       ctx.renderer.xr.removeEventListener("sessionstart", resumeAudioFromXr);
+      ctx.renderer.xr.removeEventListener("sessionend", onXrSessionEnd);
+      removeXrSelectAudioFallback?.();
+      removeXrSelectAudioFallback = null;
     },
   };
   ctx.renderer.xr.addEventListener("sessionstart", resumeAudioFromXr);
+  ctx.renderer.xr.addEventListener("sessionend", onXrSessionEnd);
 
   if (ctx.previewMode) {
     state.onboarding.progress = 1;
@@ -181,6 +195,27 @@ export function tick(state: BerlinState, ctx: TickContext) {
 
   const isXrPresenting = s.renderer.xr.isPresenting;
   if (isXrPresenting) {
+    if (s.onboarding.isActive) {
+      const session = s.renderer.xr.getSession();
+      if (session) {
+        let skipPressed = false;
+        for (const source of session.inputSources) {
+          const gamepad = source.gamepad;
+          if (gamepad) {
+            for (const button of gamepad.buttons) {
+              if (button.pressed) {
+                skipPressed = true;
+                break;
+              }
+            }
+          }
+          if (skipPressed) break;
+        }
+        if (skipPressed) {
+          s.onboarding.skip();
+        }
+      }
+    }
     s.onboarding.update(ctx.delta);
   }
   const showVirtualWorld =
@@ -193,7 +228,7 @@ export function tick(state: BerlinState, ctx: TickContext) {
   updateBerlinShutdownFog(s);
   s.onboardingAudio.update(s.onboarding.progress);
   s.radioManager.setMasterVolume(s.onboardingAudio.fullGain);
-  updateBerlinRadioAudio(s, isXrPresenting);
+  updateBerlinRadioAudio(s);
   s.player.baseSpeed = getAltitudeScaledSpeed(
     s.targetSpeed,
     s.player.rig.position.y,
@@ -239,18 +274,16 @@ export function tick(state: BerlinState, ctx: TickContext) {
   return { state: s };
 }
 
-function updateBerlinRadioAudio(
-  state: BerlinState,
-  isXrPresenting: boolean,
-): void {
+function updateBerlinRadioAudio(state: BerlinState): void {
+  startBerlinRadioIfAudioRunning(state);
+}
+
+function resumeBerlinAudioContext(state: BerlinState): void {
   const audioContext = state.listener.context;
-  if (startBerlinRadioIfAudioRunning(state)) {
-    return;
-  }
+  if (startBerlinRadioIfAudioRunning(state)) return;
 
   if (
-    !isXrPresenting ||
-    audioContext.state !== "suspended" ||
+    audioContext.state === "running" ||
     berlinAudioResumeByContext.has(audioContext)
   ) {
     return;
@@ -268,6 +301,20 @@ function updateBerlinRadioAudio(
   void resume.then(() => {
     startBerlinRadioIfAudioRunning(state);
   });
+}
+
+function attachXrSelectAudioFallback(
+  state: BerlinState,
+  session: XRSession | null,
+): (() => void) | null {
+  if (!session) return null;
+
+  const onSelect = (): void => {
+    resumeBerlinAudioContext(state);
+    if (state.radioManager.isStarted) session.removeEventListener("select", onSelect);
+  };
+  session.addEventListener("select", onSelect);
+  return () => session.removeEventListener("select", onSelect);
 }
 
 function startBerlinRadioIfAudioRunning(state: BerlinState): boolean {

@@ -14,6 +14,7 @@
     import {
         getActiveExperienceId,
         loadExperience,
+        setActiveExperienceId,
         unloadExperience,
     } from "$lib/experiences/loader";
     import type { PlayerOrientationInput } from "$lib/experiences/types";
@@ -30,15 +31,19 @@
     let canvas: HTMLCanvasElement;
     let renderer: THREE.WebGLRenderer;
     let scene: THREE.Scene;
-    const BERLIN_FLIGHT_ID = "berlin-flight";
-    const BERLIN_AR_UNSUPPORTED_MESSAGE =
-        "Berlin Flight requires browser AR passthrough support on this device and cannot start here.";
+    const AR_EXPERIENCE_IDS = new Set([
+        "berlin-flight",
+        "_visio-tech-werkschau",
+    ]);
+    const AR_UNSUPPORTED_MESSAGE =
+        "This experience requires browser AR passthrough support on this device and cannot start here.";
 
     let xrButton: HTMLElement | null = null;
     let score = $state(0);
     let experienceName = $state("ICAROS VR");
     let hasOutputs = $state(false);
     let blockingError = $state<string | null>(null);
+    let showStartAudioButton = $state(false);
     let isDesktopPreview = false;
     let lastProcessedTimestamp = 0;
     const hostOrigin = PUBLIC_ICAROS_HOST_ORIGIN.trim();
@@ -62,6 +67,11 @@
     let removeResizeListener: (() => void) | null = null;
     let removePreviewKeyboardListeners: (() => void) | null = null;
     let unsubscribeHostOrientation: (() => void) | null = null;
+    let removeWindowAudioListeners: (() => void) | null = null;
+    let handleStartAudioClick: () => void = () => {};
+    const hideStartAudioButton = (): void => {
+        showStartAudioButton = false;
+    };
 
     onMount(() => {
         let mounted = true;
@@ -92,8 +102,8 @@
 
         scene = new THREE.Scene();
         const dummyCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
-        const experienceId = getActiveExperienceId();
-        const isBerlinFlight = experienceId === BERLIN_FLIGHT_ID;
+        const experienceId = getRequestedExperienceId(window.location.search);
+        const isArExperience = AR_EXPERIENCE_IDS.has(experienceId);
         isDesktopPreview = isPreviewEnabled(window.location.search);
         if (isDesktopPreview) {
             removePreviewKeyboardListeners = createPreviewKeyboardInput();
@@ -101,10 +111,10 @@
 
         renderer = new THREE.WebGLRenderer({
             canvas,
-            antialias: !isBerlinFlight,
-            alpha: isBerlinFlight,
+            antialias: !isArExperience,
+            alpha: isArExperience,
         });
-        if (isBerlinFlight) {
+        if (isArExperience) {
             renderer.setClearColor(0x000000, 0);
         }
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
@@ -126,19 +136,59 @@
             renderer,
             previewMode: isDesktopPreview,
         }).then((exp: ActiveExperience) => {
-            renderer.shadowMap.enabled = exp.manifest.id !== "berlin-flight";
-            if (isBerlinFlight) {
+            renderer.shadowMap.enabled = !AR_EXPERIENCE_IDS.has(exp.manifest.id);
+            if (isArExperience) {
                 scene.background = null;
             }
             experienceName = exp.manifest.name;
             hasOutputs = (exp.manifest.outputs?.length ?? 0) > 0;
             const renderCamera = exp.state.camera as THREE.PerspectiveCamera;
 
+            // Only resumes the AudioContext. Actual station/ambience playback
+            // is started by each experience's own tick loop once its intro
+            // sequence finishes, so we never trigger playback before that.
+            const resumeAudio = () => {
+                const state = exp.state as any;
+                if (state.listener && state.listener.context) {
+                    const ctx = state.listener.context as AudioContext;
+                    if (ctx.state && ctx.state !== "running") {
+                        ctx.resume()
+                            .then(() => {
+                                console.log(`[VR] AudioContext resumed via user gesture for ${exp.manifest.id}`);
+                            })
+                            .catch((err) => {
+                                console.warn("[VR] AudioContext resume failed:", err);
+                            });
+                    }
+                }
+            };
+            // Captured on `window` so this fires *before* the ARButton/VRButton's
+            // own click handler, which calls `navigator.xr.requestSession()`
+            // synchronously and consumes the page's transient user activation.
+            // If audio resume ran after that (e.g. via a bubble-phase listener),
+            // the activation would already be gone by the time it reached us.
+            // This is a fallback for taps that land on the XR button directly;
+            // the "Start Audio" button below is the primary, explicit path.
+            window.addEventListener("click", resumeAudio, { capture: true });
+            window.addEventListener("touchend", resumeAudio, { capture: true });
+            removeWindowAudioListeners = () => {
+                window.removeEventListener("click", resumeAudio, { capture: true });
+                window.removeEventListener("touchend", resumeAudio, { capture: true });
+            };
+
+            showStartAudioButton = Boolean((exp.state as any).listener);
+            handleStartAudioClick = () => {
+                resumeAudio();
+                showStartAudioButton = false;
+            };
+            renderer.xr.addEventListener("sessionstart", hideStartAudioButton);
+
             function onResize(): void {
                 renderCamera.aspect = window.innerWidth / window.innerHeight;
                 renderCamera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             }
+            onResize();
             window.addEventListener("resize", onResize);
             removeResizeListener = () =>
                 window.removeEventListener("resize", onResize);
@@ -232,7 +282,7 @@
             return null;
         }
 
-        if (experienceId !== BERLIN_FLIGHT_ID) {
+        if (!AR_EXPERIENCE_IDS.has(experienceId)) {
             return VRButton.createButton(renderer);
         }
 
@@ -245,7 +295,7 @@
                 : false;
 
         if (!supportsImmersiveAr) {
-            blockingError = BERLIN_AR_UNSUPPORTED_MESSAGE;
+            blockingError = AR_UNSUPPORTED_MESSAGE;
             return null;
         }
 
@@ -318,13 +368,24 @@
         return preview !== null && preview !== "0";
     }
 
+    function getRequestedExperienceId(search: string): string {
+        const params = new URLSearchParams(search);
+        const experienceId = params.get("experience")?.trim();
+        if (!experienceId) return getActiveExperienceId();
+
+        setActiveExperienceId(experienceId);
+        return experienceId;
+    }
+
     onDestroy(() => {
         renderer?.setAnimationLoop(null);
         if (scene) unloadExperience(scene);
+        renderer?.xr.removeEventListener("sessionstart", hideStartAudioButton);
         renderer?.dispose();
         xrButton?.remove();
         removePreviewKeyboardListeners?.();
         unsubscribeHostOrientation?.();
+        removeWindowAudioListeners?.();
         hostControl?.disconnect();
         hostRuntime?.disconnect();
         ws?.disconnect();
@@ -349,3 +410,31 @@
         {score}
     </div>
 {/if}
+
+{#if showStartAudioButton}
+    <button
+        type="button"
+        class="start-audio-button"
+        onclick={() => handleStartAudioClick()}
+    >
+        Start Audio
+    </button>
+{/if}
+
+<style>
+    .start-audio-button {
+        position: absolute;
+        bottom: 84px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border: 1px solid #fff;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        font: normal 13px sans-serif;
+        text-align: center;
+        cursor: pointer;
+        z-index: 999;
+    }
+</style>

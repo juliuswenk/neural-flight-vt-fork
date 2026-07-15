@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createCameraFrustumGeometry } from "../../shared/camera-frustum-geometry";
 import type {
   BerlinConeChunkSnapshot,
   BerlinConeVolume,
@@ -36,7 +37,7 @@ export interface BerlinConeRuntimeDebugStats {
 export class BerlinConeGridRuntime {
   public readonly root = new THREE.Group();
 
-  private readonly coneGeometry: THREE.ConeGeometry;
+  private readonly coneGeometry: THREE.BufferGeometry;
   private readonly coneMaterial: THREE.MeshBasicMaterial;
   private readonly chunkStore: BerlinConeChunkRuntimeStore;
   private readonly queuedObserverPosition = new THREE.Vector3();
@@ -56,13 +57,10 @@ export class BerlinConeGridRuntime {
   constructor(assetLoader?: BerlinConeDatasetAssetLoader) {
     this.root.name = "BerlinConeGridRoot";
     this.root.visible = BERLIN_CONE_RENDERING_ENABLED;
-    this.coneGeometry = new THREE.ConeGeometry(
-      BERLIN_CONE_GRID.CONE_RADIUS,
-      BERLIN_CONE_GRID.CONE_HEIGHT,
-      16,
-      1,
-      true,
-    );
+    this.coneGeometry = createCameraFrustumGeometry({
+      halfLongSide: BERLIN_CONE_GRID.CONE_RADIUS,
+      height: BERLIN_CONE_GRID.CONE_HEIGHT,
+    });
     this.coneMaterial = new THREE.MeshBasicMaterial({
       color: BERLIN_CONE_GRID.COLOR,
       wireframe: true,

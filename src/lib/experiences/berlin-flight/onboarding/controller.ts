@@ -20,6 +20,7 @@ export interface BerlinOnboardingController {
   shutdownProgress: number;
   isShutdownEffectActive: boolean;
   update(deltaSeconds: number): void;
+  skip(): void;
   dispose(): void;
 }
 
@@ -69,6 +70,10 @@ export function createBerlinOnboardingController(
         this.shutdownProgress = shutdownElapsedSeconds / shutdownDurationSeconds;
         this.isShutdownEffectActive = this.shutdownProgress < 1;
       }
+    },
+    skip(): void {
+      if (this.isComplete || this.hasEnded) return;
+      sequence.advanceTo(BERLIN_FULL_EXPERIENCE_STAGE_INDEX);
     },
     dispose(): void {
       sequence.stop();

@@ -82,17 +82,13 @@ export class BerlinConePlacementController {
       }
 
       const neighborhood = sampleBerlinMeshNeighborhood(point, trackedMeshes);
-      if (!neighborhood) {
-        skippedMissingNeighborhood += 1;
-        activeConesChanged =
-          this.conesByPointId.delete(point.pointId) || activeConesChanged;
-        processedPoints += 1;
-        continue;
-      }
-
       const axisDirection = solveBerlinConeAxisDirection(point, neighborhood);
       if (!axisDirection) {
-        skippedAmbiguousDirection += 1;
+        if (neighborhood) {
+          skippedAmbiguousDirection += 1;
+        } else {
+          skippedMissingNeighborhood += 1;
+        }
         activeConesChanged =
           this.conesByPointId.delete(point.pointId) || activeConesChanged;
         processedPoints += 1;
@@ -236,6 +232,8 @@ function createAcceptedPointSignature(
     quantize(point.worldPosition.x),
     quantize(point.worldPosition.y),
     quantize(point.worldPosition.z),
+    quantize(point.roofOutwardDirection?.x ?? 0),
+    quantize(point.roofOutwardDirection?.z ?? 0),
   ].join(":");
 }
 

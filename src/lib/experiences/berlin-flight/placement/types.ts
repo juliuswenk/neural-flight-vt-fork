@@ -21,6 +21,9 @@ export interface BerlinRoofCornerCandidate {
   cornerIndex: number;
   elevation: number;
   worldPosition: THREE.Vector3;
+  roofCenter?: THREE.Vector3;
+  roofOutwardDirection?: THREE.Vector3;
+  placementScore?: number;
 }
 
 export interface BerlinAcceptedShadowOriginPoint {
@@ -30,6 +33,9 @@ export interface BerlinAcceptedShadowOriginPoint {
   cornerIndex: number;
   elevation: number;
   worldPosition: THREE.Vector3;
+  roofCenter?: THREE.Vector3;
+  roofOutwardDirection?: THREE.Vector3;
+  placementScore?: number;
 }
 
 export interface BerlinPlacementDebugCounters {

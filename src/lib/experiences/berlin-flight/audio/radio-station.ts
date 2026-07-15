@@ -44,7 +44,8 @@ export class BerlinRadioStation {
   start(): void {
     if (this.playing) return;
 
-    const streamUrl = this.def.url.startsWith("/")
+    const isCorsFriendly = this.def.url.includes("dispatcher.rndfnk.com");
+    const streamUrl = this.def.url.startsWith("/") || isCorsFriendly
       ? this.def.url
       : `${PROXY_BASE}?url=${encodeURIComponent(this.def.url)}`;
 

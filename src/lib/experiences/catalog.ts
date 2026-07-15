@@ -1,4 +1,5 @@
 import { manifest as berlinFlight } from "./berlin-flight";
+import { manifest as visioTechWerkschau } from "./_visio-tech-werkschau";
 import { manifest as visioTechnologica } from "./visio-technologica";
 import { manifest as visioTechnologicaCityTest } from "./visio-technologica-city-test";
 import type { ExperienceManifest } from "./types";
@@ -12,12 +13,13 @@ import type { ExperienceManifest } from "./types";
 // The ID must match the folder name and the manifest.id field.
 
 const CATALOG: Record<string, ExperienceManifest> = {
+  "_visio-tech-werkschau": visioTechWerkschau,
   "berlin-flight": berlinFlight,
   "visio-technologica": visioTechnologica,
   "visio-technologica-city-test": visioTechnologicaCityTest,
 };
 
-export const DEFAULT_EXPERIENCE_ID = "berlin-flight";
+export const DEFAULT_EXPERIENCE_ID = "_visio-tech-werkschau";
 
 /** Get experience by ID — throws with available IDs if not found */
 export function getExperience(id: string): ExperienceManifest {

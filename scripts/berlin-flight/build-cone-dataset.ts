@@ -1,5 +1,4 @@
 import path from "node:path";
-import sharp from "sharp";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import {
   buildBerlinConeDataset,
@@ -10,12 +9,6 @@ import type {
   BerlinConeSourceManifest,
   BerlinConeSourceMeshFile,
 } from "../../src/lib/experiences/berlin-flight/cone-data/source-contracts";
-import {
-  BERLIN_CAMERA_DENSITY_BOUNDS_PATH,
-  BERLIN_CAMERA_DENSITY_IMAGE_PATH,
-  createBerlinCameraDensitySampler,
-  parseBerlinHeatmapBounds,
-} from "../../src/lib/experiences/berlin-flight/heatmaps/camera-density";
 
 const DEFAULT_SOURCE_MANIFEST =
   "src/lib/experiences/berlin-flight/cone-data/source-manifest.json";
@@ -34,10 +27,6 @@ async function main(): Promise<void> {
     );
   }
 
-  const densitySampler = await loadDensitySampler(
-    sourceManifest.heatmapImagePath ?? BERLIN_CAMERA_DENSITY_IMAGE_PATH,
-    sourceManifest.heatmapBoundsPath ?? BERLIN_CAMERA_DENSITY_BOUNDS_PATH,
-  );
   const trackedMeshes = [];
 
   for (const source of sourceManifest.sources) {
@@ -71,7 +60,6 @@ async function main(): Promise<void> {
   const chunksDir = path.join(outputDir, "chunks");
   const result = buildBerlinConeDataset({
     trackedMeshes,
-    densitySampler,
     radiusFilter:
       typeof sourceManifest.radiusMeters === "number"
         ? {
@@ -79,6 +67,7 @@ async function main(): Promise<void> {
             radiusMeters: sourceManifest.radiusMeters,
           }
         : undefined,
+    boundsFilter: sourceManifest.bounds,
   });
 
   await rm(outputDir, { force: true, recursive: true });
@@ -120,26 +109,6 @@ async function main(): Promise<void> {
   );
 }
 
-async function loadDensitySampler(imagePath: string, boundsPath: string) {
-  const image = sharp(path.resolve(imagePath));
-  const { data, info } = await image.ensureAlpha().raw().toBuffer({
-    resolveWithObject: true,
-  });
-  const bounds = parseBerlinHeatmapBounds(
-    JSON.parse(await readTextFile(path.resolve(boundsPath), "heatmap bounds")),
-  );
-
-  return createBerlinCameraDensitySampler({
-    width: info.width,
-    height: info.height,
-    rgba: new Uint8ClampedArray(
-      data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
-    ),
-    bounds,
-    imageOrientation: "north-up",
-  });
-}
-
 function parseSourceManifest(
   value: unknown,
   filePath: string,
@@ -178,16 +147,36 @@ function parseSourceManifest(
       typeof value.radiusMeters === "number" && Number.isFinite(value.radiusMeters)
         ? value.radiusMeters
         : undefined,
+    bounds: parseOptionalBounds(value.bounds, filePath),
     outputDir: typeof value.outputDir === "string" ? value.outputDir : undefined,
-    heatmapImagePath:
-      typeof value.heatmapImagePath === "string"
-        ? value.heatmapImagePath
-        : undefined,
-    heatmapBoundsPath:
-      typeof value.heatmapBoundsPath === "string"
-        ? value.heatmapBoundsPath
-        : undefined,
   };
+}
+
+function parseOptionalBounds(
+  value: unknown,
+  filePath: string,
+): BerlinConeSourceManifest["bounds"] {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new Error(
+      `[BerlinFlight] Invalid bounds in ${filePath}. Expected { minX, maxX, minZ, maxZ }.`,
+    );
+  }
+
+  const bounds = {
+    minX: getFiniteNumber(value.minX, `${filePath} bounds.minX`),
+    maxX: getFiniteNumber(value.maxX, `${filePath} bounds.maxX`),
+    minZ: getFiniteNumber(value.minZ, `${filePath} bounds.minZ`),
+    maxZ: getFiniteNumber(value.maxZ, `${filePath} bounds.maxZ`),
+  };
+
+  if (bounds.minX > bounds.maxX || bounds.minZ > bounds.maxZ) {
+    throw new Error(
+      `[BerlinFlight] Invalid bounds in ${filePath}. Minimum values must be <= maximum values.`,
+    );
+  }
+
+  return bounds;
 }
 
 function parseSourceMeshFile(
