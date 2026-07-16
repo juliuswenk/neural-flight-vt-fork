@@ -137,6 +137,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     worldVisualsVisible: true,
     previewMode: ctx.previewMode ?? false,
     targetSpeed: WERKSCHAU_FLIGHT_BASE_SPEED,
+    debugEnabled: false,
     isLoading: true,
     isDisposed: false,
     abortController: new AbortController(),
@@ -238,7 +239,7 @@ export function tick(
   state.player.setXRPresenting(isXrPresenting);
   if (state.onboarding.isComplete && !state.onboarding.hasEnded) {
     state.player.tick(ctx.delta);
-    clampPlayerToExhibitionBounds(state);
+    resetPlayerAtExhibitionBoundary(state);
   }
   state.player.rig.updateMatrixWorld(true);
   updateExhibitionBorderGridVisibility(state);
@@ -469,22 +470,26 @@ function getDistanceToExhibitionBorder(position: THREE.Vector3): number {
   );
 }
 
-function clampPlayerToExhibitionBounds(state: WerkschauState): void {
+function resetPlayerAtExhibitionBoundary(state: WerkschauState): void {
   const position = state.player.rig.position;
-  position.x = THREE.MathUtils.clamp(
-    position.x,
-    WERKSCHAU_EXHIBITION_BOUNDS.minX,
-    WERKSCHAU_EXHIBITION_BOUNDS.maxX,
-  );
+  const isOutOfBounds =
+    position.x < WERKSCHAU_EXHIBITION_BOUNDS.minX ||
+    position.x > WERKSCHAU_EXHIBITION_BOUNDS.maxX ||
+    position.z < WERKSCHAU_EXHIBITION_BOUNDS.minZ ||
+    position.z > WERKSCHAU_EXHIBITION_BOUNDS.maxZ;
+
+  if (isOutOfBounds) {
+    position.set(
+      WERKSCHAU_PLAYER_SPAWN_POSITION.x,
+      WERKSCHAU_PLAYER_SPAWN_POSITION.y,
+      WERKSCHAU_PLAYER_SPAWN_POSITION.z,
+    );
+  }
+
   position.y = THREE.MathUtils.clamp(
     position.y,
     WERKSCHAU_PLAYER_HEIGHT_LIMITS.MIN,
     WERKSCHAU_PLAYER_HEIGHT_LIMITS.MAX,
-  );
-  position.z = THREE.MathUtils.clamp(
-    position.z,
-    WERKSCHAU_EXHIBITION_BOUNDS.minZ,
-    WERKSCHAU_EXHIBITION_BOUNDS.maxZ,
   );
 }
 

@@ -44,6 +44,7 @@ export interface WerkschauState extends ExperienceState {
   worldVisualsVisible: boolean;
   previewMode: boolean;
   targetSpeed: number;
+  debugEnabled: boolean;
   isLoading: boolean;
   isDisposed: boolean;
   abortController: AbortController;

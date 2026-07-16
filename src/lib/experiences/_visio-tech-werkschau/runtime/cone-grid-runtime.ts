@@ -9,6 +9,7 @@ import {
   WerkschauConeChunkRuntimeStore,
   type WerkschauConeChunkRuntimeDiagnostics,
 } from "../cone-data/runtime-store";
+import { WerkschauConeDebugMarkers } from "./cone-debug-markers";
 import { WERKSCHAU_CONE_RUNTIME_GRID } from "./cone-grid-config";
 import {
   getWerkschauConeChunkCoordinate,
@@ -38,6 +39,7 @@ export class WerkschauConeGridRuntime {
   private readonly chunkStore: WerkschauConeChunkRuntimeStore;
   private readonly queuedObserverPosition = new THREE.Vector3();
   private mesh: THREE.InstancedMesh | null = null;
+  private debugMarkers: WerkschauConeDebugMarkers | null = null;
   private activeConeChunksSnapshot: readonly WerkschauConeChunkSnapshot[] = [];
   private activeConeVolumes: readonly WerkschauConeVolume[] = [];
   private snapshotVersion = 0;
@@ -68,6 +70,21 @@ export class WerkschauConeGridRuntime {
   public setVisible(visible: boolean): void {
     this.root.visible = visible;
     if (this.mesh) this.mesh.visible = visible;
+  }
+
+  public setDebugEnabled(enabled: boolean): void {
+    if (!enabled) {
+      this.debugMarkers?.dispose();
+      this.debugMarkers = null;
+      return;
+    }
+
+    if (!this.debugMarkers) {
+      this.debugMarkers = new WerkschauConeDebugMarkers();
+      this.debugMarkers.attach(this.root);
+    }
+
+    this.debugMarkers.update(this.activeConeVolumes);
   }
 
   public update(observerPosition: THREE.Vector3): void {
@@ -144,6 +161,8 @@ export class WerkschauConeGridRuntime {
     this.activeConeVolumes = [];
     this.snapshotVersion = 0;
     this.loadError = null;
+    this.debugMarkers?.dispose();
+    this.debugMarkers = null;
     this.coneGeometry.dispose();
     this.coneMaterial.dispose();
     this.root.clear();
@@ -181,6 +200,7 @@ export class WerkschauConeGridRuntime {
       .slice()
       .sort(compareConeVolumes);
     this.rebuildMesh();
+    this.debugMarkers?.update(this.activeConeVolumes);
     this.snapshotVersion = this.chunkStore.getSnapshotVersion();
   }
 

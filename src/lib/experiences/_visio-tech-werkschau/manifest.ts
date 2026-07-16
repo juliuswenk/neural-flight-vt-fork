@@ -7,7 +7,11 @@ import type {
   TickContext,
 } from "../types";
 import type * as THREE from "three";
-import { WERKSCHAU_CAMERA_FAR, WERKSCHAU_FLIGHT_BASE_SPEED } from "./constants";
+import {
+  WERKSCHAU_CAMERA_FAR,
+  WERKSCHAU_DEBUG_OVERLAY_DEFAULT,
+  WERKSCHAU_FLIGHT_BASE_SPEED,
+} from "./constants";
 import { updatePlayer } from "./player";
 import { dispose, setup, tick } from "./scene";
 import { applySettings } from "./settings";
@@ -24,6 +28,17 @@ const parameters: ParameterDef[] = [
     step: 1,
     unit: "m/s",
     icon: "Gauge",
+  },
+  {
+    id: "debugOverlay",
+    label: "Debug Overlay",
+    group: "Debug",
+    type: "boolean",
+    min: 0,
+    max: 1,
+    default: WERKSCHAU_DEBUG_OVERLAY_DEFAULT,
+    step: 1,
+    icon: "Bug",
   },
 ];
 

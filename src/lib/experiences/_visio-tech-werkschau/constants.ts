@@ -119,6 +119,15 @@ export const WERKSCHAU_CONE_GRID = {
   MAX_CHUNK_LOADS_PER_TICK: 4,
 } as const;
 
+export const WERKSCHAU_DEBUG_OVERLAY_DEFAULT = false;
+export const WERKSCHAU_CONE_DEBUG_MARKERS = {
+  MAX_MARKERS: 512,
+  TIP_SIZE: 1.8,
+  OPACITY: 0.9,
+  TIP_COLOR: 0xffd166,
+  AXIS_COLOR: 0x7bdff2,
+} as const;
+
 export const WERKSCHAU_CONE_SPATIAL_AUDIO = {
   SOUND_URL:
     "/experiences/_visio-tech-werkschau/audio/freesound_community-city-noise-30537.mp3",

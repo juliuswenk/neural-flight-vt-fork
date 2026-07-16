@@ -7,7 +7,17 @@ export function applySettings(
   state: WerkschauState,
   _scene: Scene,
 ): void {
-  if (id !== "moveSpeed" || typeof value !== "number") return;
-
-  state.targetSpeed = value;
+  switch (id) {
+    case "moveSpeed":
+      if (typeof value !== "number") return;
+      state.targetSpeed = value;
+      break;
+    case "debugOverlay":
+      if (typeof value !== "boolean") return;
+      state.debugEnabled = value;
+      state.coneRuntime.setDebugEnabled(value);
+      break;
+    default:
+      break;
+  }
 }
