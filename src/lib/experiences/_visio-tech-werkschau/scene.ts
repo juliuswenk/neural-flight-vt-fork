@@ -11,6 +11,7 @@ import { WerkschauDroneBoidSystem } from "./drones/boid-system";
 import {
   WERKSCHAU_ALTITUDE_SPEED,
   WERKSCHAU_CAMERA_FAR,
+  WERKSCHAU_DEBUG_OVERLAY_DEFAULT,
   WERKSCHAU_EXHIBITION_BORDER_DAMPING,
   WERKSCHAU_EXHIBITION_BORDER_GRID,
   WERKSCHAU_EXHIBITION_BOUNDS,
@@ -137,7 +138,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     worldVisualsVisible: true,
     previewMode: ctx.previewMode ?? false,
     targetSpeed: WERKSCHAU_FLIGHT_BASE_SPEED,
-    debugEnabled: false,
+    debugEnabled: WERKSCHAU_DEBUG_OVERLAY_DEFAULT,
     isLoading: true,
     isDisposed: false,
     abortController: new AbortController(),
@@ -155,6 +156,7 @@ export async function setup(ctx: SetupContext): Promise<WerkschauState> {
     state.onboarding.isActive = false;
     state.onboarding.isComplete = true;
   }
+  state.coneRuntime.setDebugEnabled(WERKSCHAU_DEBUG_OVERLAY_DEFAULT);
   setWerkschauWorldVisualsVisible(state, false);
   setWerkschauSkyboxVisible(state, false);
   void loadTilesWhenConfigured(state);

@@ -119,7 +119,7 @@ export const WERKSCHAU_CONE_GRID = {
   MAX_CHUNK_LOADS_PER_TICK: 4,
 } as const;
 
-export const WERKSCHAU_DEBUG_OVERLAY_DEFAULT = false;
+export const WERKSCHAU_DEBUG_OVERLAY_DEFAULT = true;
 export const WERKSCHAU_CONE_DEBUG_MARKERS = {
   MAX_MARKERS: 512,
   TIP_SIZE: 1.8,
